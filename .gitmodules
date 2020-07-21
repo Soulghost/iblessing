@@ -1,0 +1,6 @@
+[submodule "submodules/capstone"]
+	path = submodules/capstone
+	url = https://github.com/aquynh/capstone
+[submodule "submodules/unicorn"]
+	path = submodules/unicorn
+	url = https://github.com/unicorn-engine/unicorn
