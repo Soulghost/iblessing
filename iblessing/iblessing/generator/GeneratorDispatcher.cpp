@@ -12,6 +12,7 @@
 #include "StringUtils.h"
 
 #include "IDAObjcMsgXREFGenerator.hpp"
+#include "ObjcMsgXREFServerGenerator.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -24,6 +25,10 @@ static bool fexists(string filename) {
 GeneratorDispatcher::GeneratorDispatcher() {
     registerGenerator("ida-objc-msg-xref", []() {
         return new IDAObjMsgXREFGenerator("ida-objc-msg-xref", "generator ida scripts to add objc_msgSend xrefs from objc-msg-xref scanner's report");
+    });
+    
+    registerGenerator("objc-msg-xref-server", []() {
+        return new ObjcMsgXREFServerGenerator("objc-msg-xref-server", "server to query objc-msg xrefs");
     });
 }
 
