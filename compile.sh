@@ -10,6 +10,8 @@ cd ../..
 cp submodules/capstone/libcapstone.a iblessing/iblessing/vendor/libs/
 cp submodules/unicorn/libunicorn.a   iblessing/iblessing/vendor/libs/
 
-# mkdir -p build
-# xcodebuild -project iblessing/iblessing.xcodeproj -scheme iblessing DSTROOT=./build archive
-
+cd iblessing
+xcodebuild archive -configuration Release
+cd ..
+mkdir -p build
+mv iblessing/build/Release/iblessing build/
