@@ -41,6 +41,7 @@
 		685CE88F24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE88D24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp */; };
 		68D755D724C714E00057E092 /* libunicorn.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D755D624C714E00057E092 /* libunicorn.a */; };
 		68D755D924C714EC0057E092 /* libcapstone.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D755D824C714EC0057E092 /* libcapstone.a */; };
+		68D755DC24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -168,6 +169,8 @@
 		685CE88E24C68933002CC5E8 /* ObjcMethodChainSerializationManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMethodChainSerializationManager.hpp; sourceTree = "<group>"; };
 		68D755D624C714E00057E092 /* libunicorn.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libunicorn.a; sourceTree = "<group>"; };
 		68D755D824C714EC0057E092 /* libcapstone.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libcapstone.a; sourceTree = "<group>"; };
+		68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMsgXREFServerGenerator.cpp; sourceTree = "<group>"; };
+		68D755DB24C8012A0057E092 /* ObjcMsgXREFServerGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMsgXREFServerGenerator.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -444,6 +447,8 @@
 				685CE85824C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp */,
 				685CE85924C57360002CC5E8 /* GeneratorDispatcher.hpp */,
 				685CE85A24C57360002CC5E8 /* Generator.hpp */,
+				68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */,
+				68D755DB24C8012A0057E092 /* ObjcMsgXREFServerGenerator.hpp */,
 			);
 			path = generator;
 			sourceTree = "<group>";
@@ -603,6 +608,7 @@
 				685CE84F24C572D4002CC5E8 /* AntiWrapper.cpp in Sources */,
 				685CE81624C57079002CC5E8 /* ObjcIvar.cpp in Sources */,
 				685CE84424C572A0002CC5E8 /* ScannerDispatcher.cpp in Sources */,
+				68D755DC24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp in Sources */,
 				685CE80924C57079002CC5E8 /* Symbol.cpp in Sources */,
 				685CE81E24C5708A002CC5E8 /* Object.cpp in Sources */,
 				685CE80D24C57079002CC5E8 /* VirtualMemoryV2.cpp in Sources */,

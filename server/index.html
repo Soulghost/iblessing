@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+    <meta charset='UTF-8'>
+    <title>iblessing server</title>
+    <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css'></link>
+</head>
+<body>
+    <h3 style='margin-top: 8px; margin-left: 16px;'>iblessing objc_msgSend XREF Search Center</h3>
+    <div style='margin-top: 8px; margin-left: 16px; margin-right: 16px;'>
+        <div class='input-group mb-3'>
+            <input id='input' type='text' class='form-control' placeholder='Please input an objc-method, such as -[foo bar]' aria-label='Objc Method' aria-describedby='basic-addon2'>
+            <div class='input-group-append'>
+                <button onclick='onSearch()' class='btn btn-outline-secondary' type='button'>Search</button>
+            </div>
+        </div>
+    </div>
+    <div style='margin-left: 16px;' id='anchor'></div>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/d3/5.16.0/d3.min.js'></script>
+    <script>
+        function onSearch() {
+            document.getElementById('anchor').innerHTML = '';
+            let value = document.getElementById('input').value;
+            if (!value) {
+                alert('Error: please input a method');
+                return;
+            }
+            fetch('/method?mode=pre&sel=' + encodeURIComponent(value))
+                .then(res => res.json()).then(responseData => {
+                    if (!responseData.success) {
+                        alert('Error: ' + responseData.message);
+                        return;
+                    }
+
+                    let links = responseData.alllinks;
+                    if (links.length === 0) {
+                        document.getElementById('anchor').innerText = 'No results for ' + value;
+                        return;
+                    }
+                    let data = produceDataFromLinks(links);
+                    drawChartByData(data);
+                })
+                .catch(e => {
+                    console.log('error', e);
+                    alert('Error: ' + JSON.stringify(e));
+                });
+        }
+
+        function produceDataFromLinks(links) {
+            let data = {
+                'name': '*',
+                'children': []
+            };
+
+            links.forEach(link => {
+                let subdata = undefined;
+                link.forEach(item => {
+                    if (!subdata) {
+                        subdata = {
+                            'name': item,
+                            'children': []
+                        };
+                        data.children.push(subdata);
+                    } else{
+                        let child = {
+                            'name': item,
+                            'children': []
+                        };
+                        subdata.children.push(child);
+                        subdata = child;
+                    }
+                });
+            });
+
+            return data;
+        }
+
+        function drawChartByData(data) {
+            let i = 0;
+            var root = d3.hierarchy(data).eachBefore(d => d.index = i++);
+
+            const nodeSize = 17;
+            const nodes = root.descendants();
+            const svg = d3.select('#anchor').append('svg')
+                .attr('viewBox', [-nodeSize / 2, -nodeSize * 3 / 2, 1000, (nodes.length + 1) * nodeSize])
+                .attr('font-family', 'sans-serif')
+                .attr('font-size', 10)
+                .style('overflow', 'visible');
+
+            const link = svg.append('g')
+                .attr('fill', 'none')
+                .attr('stroke', '#999')
+                .selectAll('path')
+                .data(root.links())
+                .join('path')
+                .attr('d', d => `
+                    M${d.source.depth * nodeSize},${d.source.index * nodeSize}
+                    V${d.target.index * nodeSize}
+                    h${nodeSize}
+                `);
+
+            const node = svg.append('g')
+                .selectAll('g')
+                .data(nodes)
+                .join('g')
+                .attr('transform', d => `translate(0,${d.index * nodeSize})`);
+
+            node.append('circle')
+                .attr('cx', d => d.depth * nodeSize)
+                .attr('r', 2.5)
+                .attr('fill', d => d.children ? null : '#999');
+
+            node.append('text')
+                .attr('dy', '0.32em')
+                .attr('x', d => d.depth * nodeSize + 6)
+                .text(d => d.data.name);
+
+            node.append('title')
+                .text(d => d.ancestors().reverse().map(d => d.data.name).join('/'));
+        }
+    </script>
+</body>
+</html>
