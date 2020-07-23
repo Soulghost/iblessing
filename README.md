@@ -213,5 +213,30 @@ Usage Example:
 	[*] / 0x1069d986c/0x1069d9874 (100.00%)
 	[*] reach to end of __text, stop
   [+] anti-wrapper finished
+  
+[*] start ObjcMethodXrefScanner Exploit Scanner
+  [*] Step 1. realize all app classes
+	[*] realize classes 14631/14631 (100.00%)
+	[+] get 667318 methods to analyze
+  [*] Step 2. dyld load non-lazy symbols
+  [*] Step 3. track all calls
+	[*] progress: 667318 / 667318 (100.00%)
+  [*] Step 4. serialize call chains to file
+  [*] saved to /opt/one-btn/tmp/apps/WeChat/Payload/WeChat_method-xrefs.iblessing.txt
+  
+> ls -alh WeChat_method-xrefs.iblessing.txt
+-rw-r--r--  1 soulghost  wheel    63M Jul 23 14:46 WeChat_method-xrefs.iblessing.txt 
+
+> head WeChat_method-xrefs.iblessing.txt
+iblessing methodchains,ver:0.2;
+chainId,sel,prefix,className,methodName,prevMethods,nextMethods
+182360,0x1008a0ab8,+[A8KeyControl initialize],+,A8KeyControl,initialize,[],[4429#0x1008a1064@4376#0x1008a1050@13769#0x1008a10d0]
+182343,0x1008a0ad0,+[A8KeyControl_QueryStringTransferCookie initialize],+,A8KeyControl_QueryStringTransferCookie,initialize,[],[4429#0x1008a1064@4376#0x1008a1050@13769#0x1008a10d0]
+145393,0x1008c2220,+[A8KeyResultCookieWriter initWithDomain:weakWebView:andCompleteBlock:],+,A8KeyResultCookieWriter,initWithDomain:weakWebView:andCompleteBlock:,[145386#0x10036367c],[]
+145396,0x1008c3df8,+[A8KeyResultCookieWriter setA8KeyCookieExpireTime:],+,A8KeyResultCookieWriter,setA8KeyCookieExpireTime:,[145386#0x1003636e8],[]
+145397,0x1008c27e8,+[A8KeyResultCookieWriter writeCompleteMarkerCookieValue:forKey:],+,A8KeyResultCookieWriter,writeCompleteMarkerCookieValue:forKey:,[145386#0x10036380c],[]
+253456,0x0,+[AAOperationReq init],+,AAOperationReq,init,[253455#0x1039a9d30],[]
+253457,0x0,+[AAOperationReq setBaseRequest:],+,AAOperationReq,setBaseRequest:,[253455#0x1039a9d8c],[]
+186847,0x0,+[AAOperationRes length],+,AAOperationRes,length,[186845#0x10342aa54],[]
 ```
 
