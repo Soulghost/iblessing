@@ -53,6 +53,8 @@ cd iblessing
 sh compile.sh
 ```
 
+***If there are any errors, you can manully compile capstone and unicorn, then drag libcapstone.a and libunicorn.a to the Xcode project's vendor/libs.***
+
 If all of this run successfully, you can find the binary in build directory:
 ```
 > ls ./build
