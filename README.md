@@ -272,5 +272,5 @@ iblessing -m generator -i objc-msg-xref-server -f WeChat_method-xrefs.iblessing.
   [*] listening on http://127.0.0.1:2345
 ```
 Next you can open `http://127.0.0.1:2345` with a browser to query any objc_msgSend xrefs you like:
-![](https://raw.githubusercontent.com/Soulghost/iblessing/master/resource/images/objc_msgSend_xref_server.png?token=ABQCEZYEWDHU2IOFPQB2RZC7DE4CI)
+![](https://raw.githubusercontent.com/Soulghost/iblessing/master/resource/images/objc_msgSend_xref_server.png?token=ABQCEZ2TNDWTSTMHKEQLFEK7DE4WS)
 
