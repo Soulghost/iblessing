@@ -33,6 +33,7 @@ In case you need support regarding iblessing or anything associated with it, you
 - send mail to xiuyutong1994#gmail.com
 
 # Get started
+⚠️⚠️⚠️ **Unicorn will crash when SIP(System Integrity Protection) is on, please turn it off before you run any scanner depend on unicorn.**
 1. You can download the [pre-relase iblessing binary](https://github.com/Soulghost/iblessing/releases) and enjoy it.
 2. run chmod +x for the binary
 3. For more tutorails, please check the [Documentation & Help](https://github.com/Soulghost/iblessing#documentation--help) below.
