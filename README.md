@@ -22,6 +22,13 @@
 - [ ] Swift class and method parsing
 - [ ] More scanners and generators
 
+# Support 
+In case you need support regarding iblessing or anything associated with it, you can:
+- create an issue and provide necessary information
+- contact [Sou1gh0st](https://twitter.com/Sou1gh0st) on Twitter 
+- send mail to xiuyutong1994#163.com
+- send mail to xiuyutong1994#gmail.com
+
 # How to Compile
 To get started compiling iblessing, please follow the steps below:
 ```
