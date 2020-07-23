@@ -14,13 +14,13 @@
 - [x] iOS App static info extract, including metadata, deeplinks, urls, etc.
 - [x] Mach-O parser and dyld symbol bind simulator
 - [x] Objective-C class realizing and parsing
-- [x] Scanners that can make dynamic analysis for arm64 assembly code and find key information or attack surface
-- [x] Scanners that can use unicorn to partially simulate Mach-O arm64 code execution and find some features
+- [x] Scanners making dynamic analysis for arm64 assembly code and find key information or attack surface
+- [x] Scanners using unicorn to partially simulate Mach-O arm64 code execution and find some features
 - [x] Generators that can provide secondary processing on scanner's report to start a query server, or generate script for IDA.
-- [ ] Flexible scanner infrastructure for new scanner plugins
+- [ ] Diagnostic logs
+- [ ] More flexible scanner infrastructure for new scanner plugins
 - [ ] Swift class and method parsing
 - [ ] More scanners and generators
-- [ ] Diagnostic logs
 
 # How to Compile
 To get started compiling iblessing, please follow the steps below:
