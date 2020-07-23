@@ -12,10 +12,13 @@
 #include "vendor/termcolor/termcolor.h"
 #include "scanner/ScannerDispatcher.hpp"
 #include "generator/GeneratorDispatcher.hpp"
+#include "platform/macos/csrutil.hpp"
 
 using namespace std;
 using namespace argparse;
 using namespace iblessing;
+
+extern int csr_get_active_config(void *config);
 
 int main(int argc, const char *argv[]) {
     // ascii art
@@ -31,7 +34,13 @@ int main(int argc, const char *argv[]) {
     
     // hello text
     printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.1.1 (http://blog.asm.im)\n");
-    printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n\n");
+    printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
+    if (CSRUtil::isSIPon()) {
+        cout << termcolor::yellow;
+        cout << "[***] ⚠️  Warn: SIP is on, scanners which based on unicorn will not work";
+        cout << termcolor::reset << endl;
+    }
+    printf("\n");
     
     // parse args
     ArgumentParser parser("iblessing", "iblessing iOS security toolkit");
