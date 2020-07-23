@@ -44,18 +44,6 @@
 		68D755DC24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXCopyFilesBuildPhase section */
-		685CE7CD24C55309002CC5E8 /* CopyFiles */ = {
-			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
-			dstPath = /usr/share/man/man1/;
-			dstSubfolderSpec = 0;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 1;
-		};
-/* End PBXCopyFilesBuildPhase section */
-
 /* Begin PBXFileReference section */
 		685CE7CF24C55309002CC5E8 /* iblessing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = iblessing; sourceTree = BUILT_PRODUCTS_DIR; };
 		685CE7DA24C56E8B002CC5E8 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
@@ -547,7 +535,6 @@
 			buildPhases = (
 				685CE7CB24C55309002CC5E8 /* Sources */,
 				685CE7CC24C55309002CC5E8 /* Frameworks */,
-				685CE7CD24C55309002CC5E8 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -748,7 +735,9 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 6CMYQQFFT8;
+				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/iblessing/vendor/termcolor",
@@ -767,13 +756,16 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 6CMYQQFFT8;
+				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
+				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/iblessing/vendor/termcolor",
 					"$(PROJECT_DIR)/iblessing/vendor/libs",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SYMROOT = build;
 				SYSTEM_HEADER_SEARCH_PATHS = (
 					"${SRCROOT}/../submodules/capstone/include",
 					"${SRCROOT}/../submodules/unicorn/include",
