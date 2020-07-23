@@ -39,6 +39,8 @@
 		685CE85C24C57360002CC5E8 /* GeneratorDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE85724C57360002CC5E8 /* GeneratorDispatcher.cpp */; };
 		685CE85D24C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE85824C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp */; };
 		685CE88F24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE88D24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp */; };
+		68C362FA24C9C9D100441950 /* libSystem.B.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 68C362F924C9C9D000441950 /* libSystem.B.tbd */; };
+		68C3630024C9CA7200441950 /* csrutil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68C362FE24C9CA7200441950 /* csrutil.cpp */; };
 		68D755D724C714E00057E092 /* libunicorn.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D755D624C714E00057E092 /* libunicorn.a */; };
 		68D755D924C714EC0057E092 /* libcapstone.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D755D824C714EC0057E092 /* libcapstone.a */; };
 		68D755DC24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */; };
@@ -155,6 +157,10 @@
 		685CE88824C57390002CC5E8 /* stdint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stdint.h; sourceTree = "<group>"; };
 		685CE88D24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMethodChainSerializationManager.cpp; sourceTree = "<group>"; };
 		685CE88E24C68933002CC5E8 /* ObjcMethodChainSerializationManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMethodChainSerializationManager.hpp; sourceTree = "<group>"; };
+		68C362F924C9C9D000441950 /* libSystem.B.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem.B.tbd; path = usr/lib/libSystem.B.tbd; sourceTree = SDKROOT; };
+		68C362FD24C9CA4500441950 /* csr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csr.h; sourceTree = "<group>"; };
+		68C362FE24C9CA7200441950 /* csrutil.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = csrutil.cpp; sourceTree = "<group>"; };
+		68C362FF24C9CA7200441950 /* csrutil.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = csrutil.hpp; sourceTree = "<group>"; };
 		68D755D624C714E00057E092 /* libunicorn.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libunicorn.a; sourceTree = "<group>"; };
 		68D755D824C714EC0057E092 /* libcapstone.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libcapstone.a; sourceTree = "<group>"; };
 		68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMsgXREFServerGenerator.cpp; sourceTree = "<group>"; };
@@ -166,6 +172,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				68C362FA24C9C9D100441950 /* libSystem.B.tbd in Frameworks */,
 				68D755D924C714EC0057E092 /* libcapstone.a in Frameworks */,
 				68D755D724C714E00057E092 /* libunicorn.a in Frameworks */,
 			);
@@ -194,6 +201,7 @@
 		685CE7D124C55309002CC5E8 /* iblessing */ = {
 			isa = PBXGroup;
 			children = (
+				68C362FB24C9CA2E00441950 /* platform */,
 				685CE88C24C68904002CC5E8 /* serialization */,
 				685CE85024C572FE002CC5E8 /* domain */,
 				685CE84B24C572CC002CC5E8 /* analyzer */,
@@ -363,6 +371,7 @@
 		685CE82524C57145002CC5E8 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				68C362F924C9C9D000441950 /* libSystem.B.tbd */,
 				685CE82C24C57225002CC5E8 /* libcapstone.5.dylib */,
 				685CE82824C57155002CC5E8 /* libcapstone.a */,
 				685CE82624C57145002CC5E8 /* libunicorn.a */,
@@ -526,6 +535,24 @@
 			path = serialization;
 			sourceTree = "<group>";
 		};
+		68C362FB24C9CA2E00441950 /* platform */ = {
+			isa = PBXGroup;
+			children = (
+				68C362FC24C9CA3200441950 /* macos */,
+			);
+			path = platform;
+			sourceTree = "<group>";
+		};
+		68C362FC24C9CA3200441950 /* macos */ = {
+			isa = PBXGroup;
+			children = (
+				68C362FD24C9CA4500441950 /* csr.h */,
+				68C362FE24C9CA7200441950 /* csrutil.cpp */,
+				68C362FF24C9CA7200441950 /* csrutil.hpp */,
+			);
+			path = macos;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -610,6 +637,7 @@
 				685CE80E24C57079002CC5E8 /* ARM64Registers.cpp in Sources */,
 				685CE81824C57079002CC5E8 /* UnicornARM64Runtime.cpp in Sources */,
 				685CE84A24C572A0002CC5E8 /* PredicateScanner.cpp in Sources */,
+				68C3630024C9CA7200441950 /* csrutil.cpp in Sources */,
 				685CE84924C572A0002CC5E8 /* SymbolWrapperScanner.cpp in Sources */,
 				685CE84524C572A0002CC5E8 /* ObjcClassXrefScanner.cpp in Sources */,
 				685CE81224C57079002CC5E8 /* ARM64Runtime.cpp in Sources */,
