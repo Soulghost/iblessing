@@ -240,3 +240,37 @@ chainId,sel,prefix,className,methodName,prevMethods,nextMethods
 186847,0x0,+[AAOperationRes length],+,AAOperationRes,length,[186845#0x10342aa54],[]
 ```
 
+The report can be used by the generators, now let's go.
+
+### Generate objc_msgSend Xrefs Query Server
+You can start a server through iblessing's objc-msg-xref-server generator to query all objc_msgSend xrefs.
+```
+iblessing -m generator -i objc-msg-xref-server -f <path-to-report-generated-by-objc-msg-xref-scanner>
+```
+
+#### Specify the Listening Host and Port
+The default listening address is 127.0.0.1:2345, you can specify it by -d option.
+```
+iblessing -m generator -i objc-msg-xref-server -f WeChat_method-xrefs.iblessing.txt -d 'host=0.0.0.0;port=12345'
+```
+
+#### Usage Example
+```
+> iblessing -m generator -i objc-msg-xref-server -f WeChat_method-xrefs.iblessing.txt
+[*] set output path to /opt/one-btn/tmp/apps/WeChat/Payload
+[*] input file is WeChat_method-xrefs.iblessing.txt
+[*] start ObjcMsgXREFServerGenerator
+  [*] load method-chain db for version iblessing methodchains,ver:0.2;
+  [*] table keys chainId,sel,prefix,className,methodName,prevMethods,nextMethods
+	[-] bad line 104467,0x0,+[TPLock P,	],+,TPLock,P,	,[104426#0x1043b9904],[]
+	[-] bad line 114905,0x0,?[0x108ce1578 (,],?,0x108ce1578,(,,[114900#0x1011e8c68],[]
+	[-] bad line 104464,0x0,?[? P,	],?,?,P,	,[104426#0x1043b98a8],[]
+	[-] bad line 139234,0x0,?[? X
+	[-] bad line ],?,?,X
+	[-] bad line ,[139205#0x1013c222c],[]
+	[+] load storage from disk succeeded!
+  [*] listening on http://127.0.0.1:2345
+```
+Next you can open `http://127.0.0.1:2345` with a browser to query any objc_msgSend xrefs you like:
+
+
