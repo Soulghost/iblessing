@@ -139,3 +139,35 @@ ExecutableName: WeChat
 > ls -alh 
 -rw-r--r--@ 1 soulghost  wheel    29K Jul 23 14:01 WeChat.app_info.iblessing.txt
 ```
+
+### Scan for Class Xrefs
+*** Notice: ARM64 Binaries Only ***
+```
+iblessing -m scan -i objc-class-xref -f <path-to-binary> -d 'classes=<classname_to_scan>,<classname_to_scan>,...'
+```
+
+```
+$ iblessing -m scan -i objc-class-xref -f WeChat -d 'classes=NSPredicate'
+[*] set output path to /opt/one-btn/tmp/apps/WeChat/Payload
+[*] input file is WeChat
+[+] detect mach-o header 64
+[+] detect litten-endian
+[*] start Objc Class Xref Scanner
+  [*] try to find _OBJC_CLASS_$_NSPredicate
+  [*] Step 1. locate class refs
+	[+] find _OBJC_CLASS_$_NSPredicate at 0x108eb81d8
+  [*] Step 2. find __TEXT,__text
+	[+] find __TEXT,__text at 0x4000
+  [*] Step 3. scan in __text
+	[*] start disassembler at 0x100004000
+	[*] \ 0x1002e1a50/0x1069d9874 (2.71%)	[+] find _OBJC_CLASS_$_NSPredicate ref at 0x1002e1a54
+           ...
+  [*] Step 4. symbolicate ref addresses
+           [+] _OBJC_CLASS_$_NSPredicate -|
+           [+] find _OBJC_CLASS_$_NSPredicate ref -[WCWatchNotificationMgr addYoCount:contact:type:] at 0x1002e1a54
+           [+] find _OBJC_CLASS_$_NSPredicate ref -[NotificationActionsMgr handleSendMsgResp:] at 0x1003e0e28
+           [+] find _OBJC_CLASS_$_NSPredicate ref -[FLEXClassesTableViewController searchBar:textDidChange:] at 0x1004a090c
+           [+] find _OBJC_CLASS_$_NSPredicate ref +[GameCenterUtil parameterValueForKey:fromQueryItems:] at 0x1005a823c
+           [+] find _OBJC_CLASS_$_NSPredicate ref +[GameCenterUtil getNavigationBarColorForUrl:defaultColor:] at 0x1005a8cd8
+           ...
+```
