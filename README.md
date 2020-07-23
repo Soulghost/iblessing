@@ -34,6 +34,17 @@ You can download the [pre-relase iblessing binary](https://github.com/Soulghost/
 
 For more tutorails, please check the [Documentation & Help](https://github.com/Soulghost/iblessing#documentation--help) below.
 
+## Shortcuts
+- [Basic Concepts](https://github.com/Soulghost/iblessing#basic-concepts)
+- Scanners
+  - [Scan for AppInfos](https://github.com/Soulghost/iblessing#scan-for-appinfos)
+  - [Scan for Class XREFs](https://github.com/Soulghost/iblessing#scan-for-class-xrefs)
+  - [Scan for All objc_msgSend XREFs](https://github.com/Soulghost/iblessing#scan-for-all-objc_msgsend-xrefs)
+ 
+- Generators
+  - [Generate objc_msgSend Xrefs Query Server](https://github.com/Soulghost/iblessing#generate-objc_msgsend-xrefs-query-server)
+  - [Generate IDA Scripts for objc_msgSend xrefs](https://github.com/Soulghost/iblessing#generate-ida-scripts-for-objc_msgsend-xrefs)
+
 # How to Compile
 To get started compiling iblessing, please follow the steps below:
 ```
