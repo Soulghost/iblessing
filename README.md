@@ -18,6 +18,7 @@
 - [x] Scanners using unicorn to partially simulate Mach-O arm64 code execution and find some features
 - [x] Generators that can provide secondary processing on scanner's report to start a query server, or generate script for IDA.
 - [ ] Diagnostic logs
+- [ ] Tests
 - [ ] More flexible scanner infrastructure for new scanner plugins
 - [ ] Swift class and method parsing
 - [ ] More scanners and generators
