@@ -188,7 +188,7 @@ iblessing -m scan -i objc-msg-xref -f WeChat -d 'antiWrapper=1'
 The anti-wrapper mode will detect objc_msgSend wrappers and make transforms, such as:
 ```arm
 ; __int64 __usercall objc_msgSend_X0_X22_X20@<X0>(void *obj@<X0>, const char *sel@<X22>, id anyObj@<X20>, ...)
-objc_msgSend_X0_X22_X20
+objc_msgSend_X0_X22_X20:
 MOV             X1, X22
 MOV             X2, X20
 B               objc_msgSend
