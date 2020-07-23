@@ -82,6 +82,10 @@ A generator is a component that performs secondary processing on the report gene
 
 ## Basic Usage
 ### Scan for AppInfos
+```
+> iblessing -m scan -i app-info -f <path-to-app-bundle>
+```
+
 Let's take WeChat as an example:
 ```
 > iblessing -m scan -i app-info -f WeChat.app
