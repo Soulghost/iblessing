@@ -29,6 +29,11 @@ In case you need support regarding iblessing or anything associated with it, you
 - send mail to xiuyutong1994#163.com 
 - send mail to xiuyutong1994#gmail.com
 
+# Get started
+You can download the [pre-relase iblessing binary](https://github.com/Soulghost/iblessing/releases) and enjoy it.
+
+For more tutorails, please check the [Documentation & Help](https://github.com/Soulghost/iblessing#documentation--help) below.
+
 # How to Compile
 To get started compiling iblessing, please follow the steps below:
 ```
