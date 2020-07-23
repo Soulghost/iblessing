@@ -11,6 +11,7 @@
 
 #include <cstdio>
 #include <iostream>
+#include <cassert>
 #include "CommonDefines.hpp"
 
 NS_IB_BEGIN

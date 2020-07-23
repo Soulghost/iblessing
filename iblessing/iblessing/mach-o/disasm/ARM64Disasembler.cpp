@@ -7,6 +7,7 @@
 //
 
 #include "ARM64Disasembler.hpp"
+#include <cassert>
 
 using namespace std;
 using namespace iblessing;
