@@ -131,6 +131,9 @@ int ObjcClassXrefScanner::start() {
             bool success = ARM64Runtime::handleADD(insn, nullptr, nullptr, false);
             if (success) {
                 ARM64RegisterX *dst = dynamic_cast<ARM64RegisterX *>(state->getRegisterFromOprand(insn->detail->arm64.operands[0]));
+                if (dst == nullptr || !dst->available) {
+                    return;
+                }
                 uint64_t targetAddr = dst->getValue();
                 for (auto it = classRecords.begin(); it != classRecords.end(); it++) {
                     if (it->second.first.find(targetAddr) != it->second.first.end()) {
