@@ -272,5 +272,46 @@ iblessing -m generator -i objc-msg-xref-server -f WeChat_method-xrefs.iblessing.
   [*] listening on http://127.0.0.1:2345
 ```
 Next you can open `http://127.0.0.1:2345` with a browser to query any objc_msgSend xrefs you like:
-![](https://raw.githubusercontent.com/Soulghost/iblessing/master/resource/images/objc_msgSend_xref_server.png?token=ABQCEZ2TNDWTSTMHKEQLFEK7DE4WS)
+![](https://github.com/Soulghost/iblessing/blob/master/resource/images/objc_msgSend_xref_server.png?raw=true)
 
+### Generate IDA Scripts for objc_msgSend xrefs
+You can add objc_msgSend xrefs generated from objc-msg-xref scanner to make your reverse engineering journey more faster and comfortable.
+```
+iblessing -m generator -i ida-objc-msg-xref -f <path-to-report-generated-by-objc-msg-xref-scanner>
+```
+
+#### Usage Example
+```
+> iblessing -m generator -i ida-objc-msg-xref -f WeChat_method-xrefs.iblessing.txt
+[*] set output path to /opt/one-btn/tmp/apps/WeChat/Payload
+[*] input file is WeChat_method-xrefs.iblessing.txt
+[*] start IDAObjMsgXREFGenerator
+  [*] load method-chain db for version iblessing methodchains,ver:0.2;
+  [*] table keys chainId,sel,prefix,className,methodName,prevMethods,nextMethods
+	[-] bad line 104467,0x0,+[TPLock P,	],+,TPLock,P,	,[104426#0x1043b9904],[]
+	[-] bad line 114905,0x0,?[0x108ce1578 (,],?,0x108ce1578,(,,[114900#0x1011e8c68],[]
+	[-] bad line 104464,0x0,?[? P,	],?,?,P,	,[104426#0x1043b98a8],[]
+	[-] bad line 139234,0x0,?[? X
+	[-] bad line ],?,?,X
+	[-] bad line ,[139205#0x1013c222c],[]
+	 [+] load storage from disk succeeded!
+  [*] Generating XREF Scripts ...
+  [*] saved to /opt/one-btn/tmp/apps/WeChat/Payload/WeChat_method-xrefs.iblessing.txt_ida_objc_msg_xrefs.iblessing.py
+  
+> ls -alh WeChat_method-xrefs.iblessing.txt_ida_objc_msg_xrefs.iblessing.py
+-rw-r--r--  1 soulghost  wheel    23M Jul 23 16:16 WeChat_method-xrefs.iblessing.txt_ida_objc_msg_xrefs.iblessing.py
+
+> head WeChat_method-xrefs.iblessing.txt_ida_objc_msg_xrefs.iblessing.py
+def add_objc_xrefs():
+    ida_xref.add_cref(0x10036367c, 0x1008c2220, XREF_USER)
+    ida_xref.add_cref(0x1003636e8, 0x1008c3df8, XREF_USER)
+    ida_xref.add_cref(0x10036380c, 0x1008c27e8, XREF_USER)
+    ida_xref.add_cref(0x103add16c, 0x700006e187a8, XREF_USER)
+    ida_xref.add_cref(0x102cbee0c, 0x101143ee8, XREF_USER)
+    ida_xref.add_cref(0x10085c92c, 0x1005e9360, XREF_USER)
+    ida_xref.add_cref(0x10085c8bc, 0x1005e9274, XREF_USER)
+    ida_xref.add_cref(0x10085c8dc, 0x1005e92bc, XREF_USER)
+    ida_xref.add_cref(0x10085c8cc, 0x1005e9298, XREF_USER)
+```
+
+Next open your IDA 
