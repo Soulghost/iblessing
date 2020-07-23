@@ -213,7 +213,7 @@ MOV             X2, X20
 B               objc_msgSend
 ```
 
-Usage Example:
+#### Usage Example:
 ```
 > iblessing -m scan -i objc-msg-xref -f WeChat -d 'antiWrapper=1'
 [*] set output path to /opt/one-btn/tmp/apps/WeChat/Payload
@@ -338,3 +338,4 @@ def add_objc_xrefs():
 Next open your IDA -> File -> Script File and load the script, this step may take a long time. And when it is done, you can find many xrefs for objc method:
 ![](https://github.com/Soulghost/iblessing/blob/master/resource/images/ida_objc_msgSend_xrefs.png?raw=true)
 
+# To be continued
