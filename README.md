@@ -140,7 +140,7 @@ ExecutableName: WeChat
 -rw-r--r--@ 1 soulghost  wheel    29K Jul 23 14:01 WeChat.app_info.iblessing.txt
 ```
 
-### Scan for Class Xrefs
+### Scan for Class XREFs
 ***Notice: ARM64 Binaries Only***
 ```
 iblessing -m scan -i objc-class-xref -f <path-to-binary> -d 'classes=<classname_to_scan>,<classname_to_scan>,...'
@@ -172,3 +172,42 @@ iblessing -m scan -i objc-class-xref -f <path-to-binary> -d 'classes=<classname_
            [+] find _OBJC_CLASS_$_NSPredicate ref +[GameCenterUtil getNavigationBarColorForUrl:defaultColor:] at 0x1005a8cd8
            ...
 ```
+
+### Scan for All objc_msgSend XREFs
+***Notice: ARM64 Binaries Only***
+
+#### Simple Mode
+```
+iblessing -m scan -i objc-msg-xref -f <path-to-binary>
+```
+
+#### Anti-Wrapper Mode
+```
+iblessing -m scan -i objc-msg-xref -f WeChat -d 'antiWrapper=1'
+```
+The anti-wrapper mode will detect objc_msgSend wrappers and make transforms, such as:
+```arm
+
+```
+
+Usage Example:
+```
+> iblessing -m scan -i objc-msg-xref -f WeChat -d 'antiWrapper=1'
+[*] set output path to /opt/one-btn/tmp/apps/WeChat/Payload
+[*] input file is WeChat
+[+] detect mach-o header 64
+[+] detect litten-endian
+
+[*] !!! Notice: enter anti-wrapper mode, start anti-wrapper scanner
+[*] start Symbol Wrapper Scanner
+  [*] try to find wrappers for_objc_msgSend
+  [*] Step1. find __TEXT,__text
+	[+] find __TEXT,__text at 0x100004000
+	[+] mapping text segment 0x100000000 ~ 0x107cb0000 to unicorn engine
+  [*] Step 2. scan in __text
+	[*] start disassembler at 0x100004000
+	[*] / 0x1069d986c/0x1069d9874 (100.00%)
+	[*] reach to end of __text, stop
+ [+] anti-wrapper finished
+```
+
