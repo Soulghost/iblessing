@@ -314,4 +314,6 @@ def add_objc_xrefs():
     ida_xref.add_cref(0x10085c8cc, 0x1005e9298, XREF_USER)
 ```
 
-Next open your IDA 
+Next open your IDA -> File -> Script File and load the script, this step may take a long time. And when it is done, you can find many xrefs for objc method:
+![](https://github.com/Soulghost/iblessing/blob/master/resource/images/ida_objc_msgSend_xrefs.png?raw=true)
+
