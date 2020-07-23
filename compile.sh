@@ -14,4 +14,4 @@ cd iblessing
 xcodebuild archive -configuration Release
 cd ..
 mkdir -p build
-mv iblessing/build/Release/iblessing build/
+mv iblessing/build/UninstalledProducts/macosx/iblessing build/
