@@ -141,13 +141,14 @@ ExecutableName: WeChat
 ```
 
 ### Scan for Class Xrefs
-*** Notice: ARM64 Binaries Only ***
+***Notice: ARM64 Binaries Only***
 ```
 iblessing -m scan -i objc-class-xref -f <path-to-binary> -d 'classes=<classname_to_scan>,<classname_to_scan>,...'
 ```
 
 ```
-$ iblessing -m scan -i objc-class-xref -f WeChat -d 'classes=NSPredicate'
+> restore-symbol WeChat -o WeChat.restored
+> iblessing -m scan -i objc-class-xref -f WeChat.restored -d 'classes=NSPredicate'
 [*] set output path to /opt/one-btn/tmp/apps/WeChat/Payload
 [*] input file is WeChat
 [+] detect mach-o header 64
