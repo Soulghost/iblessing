@@ -30,9 +30,9 @@ In case you need support regarding iblessing or anything associated with it, you
 - send mail to xiuyutong1994#gmail.com
 
 # Get started
-You can download the [pre-relase iblessing binary](https://github.com/Soulghost/iblessing/releases) and enjoy it.
-
-For more tutorails, please check the [Documentation & Help](https://github.com/Soulghost/iblessing#documentation--help) below.
+1. You can download the [pre-relase iblessing binary](https://github.com/Soulghost/iblessing/releases) and enjoy it.
+2. run chmod +x for the binary
+3. For more tutorails, please check the [Documentation & Help](https://github.com/Soulghost/iblessing#documentation--help) below.
 
 ## Shortcuts
 - [Basic Concepts](https://github.com/Soulghost/iblessing#basic-concepts)
