@@ -168,7 +168,11 @@ int main(int argc, const char *argv[]) {
             size_t size = pathconf(".", _PC_PATH_MAX);
             char *buf = (char *)malloc((size_t)size);
             char *path = getcwd(buf, (size_t)size);
-            outputFilePath = string(path);
+            if (path) {
+                outputFilePath = string(path);
+            } else {
+                outputFilePath = "/tmp";
+            }
             free(buf);
         }
         printf("[*] set output path to %s\n", outputFilePath.c_str());
