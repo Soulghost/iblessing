@@ -255,6 +255,7 @@ iblessing -m generator -i objc-msg-xref-server -f WeChat_method-xrefs.iblessing.
 ```
 
 #### Usage Example
+***Notice: the objc-msg-xref is based on unicorn, to speed up the analyze, we do not follow any calls, so the result is partially missing.***
 ```
 > iblessing -m generator -i objc-msg-xref-server -f WeChat_method-xrefs.iblessing.txt
 [*] set output path to /opt/one-btn/tmp/apps/WeChat/Payload
@@ -281,6 +282,7 @@ iblessing -m generator -i ida-objc-msg-xref -f <path-to-report-generated-by-objc
 ```
 
 #### Usage Example
+***Notice: the objc-msg-xref is based on unicorn, to speed up the analyze, we do not follow any calls, so the result is partially missing.***
 ```
 > iblessing -m generator -i ida-objc-msg-xref -f WeChat_method-xrefs.iblessing.txt
 [*] set output path to /opt/one-btn/tmp/apps/WeChat/Payload
