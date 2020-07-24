@@ -36,9 +36,7 @@ int main(int argc, const char *argv[]) {
     printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.1.1 (http://blog.asm.im)\n");
     printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
     if (CSRUtil::isSIPon()) {
-        cout << termcolor::yellow;
-        cout << "[***] ⚠️  Warn: SIP is on, scanners which based on unicorn will not work";
-        cout << termcolor::reset << endl;
+        printf("[***] System Integrity Protection is on\n");
     }
     printf("\n");
     
