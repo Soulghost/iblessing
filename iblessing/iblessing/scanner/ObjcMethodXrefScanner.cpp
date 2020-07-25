@@ -140,7 +140,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                     uc_reg_write(uc, UC_ARM64_REG_X0, &ctx->currentMethod->classInfo->address);
                 } else if (rt->ivarInstanceTrickAddress2RuntimeInfo.find(x0) != rt->ivarInstanceTrickAddress2RuntimeInfo.end()) {
                     // ivar instance, write ivar's real class addr to x0
-                    ObjcClassRuntimeInfo *ivarClassInfo = rt->externalClassRuntimeInfo[x0];
+                    ObjcClassRuntimeInfo *ivarClassInfo = rt->ivarInstanceTrickAddress2RuntimeInfo[x0];
                     uc_reg_write(uc, ARM64_REG_X0, &ivarClassInfo->address);
                 } else {
                     // other instance: TODO
@@ -261,6 +261,12 @@ void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &method
     // split methods by engines
     uint64_t groupCount = engines.size();
     uint64_t methodCount = methods.size();
+    if (methodCount < groupCount) {
+        groupCount = methodCount;
+        cout << termcolor::yellow;
+        cout << StringUtils::format("\t[+] Warn: method count %llu less than thread count %llu\n", methodCount, groupCount);
+        cout << termcolor::reset << endl;
+    }
     uint64_t groupCap = methodCount / groupCount;
     curCount = 0;
     totalCount = methodCount;
