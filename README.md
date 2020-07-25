@@ -23,6 +23,7 @@
 - [ ] More flexible scanner infrastructure for new scanner plugins
 - [ ] Swift class and method parsing
 - [ ] More scanners and generators
+- [ ] Cross-platform
 
 # Support 
 ***unicorn may crash (segment fault or bus error) on some computers, I am trying to solve this problem.***
@@ -52,6 +53,8 @@ In case you need support regarding iblessing or anything associated with it, you
   - [Generate IDA Scripts for objc_msgSend xrefs](https://github.com/Soulghost/iblessing#generate-ida-scripts-for-objc_msgsend-xrefs)
 
 # How to Compile
+- Platform: macOS Only (Will support linux in the future)
+
 To get started compiling iblessing, please follow the steps below:
 ```
 git clone https://github.com/Soulghost/iblessing
