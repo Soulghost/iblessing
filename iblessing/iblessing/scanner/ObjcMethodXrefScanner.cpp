@@ -264,7 +264,7 @@ void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &method
     if (methodCount < groupCount) {
         groupCount = methodCount;
         cout << termcolor::yellow;
-        cout << StringUtils::format("\t[+] Warn: method count %llu less than thread count %llu\n", methodCount, groupCount);
+        cout << StringUtils::format("\t[+] Warn: method count %llu less than thread count %llu", methodCount, groupCount);
         cout << termcolor::reset << endl;
     }
     uint64_t groupCap = methodCount / groupCount;
