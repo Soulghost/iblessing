@@ -18,8 +18,6 @@ using namespace std;
 using namespace argparse;
 using namespace iblessing;
 
-extern int csr_get_active_config(void *config);
-
 int main(int argc, const char *argv[]) {
     // ascii art
     printf("\n\
