@@ -36,7 +36,7 @@ In case you need support regarding iblessing or anything associated with it, you
 
 # Get started
 ⚠️⚠️⚠️ **Sometimes unicorn will crash on start when doing huge memory mapping, you can try to run it again, if it still can't work, please contact me or create an issue, thanks.**
-1. You can download the [pre-relase iblessing binary](https://github.com/Soulghost/iblessing/releases) and enjoy it.
+1. You can download the [pre-released iblessing binary](https://github.com/Soulghost/iblessing/releases) and enjoy it.
 2. run chmod +x for the binary
 3. For more tutorails, please check the [Documentation & Help](https://github.com/Soulghost/iblessing#documentation--help) below.
 
