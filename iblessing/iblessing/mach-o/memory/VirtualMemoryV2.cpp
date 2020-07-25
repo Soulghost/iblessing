@@ -87,21 +87,10 @@ int VirtualMemoryV2::loadWithMachOData(uint8_t *mappedFile) {
             case LC_SEGMENT_64: {
                 struct segment_command_64 *seg64 = (struct segment_command_64 *)lc;
                 // FIXME: error condition
-                int tryLimit = 5;
-                int tryTimes = 0;
-                uc_err err = UC_ERR_OK;
-                do {
-                    err = uc_mem_write(uc, seg64->vmaddr, mappedFile + seg64->fileoff, seg64->vmsize);
-                    tryTimes++;
-                    if (err != UC_ERR_OK) {
-                        printf("[-] uc map failed reason: %s, sleep 500ms and retry", uc_strerror(err));
-                        err = UC_ERR_OK;
-                        // sleep 500ms
-                        usleep(500 * 1000);
-                    } else {
-                        break;
-                    }
-                } while (tryTimes <= tryLimit);
+                uc_err err = uc_mem_write(uc, seg64->vmaddr, mappedFile + seg64->fileoff, std::min(seg64->vmsize, seg64->filesize));
+                if (err != UC_ERR_OK) {
+                    printf("[-] uc map failed reason: %s", uc_strerror(err));
+                }
                 
                 if (strncmp(seg64->segname, "__TEXT", 6) == 0) {
                     vmaddr_base = seg64->vmaddr - seg64->fileoff;
