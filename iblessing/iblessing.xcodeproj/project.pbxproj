@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		682962E024CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 682962DE24CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.cpp */; };
 		685CE7DB24C56E8B002CC5E8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7DA24C56E8B002CC5E8 /* main.cpp */; };
 		685CE80924C57079002CC5E8 /* Symbol.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7E424C57079002CC5E8 /* Symbol.cpp */; };
 		685CE80A24C57079002CC5E8 /* StringTable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7E524C57079002CC5E8 /* StringTable.cpp */; };
@@ -48,6 +49,8 @@
 
 /* Begin PBXFileReference section */
 		6800875E24CAD5D100853E04 /* iblessing.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = iblessing.entitlements; sourceTree = "<group>"; };
+		682962DE24CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMsgXREFStatisticsGenerator.cpp; sourceTree = "<group>"; };
+		682962DF24CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMsgXREFStatisticsGenerator.hpp; sourceTree = "<group>"; };
 		685CE7CF24C55309002CC5E8 /* iblessing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = iblessing; sourceTree = BUILT_PRODUCTS_DIR; };
 		685CE7DA24C56E8B002CC5E8 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		685CE7DE24C56F5C002CC5E8 /* argparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argparse.h; sourceTree = "<group>"; };
@@ -448,6 +451,8 @@
 				685CE85A24C57360002CC5E8 /* Generator.hpp */,
 				68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */,
 				68D755DB24C8012A0057E092 /* ObjcMsgXREFServerGenerator.hpp */,
+				682962DE24CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.cpp */,
+				682962DF24CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.hpp */,
 			);
 			path = generator;
 			sourceTree = "<group>";
@@ -624,6 +629,7 @@
 				685CE84F24C572D4002CC5E8 /* AntiWrapper.cpp in Sources */,
 				685CE81624C57079002CC5E8 /* ObjcIvar.cpp in Sources */,
 				685CE84424C572A0002CC5E8 /* ScannerDispatcher.cpp in Sources */,
+				682962E024CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.cpp in Sources */,
 				68D755DC24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp in Sources */,
 				685CE80924C57079002CC5E8 /* Symbol.cpp in Sources */,
 				685CE81E24C5708A002CC5E8 /* Object.cpp in Sources */,
