@@ -27,6 +27,8 @@
 #include "VirtualMemoryV2.hpp"
 #include "ObjcMethodChainSerializationManager.hpp"
 
+#define IvarInstanceTrickMask 0x1000000000000000
+
 //#define UsingSet
 //#define DebugMethod "currentCameraPositionSubject"
 //#define DebugTrackCall
@@ -77,6 +79,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     ObjcRuntime *rt = ObjcRuntime::getInstance();
     bool reachToEnd = false;
     EngineContext *ctx = engineContexts[uc];
+    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     
     static ARM64Disassembler disasm;
     disasm.startDisassembly((uint8_t *)codes, address, [&](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
@@ -126,6 +129,25 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             uint64_t pc = insn[0].detail->arm64.operands[0].imm;
             bool isMsgSendOrWrapper = false;
             Symbol *symbol = symtab->getSymbolByAddress(pc);
+            
+            // string to class
+            if (symbol && strcmp(symbol->name.c_str(), "_NSClassFromString") == 0) {
+                // parse CFString
+                uint64_t x0 = 0;
+                uc_err err = uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
+                if (err == UC_ERR_OK) {
+                    char *className = vm2->readAsCFStringContent(x0);
+                    if (className) {
+                        uint64_t classAddr = rt->getClassAddrByName(className);
+                        free(className);
+                        if (classAddr) {
+                            uc_reg_write(uc, UC_ARM64_REG_X0, &classAddr);
+                        }
+                    }
+                }
+            }
+            
+            // [instance class]
             if (symbol && strcmp(symbol->name.c_str(), "_objc_opt_class") == 0) {
                 uint64_t x0;
                 assert(UC_ERR_OK == uc_reg_read(uc, ARM64_REG_X0, &x0));
@@ -513,7 +535,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
             detectedClassInfo = rt->ivarInstanceTrickAddress2RuntimeInfo[addr];
             methodPrefix = "-";
         } else {
-            // try to reveal in symbol table
+            // try to reveal in symbol table (x0 = class-ref, class method call)
             Symbol *sym = SymbolTable::getInstance()->getSymbolByAddress(addr);
             if (sym &&
                 sym->name.rfind("_OBJC_") != -1 &&
@@ -544,8 +566,10 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     if (detectedClassInfo && detectedSEL) {
         ObjcClassRuntimeInfo *ivarClassInfo = rt->evalReturnForIvarGetter(detectedClassInfo, detectedSEL);
         if (ivarClassInfo) {
-            rt->ivarInstanceTrickAddress2RuntimeInfo[ivarClassInfo->address] = ivarClassInfo;
-            uc_reg_write(uc, UC_ARM64_REG_X0, &ivarClassInfo->address);
+            // FIXME: ivar class addr trick mask
+            uint64_t encodedTrickAddr = ivarClassInfo->address | IvarInstanceTrickMask;
+            rt->ivarInstanceTrickAddress2RuntimeInfo[encodedTrickAddr] = ivarClassInfo;
+            uc_reg_write(uc, UC_ARM64_REG_X0, &encodedTrickAddr);
         }
     }
     
@@ -641,9 +665,9 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
 static void storeMethodChains() {
     printf("  [*] Step 4. serialize call chains to file\n");
     if (ObjcMethodChainSerializationManager::storeMethodChain(recordPath, sel2chain)) {
-        printf("  [*] saved to %s\n", recordPath.c_str());
+        printf("\t[*] saved to %s\n", recordPath.c_str());
     } else {
-        printf("  [*] error: cannot save to path %s\n", recordPath.c_str());
+        printf("\t[*] error: cannot save to path %s\n", recordPath.c_str());
     }
 }
 

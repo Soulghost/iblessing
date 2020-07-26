@@ -72,7 +72,7 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/soulghost/Library/Developer/Xcode/DerivedData/empty-fpjjwqhjumrgigceargdjzopghrh/Build/Products/Debug-iphoneos/XXYY.app/XXYY"
+            argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
