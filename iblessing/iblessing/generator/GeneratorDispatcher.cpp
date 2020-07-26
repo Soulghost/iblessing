@@ -13,6 +13,7 @@
 
 #include "IDAObjcMsgXREFGenerator.hpp"
 #include "ObjcMsgXREFServerGenerator.hpp"
+#include "ObjcMsgXREFStatisticsGenerator.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -29,6 +30,10 @@ GeneratorDispatcher::GeneratorDispatcher() {
     
     registerGenerator("objc-msg-xref-server", []() {
         return new ObjcMsgXREFServerGenerator("objc-msg-xref-server", "server to query objc-msg xrefs");
+    });
+    
+    registerGenerator("objc-msg-xref-statistic", []() {
+        return new ObjcMsgXREFStatisticsGenerator("objc-msg-xref-statistic", "statistics among objc-msg-send reports");
     });
 }
 
