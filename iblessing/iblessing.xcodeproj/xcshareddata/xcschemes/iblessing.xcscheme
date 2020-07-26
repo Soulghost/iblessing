@@ -72,7 +72,7 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/soulghost/Downloads/Saily-CI-1595159671/Saily_method-xrefs.iblessing.txt"
+            argument = "/Users/soulghost/Library/Developer/Xcode/DerivedData/empty-fpjjwqhjumrgigceargdjzopghrh/Build/Products/Debug-iphoneos/XXYY.app/XXYY"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
