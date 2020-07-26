@@ -10,8 +10,11 @@
 
 @interface IBSRoot : NSObject
 
-+ (void)rootClassMethodWithParamsA:(id)a b:(int)b c:(Class)c;
-- (void)rootClassInstanceMethodWithParamsD:(id)a e:(int)s f:(id)t;
++ (void)rootClassMethodCallFromPrimary;
++ (void)rootClassMethodCallFromInstanceClass;
++ (void)rootClassMethodCallFromReflection;
+- (void)rootInstanceMethodCallFromAllocate;
+- (void)rootInstanceMethodCallFromIvar;
 
 @end
 

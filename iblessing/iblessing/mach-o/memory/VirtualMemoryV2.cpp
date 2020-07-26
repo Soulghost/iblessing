@@ -167,7 +167,7 @@ uint32_t VirtualMemoryV2::read32(uint64_t address, bool *success) {
     return 0;
 }
 
-const char* VirtualMemoryV2::readString(uint64_t address, uint64_t limit) {
+char* VirtualMemoryV2::readString(uint64_t address, uint64_t limit) {
     char *charBuf = (char *)malloc(limit);
     uint64_t offset = 0;
     uint64_t unPrintCount = 0;
@@ -193,4 +193,56 @@ const char* VirtualMemoryV2::readString(uint64_t address, uint64_t limit) {
     
     charBuf[offset] = 0;
     return charBuf;
+}
+
+CFString* VirtualMemoryV2::readAsCFString(uint64_t address, bool needCheck) {
+    CFString *str = (CFString *)malloc(sizeof(CFString));
+    uc_err err = uc_mem_read(uc, address, str, sizeof(CFString));
+    if (err != UC_ERR_OK) {
+        free(str);
+        return nullptr;
+    }
+    
+    // FIXME: the best check is compare by isa ___CFConstantStringClassReference
+    if (needCheck) {
+        // simple check
+        if (str->length == 0 || str->length > 1000) {
+            free(str);
+            return nullptr;
+        }
+        
+        int checkLen = std::min((int)str->length, 10);
+        char *tmpBuf = (char *)malloc(checkLen);
+        err = uc_mem_read(uc, str->data, tmpBuf, checkLen);
+        if (err != UC_ERR_OK) {
+            free(str);
+            free(tmpBuf);
+            return nullptr;
+        }
+        
+        if (StringUtils::countNonPrintablecharacters(tmpBuf, 10) > 5) {
+            // too many non-printable chars, the str maybe invalid
+            free(str);
+            free(tmpBuf);
+            return nullptr;
+        }
+    }
+    
+    return str;
+}
+
+char* VirtualMemoryV2::readAsCFStringContent(uint64_t address, bool needCheck) {
+    CFString *cfstr = readAsCFString(address, needCheck);
+    if (!cfstr) {
+        return nullptr;
+    }
+    
+    char *content = (char *)malloc(cfstr->length + 1);
+    content[cfstr->length] = 0;
+    uc_err err = uc_mem_read(uc, cfstr->data, content, cfstr->length);
+    if (err != UC_ERR_OK) {
+        free(content);
+        return nullptr;
+    }
+    return content;
 }

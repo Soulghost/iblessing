@@ -10,11 +10,23 @@
 
 @implementation IBSRoot
 
-+ (void)rootClassMethodWithParamsA:(id)a b:(int)b c:(Class)c {
++ (void)rootClassMethodCallFromPrimary {
     
 }
 
-- (void)rootClassInstanceMethodWithParamsD:(id)a e:(int)s f:(id)t {
++ (void)rootClassMethodCallFromReflection {
+    
+}
+
++ (void)rootClassMethodCallFromInstanceClass {
+    
+}
+
+- (void)rootInstanceMethodCallFromIvar {
+    
+}
+
+- (void)rootInstanceMethodCallFromAllocate {
     
 }
 
@@ -24,15 +36,15 @@
 @implementation IBSCallTester
 
 + (void)testPrimaryCallToRootClassMethodAncestor {
-    [IBSRoot rootClassMethodWithParamsA:nil b:1 c:[IBSRoot class]];
+    [IBSRoot rootClassMethodCallFromPrimary];
 }
 
 + (void)testReflectionCallToRootClassMethodAncestor {
-    [NSClassFromString(@"IBSRoot") rootClassMethodWithParamsA:nil b:1 c:[IBSRoot class]];
+    [NSClassFromString(@"IBSRoot") rootClassMethodCallFromReflection];
 }
 
 + (void)testInstanceCallToRootClassMethodAncestor {
-    [[[[IBSRoot alloc] init] class] rootClassMethodWithParamsA:nil b:1 c:[IBSRoot class]];
+    [[[[IBSRoot alloc] init] class] rootClassMethodCallFromInstanceClass];
 }
 
 - (void)testSelfCall {
@@ -55,13 +67,13 @@
     [self testLoop];
 }
 
-- (void)testIvarCall {
-    [self.root rootClassInstanceMethodWithParamsD:nil e:1 f:nil];
-}
-
 - (void)testAllocateCall {
     IBSRoot *root = [[IBSRoot alloc] init];
-    [root rootClassInstanceMethodWithParamsD:nil e:1 f:nil];
+    [root rootInstanceMethodCallFromAllocate];
+}
+
+- (void)testIvarCall {
+    [self.root rootInstanceMethodCallFromIvar];
 }
 
 @end
