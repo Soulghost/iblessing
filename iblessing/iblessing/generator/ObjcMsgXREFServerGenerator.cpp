@@ -161,13 +161,23 @@ static void findAllPath(MethodChain *current, vector<pair<MethodChain *, uint64_
         results.push_back(result);
         return;
     }
+    
+    // works in call-loop
+    bool noDeeperCall = true;
     for (auto it = current->prevMethods.begin(); it != current->prevMethods.end(); it++) {
         if (std::find(result.begin(), result.end(), *it) != result.end()) {
             continue;
         }
         result.push_back(*it);
+        noDeeperCall = false;
         findAllPath(it->first, result, results);
         result.pop_back();
+    }
+    
+    // if there is a call-loop, it will be cut by return
+    // we need to add result to results manully
+    if (noDeeperCall) {
+        results.push_back(result);
     }
 }
 
