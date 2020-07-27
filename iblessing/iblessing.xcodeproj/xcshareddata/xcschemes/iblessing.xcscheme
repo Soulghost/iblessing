@@ -57,6 +57,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "scan"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "generator"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -65,6 +69,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "objc-msg-xref-server"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -73,6 +81,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/soulghost/Downloads/Taobao4iPhone"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/opt/one-btn/tmp/apps/&#x6296;&#x97f3;&#x77ed;&#x89c6;&#x9891;/Payload/Aweme_method-xrefs.iblessing.txt"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
