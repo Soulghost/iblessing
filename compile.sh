@@ -11,7 +11,7 @@ cp submodules/capstone/libcapstone.a iblessing/iblessing/vendor/libs/
 cp submodules/unicorn/libunicorn.a   iblessing/iblessing/vendor/libs/
 
 cd iblessing
-xcodebuild archive -configuration Release
+xcodebuild archive -target iblessing -configuration Release
 cd ..
 mkdir -p build
 mv iblessing/build/UninstalledProducts/macosx/iblessing build/

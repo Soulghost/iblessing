@@ -35,6 +35,9 @@ ObjcClassRuntimeInfo* ObjcRuntime::getClassInfoByAddress(uint64_t address) {
     }
     
     ObjcClassRuntimeInfo *info = ObjcClassRuntimeInfo::realizeFromAddress(address);
+    if (!info) {
+        return nullptr;
+    }
     classList[info->className] = address;
     return info;
 }

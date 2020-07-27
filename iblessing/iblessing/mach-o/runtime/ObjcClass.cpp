@@ -22,6 +22,7 @@ using namespace iblessing;
 // TODO: add ivar call xref
 
 ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address) {
+    // FIXME: external class realize
     VirtualMemory *vm = VirtualMemory::progressDefault();
     uint8_t *mappedFile = vm->mappedFile;
     uint64_t vmaddr_base = vm->vmaddr_base;
@@ -64,6 +65,9 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
     uint64_t objc_data_addr = address;
     uint64_t objc_class_ro_offset = objc_data_addr + 32;
     uint64_t objc_class_ro_addr = *(uint64_t *)(mappedFile + objc_class_ro_offset - vmaddr_base);
+    if (objc_class_ro_addr == 0) {
+        return nullptr;
+    }
     objc_class_ro_addr = trickAlignForClassRO(objc_class_ro_addr);
     uint64_t objc_classname_offset = objc_class_ro_addr + 24;
     uint64_t objc_classname_addr = *(uint64_t *)(mappedFile + objc_classname_offset - vmaddr_base);

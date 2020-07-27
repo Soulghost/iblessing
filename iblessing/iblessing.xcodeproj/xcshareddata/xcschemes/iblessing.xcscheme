@@ -72,8 +72,12 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
+            argument = "/Users/soulghost/Downloads/Taobao4iPhone"
             isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
