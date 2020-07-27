@@ -22,6 +22,7 @@ public:
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> address2RuntimeInfo;
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> externalClassRuntimeInfo;
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> ivarInstanceTrickAddress2RuntimeInfo;
+    std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> heapInstanceTrickAddress2RuntimeInfo;
     std::unordered_map<std::string, uint64_t> classList;
     
     static ObjcRuntime* getInstance();

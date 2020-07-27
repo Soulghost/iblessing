@@ -28,11 +28,14 @@
 #include "ObjcMethodChainSerializationManager.hpp"
 
 #define IvarInstanceTrickMask 0x1000000000000000
+#define HeapInstanceTrickMask 0x2000000000000000
+#define SelfInstanceTrickMask 0x4000000000000000
+#define SelfSelectorTrickMask 0x8000000000000000
 
 //#define UsingSet
 //#define DebugMethod "currentCameraPositionSubject"
 //#define DebugTrackCall
-//#define DebugClass  "ACCPropPanelViewModel"
+//#define DebugClass  "AFCXbsManager"
 #define ThreadCount 8
 //#define ShowFullLog 1
 //#define TinyTest 100
@@ -74,13 +77,17 @@ static uint64_t totalCount = 0;
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     void *codes = malloc(sizeof(uint32_t));
-    uc_mem_read(uc, address, codes, sizeof(uint32_t));
+    uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
+    if (err != UC_ERR_OK) {
+        return;
+    }
+    
     SymbolTable *symtab = SymbolTable::getInstance();
     ObjcRuntime *rt = ObjcRuntime::getInstance();
-    bool reachToEnd = false;
     EngineContext *ctx = engineContexts[uc];
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     
+    bool reachToEnd = false;
     static ARM64Disassembler disasm;
     disasm.startDisassembly((uint8_t *)codes, address, [&](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
         *stop = true;
@@ -141,29 +148,67 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                         uint64_t classAddr = rt->getClassAddrByName(className);
                         free(className);
                         if (classAddr) {
+                            // write class addr to x0
                             uc_reg_write(uc, UC_ARM64_REG_X0, &classAddr);
                         }
                     }
                 }
             }
             
+            // allocate
+            bool isAllocate = false;
+            if (symbol && strcmp(symbol->name.c_str(), "_objc_alloc_init") == 0) {
+                // simple allocate
+                isAllocate = true;
+            } else if (symbol && strcmp(symbol->name.c_str(), "_objc_alloc") == 0) {
+                // custom init allocate
+                isAllocate = true;
+            } else if (symbol && strcmp(symbol->name.c_str(), "_objc_allocWithZone") == 0) {
+                // FIXME: swift instance allocate
+            }
+            if (isAllocate) {
+                // FIXME: x0 class structure validate
+//                uint64_t x0;
+//                uc_err err = uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
+//                if (err == UC_ERR_OK) {
+//                    // FIXME: external class realize
+//                    bool success = false;
+//                    uint64_t classData = vm2->read64(x0, &success);
+//                    if (success && classData) {
+//                        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(x0);
+//                        if (classInfo) {
+//                            uint64_t encodedAddr = classInfo->address | HeapInstanceTrickMask;
+//                            rt->heapInstanceTrickAddress2RuntimeInfo[encodedAddr] = classInfo;
+//                        }
+//                    }
+//                }
+            }
+            
             // [instance class]
             if (symbol && strcmp(symbol->name.c_str(), "_objc_opt_class") == 0) {
                 uint64_t x0;
-                assert(UC_ERR_OK == uc_reg_read(uc, ARM64_REG_X0, &x0));
+                assert(UC_ERR_OK == uc_reg_read(uc, UC_ARM64_REG_X0, &x0));
                 
                 /**
                     x0 = self => [self class]
                     x0 = ivar => [ivar class]
                     x0 = other instance => not support now
                  */
-                if (x0 == (uint64_t)ctx->currentMethod->classInfo) {
+                
+                // this is a trick before method emu start (x0 = &classInfo)
+                if (x0 & SelfInstanceTrickMask) {
+//                    x0 = x0 & ~(SelfInstanceTrickMask);
                     // self call, write self's real class addr to x0
                     uc_reg_write(uc, UC_ARM64_REG_X0, &ctx->currentMethod->classInfo->address);
                 } else if (rt->ivarInstanceTrickAddress2RuntimeInfo.find(x0) != rt->ivarInstanceTrickAddress2RuntimeInfo.end()) {
                     // ivar instance, write ivar's real class addr to x0
                     ObjcClassRuntimeInfo *ivarClassInfo = rt->ivarInstanceTrickAddress2RuntimeInfo[x0];
-                    uc_reg_write(uc, ARM64_REG_X0, &ivarClassInfo->address);
+                    uc_reg_write(uc, UC_ARM64_REG_X0, &ivarClassInfo->address);
+                } else if (rt->heapInstanceTrickAddress2RuntimeInfo.find(x0) !=
+                           rt->heapInstanceTrickAddress2RuntimeInfo.end()) {
+                    // heap instance from allocate
+                    ObjcClassRuntimeInfo *heapClassInfo = rt->heapInstanceTrickAddress2RuntimeInfo[x0];
+                    uc_reg_write(uc, UC_ARM64_REG_X0, &heapClassInfo->address);
                 } else {
                     // other instance: TODO
                 }
@@ -176,16 +221,16 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                     args.nArgs = 31;
                     for (int i = 0; i < 31; i++) {
                         if (i <= 28) {
-                            uc_reg_read(uc, ARM64_REG_X0 + i, &args.x[i]);
+                            uc_reg_read(uc, UC_ARM64_REG_X0 + i, &args.x[i]);
                         } else {
-                            uc_reg_read(uc, ARM64_REG_X29 + i - 29, &args.x[i]);
+                            uc_reg_read(uc, UC_ARM64_REG_X29 + i - 29, &args.x[i]);
                         }
                     }
                     
                     // we only take care of x0, x1, dont pollute other regs
                     args = antiWrapperScanner->antiWrapper.performWrapperTransform(pc, args);
                     for (int i = 0; i < 2; i++) {
-                        uc_reg_write(uc, ARM64_REG_X0 + i, &args.x[i]);
+                        uc_reg_write(uc, UC_ARM64_REG_X0 + i, &args.x[i]);
                     }
                     isMsgSendOrWrapper = true;
                 }
@@ -244,10 +289,12 @@ void* pthread_uc_worker(void *ctx) {
         context->lastPc = 0;
         
         // init x0 as classref
-        uc_reg_write(context->engine, UC_ARM64_REG_X0, &m->classInfo);
+        uint64_t selfTrickAddr = ((uint64_t)m->classInfo) | SelfInstanceTrickMask;
+        uc_reg_write(context->engine, UC_ARM64_REG_X0, &selfTrickAddr);
         
         // init x1 as SEL, faked as self class info
-        uc_reg_write(context->engine, UC_ARM64_REG_X1, &m->classInfo);
+        uint64_t selfSELAddr = ((uint64_t)m->classInfo) | SelfSelectorTrickMask;
+        uc_reg_write(context->engine, UC_ARM64_REG_X1, &selfSELAddr);
 #ifdef DebugTrackCall
         printf("\n[****] start ana method %s %s, set classInfo at %p\n", m->classInfo->className.c_str(), m->name.c_str(), m->classInfo);
 #endif
@@ -341,9 +388,9 @@ uc_engine* createEngine(int identifier) {
     
     // mapping 12GB memory region, first 4GB is PAGEZERO
     // ALL       0x000000000 ~ 0x300000000
-    // PAGE_ZERO 0x000000000 ~ 0x0ffffffff
-    // HEAP      0x100000000 ~ 0x2ffffffff
-    // STACK     ?           ~ 0x2ffffffff
+    // PAGE_ZERO 0x000000000 ~ 0x100000000
+    // HEAP      0x100000000 ~ 0x300000000
+    // STACK     ?           ~ 0x300000000
     uint64_t unicorn_vm_size = 12L * 1024 * 1024 * 1024;
     uint64_t unicorn_vm_start = 0;
     assert(uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size, UC_PROT_ALL) == UC_ERR_OK);
@@ -353,7 +400,7 @@ uc_engine* createEngine(int identifier) {
     // setup default thread state
     assert(uc_context_alloc(uc, &ctx) == UC_ERR_OK);
     
-    uint64_t unicorn_sp_start = 0x2ffffffff;
+    uint64_t unicorn_sp_start = 0x300000000;
     uc_reg_write(uc, UC_ARM64_REG_SP, &unicorn_sp_start);
     
     // set FPEN on CPACR_EL1
@@ -506,7 +553,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     // read sel
     if (x1) {
         // FIXME: x1 trick at method prologue
-        if (x1 == (uint64_t)currentMethod->classInfo) {
+        if (x1 & SelfSelectorTrickMask) {
             detectedSEL = currentMethod->name.c_str();
         } else {
             detectedSEL = vm2->readString(x1, 255);
@@ -521,21 +568,30 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     if (x0) {
         uint64_t addr = x0;
         instanceAddr = addr;
-        if (addr == (uint64_t)currentMethod->classInfo) {
-            // self call
+        if (x0 & SelfInstanceTrickMask) {
+            // self call -[self foo]
             detectedClassInfo = currentMethod->classInfo;
             methodPrefix = "-";
         } if (rt->address2RuntimeInfo.find(addr) != rt->address2RuntimeInfo.end()) {
+            // +[Class foo]
             detectedClassInfo = rt->address2RuntimeInfo[addr];
             methodPrefix = "+";
         } else if (rt->externalClassRuntimeInfo.find(addr) != rt->externalClassRuntimeInfo.end()) {
+            // +[Class foo]
             detectedClassInfo = rt->externalClassRuntimeInfo[addr];
             methodPrefix = "+";
         } else if (rt->ivarInstanceTrickAddress2RuntimeInfo.find(addr) != rt->ivarInstanceTrickAddress2RuntimeInfo.end()) {
+            // -[self.ivar foo]
             detectedClassInfo = rt->ivarInstanceTrickAddress2RuntimeInfo[addr];
+            methodPrefix = "-";
+        } else if (rt->heapInstanceTrickAddress2RuntimeInfo.find(addr) !=
+                   rt->heapInstanceTrickAddress2RuntimeInfo.end()) {
+            // -[instance foo]
+            detectedClassInfo = rt->heapInstanceTrickAddress2RuntimeInfo[addr];
             methodPrefix = "-";
         } else {
             // try to reveal in symbol table (x0 = class-ref, class method call)
+            // +[unknown_class foo]
             Symbol *sym = SymbolTable::getInstance()->getSymbolByAddress(addr);
             if (sym &&
                 sym->name.rfind("_OBJC_") != -1 &&
@@ -549,7 +605,9 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
         }
     }
     
+    // deprecated, replaced by objc_opt_class
     if (strcmp(detectedSEL, "class") == 0 && detectedClassInfo) {
+        // -[instance class] => x0 = instance.class_addr
         uc_reg_write(uc, UC_ARM64_REG_X0, &detectedClassInfo->address);
     }
     
@@ -649,6 +707,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
         }
     }
     
+    // caller pc (xref pc)
     uint64_t pc = 0;
     uc_reg_read(uc, UC_ARM64_REG_PC, &pc);
     
