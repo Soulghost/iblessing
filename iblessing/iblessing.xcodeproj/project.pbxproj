@@ -17,6 +17,8 @@
 		6829629F24CBEEFD00EF9251 /* MethodChainClasses.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829629E24CBEEFD00EF9251 /* MethodChainClasses.m */; };
 		682962E024CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 682962DE24CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.cpp */; };
 		682962E424CD490E00EF9251 /* Foundation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 682962E224CD490E00EF9251 /* Foundation.cpp */; };
+		6829631D24D0460500EF9251 /* FunctionPrototype.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6829631B24D0460500EF9251 /* FunctionPrototype.cpp */; };
+		6829632324D052AF00EF9251 /* SymbolWrapperSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6829632124D052AF00EF9251 /* SymbolWrapperSerializationManager.cpp */; };
 		685CE7DB24C56E8B002CC5E8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7DA24C56E8B002CC5E8 /* main.cpp */; };
 		685CE80924C57079002CC5E8 /* Symbol.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7E424C57079002CC5E8 /* Symbol.cpp */; };
 		685CE80A24C57079002CC5E8 /* StringTable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7E524C57079002CC5E8 /* StringTable.cpp */; };
@@ -77,6 +79,10 @@
 		682962DF24CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMsgXREFStatisticsGenerator.hpp; sourceTree = "<group>"; };
 		682962E224CD490E00EF9251 /* Foundation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Foundation.cpp; sourceTree = "<group>"; };
 		682962E324CD490E00EF9251 /* Foundation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Foundation.hpp; sourceTree = "<group>"; };
+		6829631B24D0460500EF9251 /* FunctionPrototype.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FunctionPrototype.cpp; sourceTree = "<group>"; };
+		6829631C24D0460500EF9251 /* FunctionPrototype.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FunctionPrototype.hpp; sourceTree = "<group>"; };
+		6829632124D052AF00EF9251 /* SymbolWrapperSerializationManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SymbolWrapperSerializationManager.cpp; sourceTree = "<group>"; };
+		6829632224D052AF00EF9251 /* SymbolWrapperSerializationManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SymbolWrapperSerializationManager.hpp; sourceTree = "<group>"; };
 		685CE7CF24C55309002CC5E8 /* iblessing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = iblessing; sourceTree = BUILT_PRODUCTS_DIR; };
 		685CE7DA24C56E8B002CC5E8 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		685CE7DE24C56F5C002CC5E8 /* argparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argparse.h; sourceTree = "<group>"; };
@@ -516,6 +522,8 @@
 			children = (
 				685CE84D24C572D4002CC5E8 /* AntiWrapper.cpp */,
 				685CE84E24C572D4002CC5E8 /* AntiWrapper.hpp */,
+				6829631B24D0460500EF9251 /* FunctionPrototype.cpp */,
+				6829631C24D0460500EF9251 /* FunctionPrototype.hpp */,
 			);
 			path = deobfuscator;
 			sourceTree = "<group>";
@@ -627,6 +635,8 @@
 			children = (
 				685CE88D24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp */,
 				685CE88E24C68933002CC5E8 /* ObjcMethodChainSerializationManager.hpp */,
+				6829632124D052AF00EF9251 /* SymbolWrapperSerializationManager.cpp */,
+				6829632224D052AF00EF9251 /* SymbolWrapperSerializationManager.hpp */,
 			);
 			path = serialization;
 			sourceTree = "<group>";
@@ -792,6 +802,7 @@
 				685CE85D24C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp in Sources */,
 				685CE81324C57079002CC5E8 /* ObjcClass.cpp in Sources */,
 				685CE84624C572A0002CC5E8 /* ObjcMethodXrefScanner.cpp in Sources */,
+				6829632324D052AF00EF9251 /* SymbolWrapperSerializationManager.cpp in Sources */,
 				682962E424CD490E00EF9251 /* Foundation.cpp in Sources */,
 				685CE81724C57079002CC5E8 /* ObjcObject.cpp in Sources */,
 				685CE85324C57309002CC5E8 /* ObjcMethodChain.cpp in Sources */,
@@ -809,6 +820,7 @@
 				685CE80C24C57079002CC5E8 /* VirtualMemory.cpp in Sources */,
 				685CE80B24C57079002CC5E8 /* SymbolTable.cpp in Sources */,
 				685CE88F24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp in Sources */,
+				6829631D24D0460500EF9251 /* FunctionPrototype.cpp in Sources */,
 				685CE81124C57079002CC5E8 /* DyldSimulator.cpp in Sources */,
 				685CE84724C572A0002CC5E8 /* AppInfoScanner.mm in Sources */,
 				685CE85C24C57360002CC5E8 /* GeneratorDispatcher.cpp in Sources */,
