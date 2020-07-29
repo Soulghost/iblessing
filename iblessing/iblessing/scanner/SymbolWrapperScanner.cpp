@@ -120,7 +120,7 @@ int SymbolWrapperScanner::start() {
     char progressChars[] = {'\\', '|', '/', '-'};
     uint8_t progressCur = 0;
 #if 0
-    uint64_t stub = 0x1000221A8;
+    uint64_t stub = 0x106b68000;
     codeData = codeData + stub - startAddr;
     startAddr = stub;
 #endif
@@ -227,7 +227,7 @@ int SymbolWrapperScanner::start() {
                     };
                     antiWrapper.setSimpleWrapper(block);
                     
-#if 1
+#if 0
                     *stop = true;
 #endif
                 }
@@ -272,6 +272,11 @@ int SymbolWrapperScanner::start() {
     printf("the x0 0x%llx, x1 0x%llx\n", args.x[0], args.x[1]);
 #endif
     
-    SymbolWrapperSerializationManager::createReportFromAntiWrapper(graphPath, antiWrapper, symbol2proto);
+    printf("\n  [*] Step 3. serialize wrapper graph to file\n");
+    if (SymbolWrapperSerializationManager::createReportFromAntiWrapper(graphPath, antiWrapper, symbol2proto)) {
+        printf("\t[*] saved to %s\n", graphPath.c_str());
+    } else {
+        printf("\t[*] error: cannot save to path %s\n", graphPath.c_str());
+    }
     return 0;
 }
