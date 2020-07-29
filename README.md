@@ -17,6 +17,7 @@
 - [x] Scanners making dynamic analysis for arm64 assembly code and find key information or attack surface
 - [x] Scanners using unicorn to partially simulate Mach-O arm64 code execution and find some features
 - [x] Generators that can provide secondary processing on scanner's report to start a query server, or generate script for IDA
+- [ ] objc function wrapper detect and ida usercall generate (working on)
 - [ ] objc_msgSend sub functions analysis
 - [ ] Diagnostic logs
 - [ ] Tests
