@@ -15,11 +15,18 @@
 
 NS_IB_BEGIN
 
+typedef struct SymbolWrapperInfo {
+    uint64_t address;
+    std::string name;
+    std::string prototype;
+} SymbolWrapperInfo;
+
 class SymbolWrapperSerializationManager {
 public:
     static std::string currentVersion;
     static bool createReportFromAntiWrapper(std::string path, AntiWrapper &antiWrapper, std::map<std::string, FunctionProtoType> &symbol2proto);
     static std::string detectReportVersion(std::string path);
+    static std::vector<SymbolWrapperInfo> loadWrapperInfosFromReport(std::string path);
 };
 
 NS_IB_END
