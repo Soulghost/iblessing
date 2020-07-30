@@ -76,6 +76,10 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "ida-symbol-wrapper-naming"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-f"
             isEnabled = "YES">
          </CommandLineArgument>
@@ -84,7 +88,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/opt/one-btn/tmp/apps/&#x6296;&#x97f3;&#x77ed;&#x89c6;&#x9891;/Payload/Aweme_method-xrefs.iblessing.txt"
+            argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug/Aweme_wrapper-graph.iblessing.txt"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -100,7 +104,7 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "&apos;symbols=_objc_msgSend&apos;"
+            argument = "&apos;symbols=_objc_release,_objc_retain,_objc_retainAutoreleasedReturnValue&apos;"
             isEnabled = "YES">
          </CommandLineArgument>
       </CommandLineArguments>
