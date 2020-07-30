@@ -400,20 +400,6 @@ iblessing -m scan -i symbol-wrapper -f <path-to-binary> -d 'symbols=*'
 We will take TikTok China as an example:
 ```
 > iblessing -m scan -i symbol-wrapper -f /opt/one-btn/tmp/apps/抖音短视频/Payload/Aweme -d 'symbols=*'
-./iblessing -m scan -i symbol-wrapper -f /opt/one-btn/tmp/apps/抖音短视频/Payload/Aweme -d 'symbols=*'
-
-           ☠️
-           ██╗██████╗ ██╗     ███████╗███████╗███████╗██╗███╗   ██╗ ██████╗
-           ██║██╔══██╗██║     ██╔════╝██╔════╝██╔════╝██║████╗  ██║██╔════╝
-           ██║██████╔╝██║     █████╗  ███████╗███████╗██║██╔██╗ ██║██║  ███╗
-           ██║██╔══██╗██║     ██╔══╝  ╚════██║╚════██║██║██║╚██╗██║██║   ██║
-           ██║██████╔╝███████╗███████╗███████║███████║██║██║ ╚████║╚██████╔╝
-           ╚═╝╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝
-
-[***] iblessing iOS Security Exploiting Toolkit Beta 0.2.0.1 (http://blog.asm.im)
-[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)
-[***] System Integrity Protection is on
-
 [*] set output path to /Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug
 [*] input file is /opt/one-btn/tmp/apps/抖音短视频/Payload/Aweme
 [+] detect mach-o header 64
@@ -423,7 +409,61 @@ We will take TikTok China as an example:
   [*] Step1. find __TEXT,__text
 	[+] find __TEXT,__text at 0x100004000
 	[+] mapping text segment 0x100000000 ~ 0x106da0000 to unicorn engine
+  [*] Step 2. scan in __text
+	[*] start disassembler at 0x100004000
+	[*] / 0x106b68a54/0x106b68a58 (100.00%)
+	[*] reach to end of __text, stop
+
+  [*] Step 3. serialize wrapper graph to file
+	[*] saved to /Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug/Aweme_wrapper-graph.iblessing.txt
+
+> head Aweme_wrapper-graph.iblessing.txt
+iblessing symbol-wrappers,ver:0.1;
+wrapperId;address;name;prototype
+0;0x100022190;_objc_retainAutoreleasedReturnValue;id __usercall f@<x0>(id@<x0>)
+1;0x100022198;_objc_retainAutoreleasedReturnValue;id __usercall f@<x0>(id@<x0>)
+2;0x1000221a0;_objc_release;id __usercall f@<x0>(id@<x22>)
+3;0x1000221a8;_objc_msgSend;id __usercall f@<x0>(id@<x0>, const char*@<x20>, ...)
+4;0x100022448;_objc_release;id __usercall f@<x0>(id@<x21>)
+5;0x10009c19c;_objc_autoreleaseReturnValue;id __usercall f@<x0>(id@<x0>)
+6;0x1000b6f94;_objc_msgSend;id __usercall f@<x0>(id@<x0>, const char*@<x1>, ...)
+7;0x100100248;_objc_autoreleaseReturnValue;id __usercall f@<x0>(id@<x0>)
 ```
+
+Next, we can generate ida scripts from this report.
+
+### Genereate IDA Script for Objc Runtime Function Rename and Prototype Modification 
+```
+iblessing -m generator -i ida-symbol-wrapper-naming -f <path-to-report-from-symbol-wrapper>
+```
+
+#### Usage Example
+```
+> iblessing -m generator -i ida-symbol-wrapper-naming -f Aweme_wrapper-graph.iblessing.txt
+[*] set output path to /Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug
+[*] input file is Aweme_wrapper-graph.iblessing.txt
+[*] start IDAObjMsgXREFGenerator
+  [*] load symbol-wrappers db for version iblessing symbol-wrappers,ver:0.1;
+  [*] table keys wrapperId;address;name;prototype
+  [*] Generating Naming Scripts ...
+  [*] saved to /Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug/Aweme_wrapper-graph.iblessing.txt_ida_symbol_wrapper_naming.iblessing.py
+  
+> head Aweme_wrapper-graph.iblessing.txt_ida_symbol_wrapper_naming.iblessing.py
+def namingWrappers():
+    idc.set_name(0x100022190, '_objc_retainAutoreleasedReturnValue', ida_name.SN_FORCE)
+    idc.apply_type(0x100022190, idc.parse_decl('id __usercall f@<x0>(id@<x0>)', idc.PT_SILENT))
+    idc.set_name(0x100022198, '_objc_retainAutoreleasedReturnValue', ida_name.SN_FORCE)
+    idc.apply_type(0x100022198, idc.parse_decl('id __usercall f@<x0>(id@<x0>)', idc.PT_SILENT))
+    idc.set_name(0x1000221a0, '_objc_release', ida_name.SN_FORCE)
+    idc.apply_type(0x1000221a0, idc.parse_decl('id __usercall f@<x0>(id@<x22>)', idc.PT_SILENT))
+    idc.set_name(0x1000221a8, '_objc_msgSend', ida_name.SN_FORCE)
+    idc.apply_type(0x1000221a8, idc.parse_decl('id __usercall f@<x0>(id@<x0>, const char*@<x20>, ...)', idc.PT_SILENT))
+    idc.set_name(0x100022448, '_objc_release', ida_name.SN_FORCE)
+```
+
+Next open your IDA -> File -> Script File and load the script, this step may take a long time. And when it is done, You can observe some decompiled code changes:
+![](https://github.com/Soulghost/iblessing/blob/master/resource/images/ida_wrapped_call_before.png?raw=true)
+![](https://github.com/Soulghost/iblessing/blob/master/resource/images/ida_wrapped_call_after.pngg?raw=true)
 
 
 # To be continued
