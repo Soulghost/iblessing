@@ -47,10 +47,12 @@ In case you need support regarding iblessing or anything associated with it, you
   - [Scan for AppInfos](https://github.com/Soulghost/iblessing#scan-for-appinfos)
   - [Scan for Class XREFs](https://github.com/Soulghost/iblessing#scan-for-class-xrefs)
   - [Scan for All objc_msgSend XREFs](https://github.com/Soulghost/iblessing#scan-for-all-objc_msgsend-xrefs)
+  - :new: [Scan for Simple Symbol Wrappers](#)
  
 - Generators
   - [Generate objc_msgSend Xrefs Query Server](https://github.com/Soulghost/iblessing#generate-objc_msgsend-xrefs-query-server)
   - [Generate IDA Scripts for objc_msgSend xrefs](https://github.com/Soulghost/iblessing#generate-ida-scripts-for-objc_msgsend-xrefs)
+  - :new: [Generate IDA Scripts for objc function wrapper rename and prototype modification](#)
 
 # How to Compile
 - Platform: macOS Only (Will support linux in the future)
@@ -364,5 +366,63 @@ def add_objc_xrefs():
 
 Next open your IDA -> File -> Script File and load the script, this step may take a long time. And when it is done, you can find many xrefs for objc method:
 ![](https://github.com/Soulghost/iblessing/blob/master/resource/images/ida_objc_msgSend_xrefs.png?raw=true)
+
+### Scan for symbol wrappers
+A Mach-O file may contain multiple wrappers of commonly used dynamic library imported symbols, such as:
+```arm
+__text:00000001003842D8 sub_1003842CC                           ; CODE XREF: -[BDARVLynxTracker eventV3:params:adExtraData:]+168↑p
+__text:00000001003842D8                                         ; -[BDARVLynxTracker eventV3:params:adExtraData:]+214↑p ...
+__text:00000001003842D8                 MOV             X1, X27
+__text:00000001003842DC                 MOV             X2, X19
+__text:00000001003842E0                 B               objc_msgSend
+```
+
+We can convert the wrapper by usercall:
+```arm
+__text:00000001003842CC ; id __usercall objc_msgSend_61@<X0>(id@<X23>, const char *@<X28>, ...)
+__text:00000001003842CC _objc_msgSend_61                        ; CODE XREF: -[BDARVLynxTracker eventV3:params:adExtraData:]+2CC↑p
+__text:00000001003842CC                                         ; -[BDARVLynxTracker eventV3:params:adExtraData:]+320↑p ...
+__text:00000001003842CC                 MOV             X0, X23
+__text:00000001003842D0                 MOV             X1, X28
+__text:00000001003842D4                 B               objc_msgSend
+```
+
+The scanner can generate a report to record all wrappers, then you can use `ida-symbol-wrapper-naming` generator to generate ida scripts and implement this wrapper rename and prototype change.
+
+#### How to Use
+```
+iblessing -m scan -i symbol-wrapper -f <path-to-binary> -d 'symbols=_objc_msgSend,_objc_retain,_objc_release'
+iblessing -m scan -i symbol-wrapper -f <path-to-binary> -d 'symbols=*'
+```
+
+#### Usage Example
+We will take TikTok China as an example:
+```
+> iblessing -m scan -i symbol-wrapper -f /opt/one-btn/tmp/apps/抖音短视频/Payload/Aweme -d 'symbols=*'
+./iblessing -m scan -i symbol-wrapper -f /opt/one-btn/tmp/apps/抖音短视频/Payload/Aweme -d 'symbols=*'
+
+           ☠️
+           ██╗██████╗ ██╗     ███████╗███████╗███████╗██╗███╗   ██╗ ██████╗
+           ██║██╔══██╗██║     ██╔════╝██╔════╝██╔════╝██║████╗  ██║██╔════╝
+           ██║██████╔╝██║     █████╗  ███████╗███████╗██║██╔██╗ ██║██║  ███╗
+           ██║██╔══██╗██║     ██╔══╝  ╚════██║╚════██║██║██║╚██╗██║██║   ██║
+           ██║██████╔╝███████╗███████╗███████║███████║██║██║ ╚████║╚██████╔╝
+           ╚═╝╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝
+
+[***] iblessing iOS Security Exploiting Toolkit Beta 0.2.0.1 (http://blog.asm.im)
+[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)
+[***] System Integrity Protection is on
+
+[*] set output path to /Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug
+[*] input file is /opt/one-btn/tmp/apps/抖音短视频/Payload/Aweme
+[+] detect mach-o header 64
+[+] detect litten-endian
+[*] start Symbol Wrapper Scanner
+  [*] try to find wrappers for_objc_autoreleaseReturnValue, _objc_msgSend, _objc_release, _objc_releaseAndReturn, _objc_retain, _objc_retainAutorelease, _objc_retainAutoreleaseAndReturn, _objc_retainAutoreleaseReturnValue, _objc_retainAutoreleasedReturnValue
+  [*] Step1. find __TEXT,__text
+	[+] find __TEXT,__text at 0x100004000
+	[+] mapping text segment 0x100000000 ~ 0x106da0000 to unicorn engine
+```
+
 
 # To be continued
