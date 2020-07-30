@@ -36,6 +36,10 @@ In case you need support regarding iblessing or anything associated with it, you
 - send mail to xiuyutong1994#163.com 
 - send mail to xiuyutong1994#gmail.com
 
+# Changelog
+- 2020.07.30 - Improve symbol-wrapper scanner, and add ida scripts for symbol wrapper rename and prototype modification
+- 2020.07.21 - First release 
+
 # Get started
 ⚠️⚠️⚠️ **Sometimes unicorn will crash on start when doing huge memory mapping, you can try to run it again, if it still can't work, please contact me or create an issue, thanks.**
 1. You can download the [pre-released iblessing binary](https://github.com/Soulghost/iblessing/releases) and enjoy it.
