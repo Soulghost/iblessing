@@ -56,6 +56,12 @@ void SymbolWrapperScanner::init() {
     symbol2proto["_objc_msgSend"] = {2, true, "id", {"id", "const char*", "..."}};
     symbol2proto["_objc_retain"] = {1, false, "id", {"id"}};
     symbol2proto["_objc_release"] = {1, false, "id", {"id"}};
+    symbol2proto["_objc_releaseAndReturn"] = {1, false, "id", {"id"}};
+    symbol2proto["_objc_retainAutoreleaseAndReturn"] = {1, false, "id", {"id"}};
+    symbol2proto["_objc_autoreleaseReturnValue"] = {1, false, "id", {"id"}};
+    symbol2proto["_objc_retainAutoreleaseReturnValue"] = {1, false, "id", {"id"}};
+    symbol2proto["_objc_retainAutoreleasedReturnValue"] = {1, false, "id", {"id"}};
+    symbol2proto["_objc_retainAutorelease"] = {1, false, "id", {"id"}};
 }
 
 int SymbolWrapperScanner::start() {
@@ -63,14 +69,22 @@ int SymbolWrapperScanner::start() {
     
     if (options.find("symbols") == options.end()) {
         cout << termcolor::red;
-        cout << StringUtils::format("Error: you should specific symbols by -d 'symbols=<symbol>,<symbol>'");
+        cout << StringUtils::format("Error: you should specific symbols by -d 'symbols=<symbol>,<symbol>' or 'symbols=*'");
         cout << termcolor::reset << endl;
         return 1;
     }
     
     string symbolsExpr = options["symbols"];
-    vector<string> allSymbols = StringUtils::split(symbolsExpr, ',');
-    set<string> symbols(allSymbols.begin(), allSymbols.end());
+    set<string> symbols;
+    if (symbolsExpr == "*") {
+        for (auto it = symbol2proto.begin(); it != symbol2proto.end(); it++) {
+            symbols.insert(it->first);
+        }
+    } else {
+        vector<string> allSymbols = StringUtils::split(symbolsExpr, ',');
+        set<string> _symbols(allSymbols.begin(), allSymbols.end());
+        symbols = _symbols;
+    }
     
     // setup recordPath
     string graphPath = StringUtils::path_join(outputPath, fileName + "_wrapper-graph.iblessing.txt");
@@ -120,7 +134,7 @@ int SymbolWrapperScanner::start() {
     char progressChars[] = {'\\', '|', '/', '-'};
     uint8_t progressCur = 0;
 #if 0
-    uint64_t stub = 0x106b68000;
+    uint64_t stub = 0x10038436C;
     codeData = codeData + stub - startAddr;
     startAddr = stub;
 #endif
@@ -162,7 +176,8 @@ int SymbolWrapperScanner::start() {
         // 1. mark B / RET / BRK as return
         // 2. short expr, scan objc_msgSend first, and trace back to return, find head (not more than 10 ins)
         // 3. go forward to objc_msgSend, record register transform
-        if (ARM64Runtime::isRET(insn) || strcmp(insn->mnemonic, "brk") == 0) {
+        if (strcmp(insn->mnemonic, "ret") == 0 ||
+            strcmp(insn->mnemonic, "brk") == 0) {
             funcStartCursor = insn->address + 4;
             hasMemLoader = false;
             AntiWrapperRegLinkGraph newGraph;

@@ -71,9 +71,48 @@ bool SymbolWrapperSerializationManager::createReportFromAntiWrapper(std::string 
     return true;
 }
 
-vector<SymbolWrapperInfo> loadWrapperInfosFromReport(std::string path) {
+vector<SymbolWrapperInfo> SymbolWrapperSerializationManager::loadWrapperInfosFromReport(std::string path) {
+    string verExpr = detectReportVersion(path);
+    if (verExpr != currentVersion) {
+        printf("  [!] report version mismatch, current %s, input %s, please regenerate the report\n", currentVersion.c_str(), verExpr.c_str());
+        return {};
+    }
     
-    return {};
+    ifstream file(path);
+    if (file.fail()) {
+        return {};
+    }
+    
+    string line;
+    int cnt = 0;
+    vector<SymbolWrapperInfo> wrapperInfos;
+    while (getline(file, line)) {
+        if (__builtin_expect(cnt == 0, false)) {
+            // version matching
+            printf("  [*] load symbol-wrappers db for version %s\n", line.c_str());
+            cnt++;
+            continue;
+        } else if (__builtin_expect(cnt == 1, false)) {
+            // table keys
+            printf("  [*] table keys %s\n", line.c_str());
+            cnt++;
+            continue;
+        }
+        
+        // load entries
+        vector<string> cols = StringUtils::split(line, ';');
+        if (cols.size() != 4) {
+            printf("\t[-] bad line %s\n", line.c_str());
+            cnt++;
+            continue;
+        }
+        SymbolWrapperInfo info;
+        info.address = strtol(cols[1].c_str(), nullptr, 16);
+        info.name = cols[2];
+        info.prototype = cols[3];
+        wrapperInfos.push_back(info);
+    }
+    return wrapperInfos;
 }
 
 string SymbolWrapperSerializationManager::detectReportVersion(std::string path) {
