@@ -48,12 +48,12 @@ In case you need support regarding iblessing or anything associated with it, you
   - [Scan for AppInfos](https://github.com/Soulghost/iblessing#scan-for-appinfos)
   - [Scan for Class XREFs](https://github.com/Soulghost/iblessing#scan-for-class-xrefs)
   - [Scan for All objc_msgSend XREFs](https://github.com/Soulghost/iblessing#scan-for-all-objc_msgsend-xrefs)
-  - :new: [Scan for Simple Symbol Wrappers](#)
+  - :new: [Scan for Simple Symbol Wrappers](https://github.com/Soulghost/iblessing/blob/features/anti_wrapper/README.md#scan-for-symbol-wrappers)
  
 - Generators
   - [Generate objc_msgSend Xrefs Query Server](https://github.com/Soulghost/iblessing#generate-objc_msgsend-xrefs-query-server)
   - [Generate IDA Scripts for objc_msgSend xrefs](https://github.com/Soulghost/iblessing#generate-ida-scripts-for-objc_msgsend-xrefs)
-  - :new: [Generate IDA Scripts for objc function wrapper rename and prototype modification](#)
+  - :new: [Generate IDA Scripts for objc function wrapper rename and prototype modification](https://github.com/Soulghost/iblessing/blob/features/anti_wrapper/README.md#genereate-ida-script-for-objc-runtime-function-rename-and-prototype-modification)
 
 # How to Compile
 - Platform: macOS Only (Will support linux in the future)
@@ -127,6 +127,7 @@ A generator is a component that performs secondary processing on the report gene
 [*] Generator List:
     - ida-objc-msg-xref: generator ida scripts to add objc_msgSend xrefs from objc-msg-xref scanner's report
     - objc-msg-xref-server: server to query objc-msg xrefs
+    - objc-msg-xref-statistic: statistics among objc-msg-send reports
 ```
 
 ## Basic Usage
