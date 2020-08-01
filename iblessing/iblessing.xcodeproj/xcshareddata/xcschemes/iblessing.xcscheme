@@ -69,11 +69,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "symbol-wrapper"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "objc-msg-xref-server"
-            isEnabled = "NO">
+            argument = "objc-msg-xref"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "ida-symbol-wrapper-naming"
@@ -92,7 +92,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/opt/one-btn/tmp/apps/&#x6296;&#x97f3;&#x77ed;&#x89c6;&#x9891;/Payload/Aweme"
+            argument = "/opt/one-btn/tmp/apps/WeChat/Payload/WeChat.app/WeChat"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -101,11 +101,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;symbols=_objc_release,_objc_retain,_objc_retainAutoreleasedReturnValue&apos;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>
