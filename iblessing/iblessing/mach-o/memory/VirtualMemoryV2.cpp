@@ -7,6 +7,7 @@
 //
 
 #include "VirtualMemoryV2.hpp"
+#include "VirtualMemory.hpp"
 #include <mach-o/loader.h>
 #include <mach-o/fat.h>
 #include <mach-o/swap.h>
@@ -44,6 +45,10 @@ int VirtualMemoryV2::loadWithMachOData(uint8_t *mappedFile) {
     uint64_t unicorn_vm_size = 12L * 1024 * 1024 * 1024;
     uint64_t unicorn_vm_start = 0;
     assert(uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size, UC_PROT_ALL) == UC_ERR_OK);
+    
+    // first of all, mapping the whole file
+    VirtualMemory *vm = VirtualMemory::progressDefault();
+    assert(uc_mem_write(uc, vm->vmaddr_base, mappedFile, vm->mappedSize) == UC_ERR_OK);
     
     // mapping file
     struct mach_header_64 *hdr = (struct mach_header_64 *)mappedFile;
@@ -150,6 +155,16 @@ uint64_t VirtualMemoryV2::read64(uint64_t address, bool *success) {
         *success = false;
     }
     return 0;
+}
+
+void* VirtualMemoryV2::readBySize(uint64_t address, uint64_t size) {
+    void *buffer = malloc(size);
+    if (uc_mem_read(uc, address, buffer, size) == UC_ERR_OK) {
+        return buffer;
+    }
+    
+    free(buffer);
+    return nullptr;
 }
 
 uint32_t VirtualMemoryV2::read32(uint64_t address, bool *success) {

@@ -21,6 +21,7 @@ public:
     int loadWithMachOData(uint8_t *mappedFile);
     uint64_t read64(uint64_t address, bool *success);
     uint32_t read32(uint64_t address, bool *success);
+    void* readBySize(uint64_t address, uint64_t size);
     char* readString(uint64_t address, uint64_t limit);
     CFString* readAsCFString(uint64_t address, bool needCheck = true);
     char* readAsCFStringContent(uint64_t address, bool needCheck = true);

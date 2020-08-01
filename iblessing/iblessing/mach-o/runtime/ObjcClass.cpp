@@ -18,14 +18,33 @@
 using namespace std;
 using namespace iblessing;
 
+// read file 64 or return nullptr
+#define rf64rn(addr) \
+vm2->read64(addr, &memOK); \
+if (!memOK) { \
+    return nullptr; \
+}
+
+#define rf32rn(addr) \
+vm2->read32(addr, &memOK); \
+if (!memOK) { \
+    return nullptr; \
+}
+
+// read file 64 or continue
+#define rf64cnt(addr, expr) \
+vm2->read64(addr, &memOK); \
+if (!memOK) { \
+    expr; \
+    continue; \
+}
+
 // TODO: add ivar type parsing
 // TODO: add ivar call xref
 
 ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address) {
     // FIXME: external class realize
-    VirtualMemory *vm = VirtualMemory::progressDefault();
-    uint8_t *mappedFile = vm->mappedFile;
-    uint64_t vmaddr_base = vm->vmaddr_base;
+    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     ObjcClassRuntimeInfo *info = new ObjcClassRuntimeInfo();
     info->address = address;
     // __DATA,__objc_data
@@ -64,15 +83,25 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
 #endif
     uint64_t objc_data_addr = address;
     uint64_t objc_class_ro_offset = objc_data_addr + 32;
-    uint64_t objc_class_ro_addr = *(uint64_t *)(mappedFile + objc_class_ro_offset - vmaddr_base);
-    if (objc_class_ro_addr == 0) {
+    
+    bool memOK = false;
+    uint64_t objc_class_ro_addr = vm2->read64(objc_class_ro_offset, &memOK);
+    if (!memOK) {
         return nullptr;
     }
+    
     objc_class_ro_addr = trickAlignForClassRO(objc_class_ro_addr);
     uint64_t objc_classname_offset = objc_class_ro_addr + 24;
-    uint64_t objc_classname_addr = *(uint64_t *)(mappedFile + objc_classname_offset - vmaddr_base);
+    uint64_t objc_classname_addr = vm2->read64(objc_classname_offset, &memOK);
+    if (!memOK) {
+        return nullptr;
+    }
+    
     // ** stringtable is linkedit based
     const char *className = VirtualMemoryV2::progressDefault()->readString(objc_classname_addr, 1000);
+    if (!className) {
+        return nullptr;
+    }
     info->className = className;
     // get method list from objc_class->rw_data->const->method_list
     uint64_t objc_methodlist_offset = objc_class_ro_addr + 32;
@@ -90,21 +119,35 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
 #endif
     
     // handle instance methods
-    uint64_t objc_methodlist_addr = *(uint64_t *)(mappedFile + objc_methodlist_offset - vmaddr_base);
-    uint32_t objc_methodlist_count = objc_methodlist_addr ? *(uint32_t *)(mappedFile + objc_methodlist_addr + 4 - vmaddr_base) : 0;
+    uint64_t objc_methodlist_addr = vm2->read64(objc_methodlist_offset, &memOK);
+    if (!memOK) {
+        return nullptr;
+    }
+    
+    uint32_t objc_methodlist_count = objc_methodlist_addr ? vm2->read32(objc_methodlist_addr + 4, &memOK) : 0;
+    if (!memOK) {
+        return nullptr;
+    }
+    
     uint64_t objc_methods_addr = objc_methodlist_addr + 8;
     SymbolTable *symtab = SymbolTable::getInstance();
     for (uint32_t i = 0; i < objc_methodlist_count; i++) {
         uint64_t sel_offset = objc_methods_addr;
-        uint64_t sel_addr = *(uint64_t *)(mappedFile + sel_offset - vmaddr_base);
+        uint64_t sel_addr = vm2->read64(sel_offset, &memOK);
+        if (!memOK) {
+            objc_methods_addr += 24;
+            continue;
+        }
+        
         std::string sel_str = std::string((const char *)VirtualMemoryV2::progressDefault()->readString(sel_addr, 1000));
         
         uint64_t types_offset = sel_offset + 8;
-        uint64_t types_addr = *(uint64_t *)(mappedFile + types_offset - vmaddr_base);
+        uint64_t types_addr = rf64cnt(types_offset, objc_methods_addr += 24);
+        
         std::string types_str = std::string((const char *)VirtualMemoryV2::progressDefault()->readString(types_addr, 1000));
         
         uint64_t imp_offset = types_offset + 8;
-        uint64_t imp_addr = *(uint64_t *)(mappedFile + imp_offset - vmaddr_base);
+        uint64_t imp_addr = rf64cnt(imp_offset, objc_methods_addr += 24);
         
         // add to class method list
         ObjcMethod *method = new ObjcMethod();
@@ -130,24 +173,28 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
     }
     
     // handle class methods
-    uint64_t objc_metaclass_addr = *(uint64_t *)(mappedFile + objc_data_addr - vmaddr_base);
+    uint64_t objc_metaclass_addr = rf64rn(objc_data_addr);
     uint64_t objc_metaclass_ro_offset = objc_metaclass_addr + 32;
-    uint64_t objc_metaclass_ro_addr = *(uint64_t *)(mappedFile + objc_metaclass_ro_offset - vmaddr_base);
+    uint64_t objc_metaclass_ro_addr = rf64rn(objc_metaclass_ro_offset);
     uint64_t objc_classmethodlist_offset = objc_metaclass_ro_addr + 32;
-    uint64_t objc_classmethodlist_addr = *(uint64_t *)(mappedFile + objc_classmethodlist_offset - vmaddr_base);
-    uint32_t objc_classmethodlist_count = objc_classmethodlist_addr > 0 ? *(uint32_t *)(mappedFile + objc_classmethodlist_addr + 4 - vmaddr_base) : 0;
+    uint64_t objc_classmethodlist_addr = rf64rn(objc_classmethodlist_offset);
+    uint32_t objc_classmethodlist_count = objc_classmethodlist_addr > 0 ? vm2->read32(objc_classmethodlist_addr + 4, &memOK) : 0;
+    if (!memOK) {
+        return nullptr;
+    }
+    
     uint64_t objc_classmethods_addr = objc_classmethodlist_addr + 8;
     for (uint32_t i = 0; i < objc_classmethodlist_count; i++) {
         uint64_t sel_offset = objc_classmethods_addr;
-        uint64_t sel_addr = *(uint64_t *)(mappedFile + sel_offset - vmaddr_base);
-        std::string sel_str = std::string((const char *)VirtualMemoryV2::progressDefault()->readString(sel_addr, 1000));
+        uint64_t sel_addr = rf64cnt(sel_offset, objc_classmethods_addr += 24);
+        std::string sel_str = std::string((const char *)vm2->readString(sel_addr, 1000));
         
         uint64_t types_offset = sel_offset + 8;
-        uint64_t types_addr = *(uint64_t *)(mappedFile + types_offset - vmaddr_base);
-        std::string types_str = std::string((const char *)VirtualMemoryV2::progressDefault()->readString(types_addr, 1000));
+        uint64_t types_addr = rf64cnt(types_offset, objc_classmethods_addr += 24);
+        std::string types_str = std::string((const char *)vm2->readString(types_addr, 1000));
         
         uint64_t imp_offset = types_offset + 8;
-        uint64_t imp_addr = *(uint64_t *)(mappedFile + imp_offset - vmaddr_base);
+        uint64_t imp_addr = rf64cnt(imp_offset, objc_classmethods_addr += 24);
         
         // add to class method list
         ObjcMethod *method = new ObjcMethod();
@@ -174,20 +221,31 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
     
     // handle ivars
     uint64_t objc_class_ivars_offset = objc_methodlist_offset + 2 * 8;
-    uint64_t objc_class_ivars_addr = *(uint64_t *)(mappedFile + objc_class_ivars_offset - vmaddr_base);
+    uint64_t objc_class_ivars_addr = rf64rn(objc_class_ivars_offset);
     if (objc_class_ivars_addr != 0) {
-        uint32_t objc_class_ivars_count = *(uint32_t *)(mappedFile + objc_class_ivars_addr + 4 - vmaddr_base);
+        uint32_t objc_class_ivars_count = rf32rn(objc_class_ivars_addr + 4);
         if (objc_class_ivars_count > 0) {
-            uint64_t objc_class_ivar_addr = objc_class_ivars_addr + 8 - vmaddr_base;
+            uint64_t objc_class_ivar_addr = objc_class_ivars_addr + 8;
             while (objc_class_ivars_count--) {
-                struct ib_ivar_t ivar = *(struct ib_ivar_t *)(mappedFile + objc_class_ivar_addr);
+                struct ib_ivar_t *ivar_ptr = (struct ib_ivar_t *)vm2->readBySize(objc_class_ivar_addr, sizeof(struct ib_ivar_t));
+                if (!ivar_ptr) {
+                    objc_class_ivar_addr += 32;
+                    continue;
+                }
+                
+                struct ib_ivar_t ivar = *(struct ib_ivar_t *)ivar_ptr;
                 uint64_t nameAddr = (uint64_t)ivar.name;
                 uint64_t typeAddr = (uint64_t)ivar.type;
                 // fix structure
-                ivar.name = VirtualMemoryV2::progressDefault()->readString(nameAddr, 1000);
-                ivar.type = VirtualMemoryV2::progressDefault()->readString(typeAddr, 1000);
+                ivar.name = vm2->readString(nameAddr, 1000);
+                ivar.type = vm2->readString(typeAddr, 1000);
                 
-                uint32_t offset = VirtualMemoryV2::progressDefault()->read32((uint64_t)ivar.offset, NULL);
+                uint32_t offset = vm2->read32((uint64_t)ivar.offset, &memOK);
+                if (!memOK) {
+                    objc_class_ivar_addr += 32;
+                    continue;
+                }
+                
                 ObjcIvar *objcIvar = new ObjcIvar(ivar);
                 objcIvar->clazz = info;
                 objcIvar->offset = offset;
@@ -219,7 +277,7 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
     
     // realize superclass
     uint64_t objc_superclass_offset = objc_data_addr + 8;
-    uint64_t objc_superclass_addr = *(uint64_t *)(mappedFile + objc_superclass_offset - vmaddr_base);
+    uint64_t objc_superclass_addr = rf64rn(objc_superclass_offset);
     if (objc_superclass_addr != 0) {
         info->superClassInfo = ObjcClassRuntimeInfo::realizeFromAddress(objc_superclass_addr);
     } else {
@@ -287,16 +345,24 @@ ObjcMethod* ObjcClassRuntimeInfo::getMethodBySEL(string sel, bool fatal) {
 }
 
 std::string ObjcClassRuntimeInfo::classNameAtAddress(uint64_t address) {
-    VirtualMemory *vm = VirtualMemory::progressDefault();
-    uint8_t *mappedFile = vm->mappedFile;
-    uint64_t vmaddr_base = vm->vmaddr_base;
+    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     uint64_t objc_class_ro_offset = address + 32;
-    uint64_t objc_class_ro_addr = *(uint64_t *)(mappedFile + objc_class_ro_offset - vmaddr_base);
+    
+    bool memOK;
+    uint64_t objc_class_ro_addr = vm2->read64(objc_class_ro_offset, &memOK);
+    if (!memOK) {
+        return "";
+    }
+    
     objc_class_ro_addr = trickAlignForClassRO(objc_class_ro_addr);
     
     uint64_t objc_classname_offset = objc_class_ro_addr + 24;
-    uint64_t objc_classname_addr = *(uint64_t *)(mappedFile + objc_classname_offset - vmaddr_base);
-    const char *className = VirtualMemoryV2::progressDefault()->readString(objc_classname_addr, 1000);
+    uint64_t objc_classname_addr = vm2->read64(objc_classname_offset, &memOK);
+    if (!memOK) {
+        return "";
+    }
+    
+    const char *className = vm2->readString(objc_classname_addr, 1000);
     return className;
 }
 

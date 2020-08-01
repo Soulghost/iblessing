@@ -50,6 +50,9 @@ void ObjcRuntime::loadClassList(uint64_t vmaddr, uint64_t size) {
     for (int i = 0; i < count; i++) {
         uint64_t class_addr = *classAddrs;
         std::string className = ObjcClassRuntimeInfo::classNameAtAddress(class_addr);
+        if (className.length() == 0) {
+            continue;
+        }
         classList[className] = class_addr;
         classAddrs += 1;
     }
