@@ -469,7 +469,7 @@ def namingWrappers():
 Next open your IDA -> File -> Script File and load the script, this step may take a long time. And when it is done, You can observe some decompiled code changes:
 ![](https://github.com/Soulghost/iblessing/blob/features/anti_wrapper/resource/images/ida_wrapped_call_before.png?raw=true)
 
-:arrow_down: :arrow_down: :arrow_down
+:arrow_down: :arrow_down: :arrow_down:
 
 ![](https://github.com/Soulghost/iblessing/blob/features/anti_wrapper/resource/images/ida_wrapped_call_after.png?raw=true)
 
