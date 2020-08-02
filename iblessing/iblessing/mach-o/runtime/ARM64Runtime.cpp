@@ -416,5 +416,17 @@ bool ARM64Runtime::isRET(cs_insn *insn) {
             return true;
         }
     }
+    if (strcmp(insn[0].mnemonic, "bl") == 0) {
+        uint64_t pc = insn[0].detail->arm64.operands[0].imm;
+        SymbolTable *symtab = SymbolTable::getInstance();
+        Symbol *symbol = symtab->getSymbolByAddress(pc);
+        if (symbol == nullptr) {
+            return false;
+        }
+        const char *fname = symbol->name.c_str();
+        if (strcmp(fname, "___stack_chk_fail") == 0) {
+            return true;
+        }
+    }
     return false;
 }

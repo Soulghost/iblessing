@@ -131,12 +131,23 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
             continue;
         }
         
-        std::string sel_str = std::string((const char *)VirtualMemoryV2::progressDefault()->readString(sel_addr, 1000));
+        char *sel_ptr = vm2->readString(sel_addr, 1000);
+        if (!sel_ptr) {
+            objc_methods_addr += 24;
+            continue;
+        }
+        std::string sel_str = std::string(sel_ptr);
         
         uint64_t types_offset = sel_offset + 8;
         uint64_t types_addr = rf64cnt(types_offset, objc_methods_addr += 24);
         
-        std::string types_str = std::string((const char *)VirtualMemoryV2::progressDefault()->readString(types_addr, 1000));
+        char *types_ptr = vm2->readString(types_addr, 1000);
+        if (!types_ptr) {
+            objc_methods_addr += 24;
+            continue;
+        }
+        
+        std::string types_str = std::string(types_ptr);
         
         uint64_t imp_offset = types_offset + 8;
         uint64_t imp_addr = rf64cnt(imp_offset, objc_methods_addr += 24);
@@ -179,11 +190,21 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
     for (uint32_t i = 0; i < objc_classmethodlist_count; i++) {
         uint64_t sel_offset = objc_classmethods_addr;
         uint64_t sel_addr = rf64cnt(sel_offset, objc_classmethods_addr += 24);
-        std::string sel_str = std::string((const char *)vm2->readString(sel_addr, 1000));
+        char *sel_ptr = vm2->readString(sel_addr, 1000);
+        if (!sel_ptr) {
+            objc_classmethods_addr += 24;
+            continue;
+        }
+        std::string sel_str = std::string(sel_ptr);
         
         uint64_t types_offset = sel_offset + 8;
         uint64_t types_addr = rf64cnt(types_offset, objc_classmethods_addr += 24);
-        std::string types_str = std::string((const char *)vm2->readString(types_addr, 1000));
+        char *types_ptr = vm2->readString(types_addr, 1000);
+        if (!types_ptr) {
+            objc_classmethods_addr += 24;
+            continue;
+        }
+        std::string types_str = std::string(types_ptr);
         
         uint64_t imp_offset = types_offset + 8;
         uint64_t imp_addr = rf64cnt(imp_offset, objc_classmethods_addr += 24);
@@ -231,6 +252,10 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
                 // fix structure
                 ivar.name = vm2->readString(nameAddr, 1000);
                 ivar.type = vm2->readString(typeAddr, 1000);
+                if (!ivar.name || !ivar.type) {
+                    objc_class_ivar_addr += 32;
+                    continue;
+                }
                 
                 uint32_t offset = vm2->read32((uint64_t)ivar.offset, &memOK);
                 if (!memOK) {
@@ -355,7 +380,7 @@ std::string ObjcClassRuntimeInfo::classNameAtAddress(uint64_t address) {
     }
     
     const char *className = vm2->readString(objc_classname_addr, 1000);
-    return className;
+    return className ? className : "";
 }
 
 uint64_t ObjcClassRuntimeInfo::trickAlignForClassRO(uint64_t objc_class_ro_addr) {

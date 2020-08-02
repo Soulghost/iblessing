@@ -40,6 +40,7 @@
 #include "PredicateScanner.hpp"
 #include "ObjcClassXrefScanner.hpp"
 #include "SymbolWrapperScanner.hpp"
+#include "SymbolXREFScanner.hpp"
 #include "AppInfoScanner.hpp"
 
 using namespace std;
@@ -65,6 +66,10 @@ ScannerDispatcher::ScannerDispatcher() {
     
     this->registerScanner("symbol-wrapper", []() {
         return new SymbolWrapperScanner("symbol-wrapper", "detect symbol wrappers");
+    });
+    
+    this->registerScanner("symbol-xref", []() {
+        return new SymbolXREFScanner("symbol-xref", "symbol xref scanner");
     });
     
     this->registerScanner("app-info", []() {

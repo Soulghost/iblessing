@@ -23,6 +23,7 @@
 #include <unicorn/unicorn.h>
 #include <pthread.h>
 #include "SymbolWrapperScanner.hpp"
+#include "SymbolXREFScanner.hpp"
 #include "ScannerDispatcher.hpp"
 #include "VirtualMemoryV2.hpp"
 #include "ObjcMethodChainSerializationManager.hpp"
@@ -31,6 +32,8 @@
 #define HeapInstanceTrickMask 0x2000000000000000
 #define SelfInstanceTrickMask 0x4000000000000000
 #define SelfSelectorTrickMask 0x8000000000000000
+
+#define SubClassDummyAddress  0xcafecaaecaaecaae
 
 //#define UsingSet
 //#define DebugMethod "currentCameraPositionSubject"
@@ -469,11 +472,8 @@ int ObjcMethodXrefScanner::start() {
 #if TinyTest
     uint64_t realize_limit = std::min((uint64_t)classList.size(), (uint64_t)TinyTest);
 #endif
-#ifdef UsingSet
-    set<ObjcMethod *> methods;
-#else
     vector<ObjcMethod *> methods;
-#endif
+    set<uint64_t> impAddrs;
     for (auto it = classList.begin(); it != classList.end(); it++) {
 #if TinyTest
         if (realize_limit-- == 0) {
@@ -493,17 +493,58 @@ int ObjcMethodXrefScanner::start() {
         }
         #endif
         Vector<ObjcMethod *> allMethods = classInfo->getAllMethods();
-#ifdef UsingSet
-        methods.insert(allMethods.begin(), allMethods.end());
-#else
         methods.insert(methods.end(), allMethods.begin(), allMethods.end());
-#endif
+        for (ObjcMethod *m : allMethods) {
+            impAddrs.insert(m->imp);
+        }
         count++;
         fprintf(stdout, "\r\t[*] realize classes %lld/%lld (%.2f%%)", count, total, 100.0 * count / total);
         fflush(stdout);
     }
     printf("\n");
     printf("\t[+] get %lu methods to analyze\n", methods.size());
+    
+    printf("  [*] Step 1.1 collect objc_msgSend subs\n");
+    SymbolXREFScanner *sxrefScanner = nullptr;
+    ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
+    options["symbols"] = "_objc_msgSend";
+    Scanner *s = dispatcher->prepareForScanner("symbol-xref", options, inputPath, outputPath);
+    if (s) {
+        sxrefScanner = reinterpret_cast<SymbolXREFScanner *>(s);
+        if (0 == sxrefScanner->start()) {
+            cout << termcolor::green;
+            cout << "  [+] collect subs finished";
+            cout << termcolor::reset << endl;
+        } else {
+            cout << termcolor::yellow;
+            cout << "  [*] Warn: collect subs failed";
+            cout << termcolor::reset << endl;
+        }
+        
+        // create common classInfo for subs
+        ObjcClassRuntimeInfo *subClassInfo = new ObjcClassRuntimeInfo();
+        subClassInfo->address = SubClassDummyAddress;
+        subClassInfo->isExternal = true;
+        subClassInfo->className = StringUtils::format("iblessing_SubClass");
+        for (auto it = sxrefScanner->xrefs.begin(); it != sxrefScanner->xrefs.end(); it++) {
+            for (SymbolXREF sxref : it->second) {
+                if (impAddrs.find(sxref.startAddr) != impAddrs.end()) {
+                    // skip imp
+                    continue;
+                }
+                
+                // find a sub
+                ObjcMethod *subMethod = new ObjcMethod();
+                subMethod->classInfo = subClassInfo;
+                subMethod->isClassMethod = true;
+                subMethod->imp = sxref.startAddr;
+                subMethod->name = StringUtils::format("sub_0x%llx", sxref.startAddr);
+                methods.push_back(subMethod);
+            }
+        }
+        delete sxrefScanner;
+    }
+    
     
     printf("  [*] Step 2. dyld load non-lazy symbols\n");
     DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
@@ -686,6 +727,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
 #endif
     
     // add current method to chain if needed
+    // FIXME: a sub call can only be root chain (currentMethod) now
     if (sel2chain.find(currentMethodExpr) == sel2chain.end()) {
         MethodChain *chain = new MethodChain();
         chain->impAddr = currentMethod->imp;

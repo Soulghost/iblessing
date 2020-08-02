@@ -47,6 +47,22 @@
     [[[[IBSRoot alloc] init] class] rootClassMethodCallFromInstanceClass];
 }
 
+- (void)testCallFromSub {
+    void (^sub)(void) = ^ {
+        [IBSRoot rootClassMethodCallFromSub];
+    };
+    sub();
+    
+    [@[@1, @2, @3] enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [IBSRoot rootClassMethodCallFromSub];
+    }];
+    
+    self.ivarBlock = [^{
+        [IBSRoot rootClassMethodCallFromSub];
+    } copy];
+    self.ivarBlock();
+}
+
 - (void)testSelfCall {
     [self selfCallChain1];
 }
