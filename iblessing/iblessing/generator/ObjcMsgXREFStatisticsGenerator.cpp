@@ -20,6 +20,14 @@ using namespace std;
 using namespace httplib;
 using namespace iblessing;
 
+static map<string, MethodChain *> buildCommonChains(map<string, MethodChain *> &orig) {
+    map<string, MethodChain *> newChain;
+    for (auto it = orig.begin(); it != orig.end(); it++) {
+        newChain[it->second->getCompareKey()] = it->second;
+    }
+    return newChain;
+}
+
 int ObjcMsgXREFStatisticsGenerator::start() {
     printf("[*] start ObjcMsgXREFStatisticsGenerator\n");
     
@@ -62,6 +70,10 @@ int ObjcMsgXREFStatisticsGenerator::start() {
         cout << " post-refs" << endl;
         return 0;
     }
+    
+    // rebuild by common key
+    currentChains = buildCommonChains(currentChains);
+    diffChains = buildCommonChains(diffChains);
     
     // diff mode
     // [{chain, {delta-pre, delta-next}}] (delta = cur - differ)
@@ -146,6 +158,10 @@ int ObjcMsgXREFStatisticsGenerator::start() {
         cout << "  [*] find ";
         cout << termcolor::green << newMethods.size() << termcolor::reset;
         cout << " new methods" << endl;
+        
+//        for (auto it = newMethods.begin(); it != newMethods.end(); it++) {
+//            printf("    %s\n", it->second->getCommonDesc().c_str());
+//        }
     }
     
     if (missingMethods.empty()) {
@@ -154,6 +170,10 @@ int ObjcMsgXREFStatisticsGenerator::start() {
         cout << "  [*] find ";
         cout << termcolor::green << missingMethods.size() << termcolor::reset;
         cout << " missing methods" << endl;
+        
+//        for (auto it = missingMethods.begin(); it != missingMethods.end(); it++) {
+//            printf("    %s\n", it->second->getCommonDesc().c_str());
+//        }
     }
     return 0;
 }
