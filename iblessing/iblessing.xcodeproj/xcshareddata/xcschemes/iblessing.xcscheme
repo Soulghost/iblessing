@@ -68,16 +68,16 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "symbol-wrapper"
+            argument = "symbol-xref"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "objc-msg-xref"
-            isEnabled = "NO">
+            argument = "ida-objc-msg-xref"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref-statistic"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-f"
@@ -85,7 +85,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug/Chrome_method-xrefs.iblessing.txt"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug/Aweme_wrapper-graph.iblessing.txt"
@@ -96,16 +96,20 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
-            isEnabled = "NO">
+            argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug/WeChat_method-xrefs.iblessing.0.2.0.8.0428.txt"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d"
-            isEnabled = "YES">
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&apos;symbols=_objc_msgSend&apos;"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;diff=/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug/new1/Chrome_method-xrefs.iblessing.txt&apos;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
       </CommandLineArguments>
    </LaunchAction>

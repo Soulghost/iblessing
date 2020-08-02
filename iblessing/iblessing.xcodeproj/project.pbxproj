@@ -20,6 +20,7 @@
 		6829631D24D0460500EF9251 /* FunctionPrototype.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6829631B24D0460500EF9251 /* FunctionPrototype.cpp */; };
 		6829632324D052AF00EF9251 /* SymbolWrapperSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6829632124D052AF00EF9251 /* SymbolWrapperSerializationManager.cpp */; };
 		6829633524D2838500EF9251 /* IDASymbolWrapperNamingScriptGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6829633324D2838500EF9251 /* IDASymbolWrapperNamingScriptGenerator.cpp */; };
+		685B5B8E24D6711E00C30CFD /* SymbolXREFScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685B5B8C24D6711E00C30CFD /* SymbolXREFScanner.cpp */; };
 		685CE7DB24C56E8B002CC5E8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7DA24C56E8B002CC5E8 /* main.cpp */; };
 		685CE80924C57079002CC5E8 /* Symbol.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7E424C57079002CC5E8 /* Symbol.cpp */; };
 		685CE80A24C57079002CC5E8 /* StringTable.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7E524C57079002CC5E8 /* StringTable.cpp */; };
@@ -86,6 +87,8 @@
 		6829632224D052AF00EF9251 /* SymbolWrapperSerializationManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SymbolWrapperSerializationManager.hpp; sourceTree = "<group>"; };
 		6829633324D2838500EF9251 /* IDASymbolWrapperNamingScriptGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IDASymbolWrapperNamingScriptGenerator.cpp; sourceTree = "<group>"; };
 		6829633424D2838500EF9251 /* IDASymbolWrapperNamingScriptGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IDASymbolWrapperNamingScriptGenerator.hpp; sourceTree = "<group>"; };
+		685B5B8C24D6711E00C30CFD /* SymbolXREFScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SymbolXREFScanner.cpp; sourceTree = "<group>"; };
+		685B5B8D24D6711E00C30CFD /* SymbolXREFScanner.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SymbolXREFScanner.hpp; sourceTree = "<group>"; };
 		685CE7CF24C55309002CC5E8 /* iblessing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = iblessing; sourceTree = BUILT_PRODUCTS_DIR; };
 		685CE7DA24C56E8B002CC5E8 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		685CE7DE24C56F5C002CC5E8 /* argparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argparse.h; sourceTree = "<group>"; };
@@ -508,6 +511,8 @@
 				685CE84124C572A0002CC5E8 /* PredicateScanner.cpp */,
 				685CE84224C572A0002CC5E8 /* ScannerDispatcher.hpp */,
 				685CE84324C572A0002CC5E8 /* AppInfoScanner.hpp */,
+				685B5B8C24D6711E00C30CFD /* SymbolXREFScanner.cpp */,
+				685B5B8D24D6711E00C30CFD /* SymbolXREFScanner.hpp */,
 			);
 			path = scanner;
 			sourceTree = "<group>";
@@ -804,6 +809,7 @@
 				685CE81524C57079002CC5E8 /* ObjcRuntime.cpp in Sources */,
 				685CE80F24C57079002CC5E8 /* ARM64ThreadState.cpp in Sources */,
 				685CE81024C57079002CC5E8 /* ARM64Disasembler.cpp in Sources */,
+				685B5B8E24D6711E00C30CFD /* SymbolXREFScanner.cpp in Sources */,
 				685CE85D24C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp in Sources */,
 				685CE81324C57079002CC5E8 /* ObjcClass.cpp in Sources */,
 				685CE84624C572A0002CC5E8 /* ObjcMethodXrefScanner.cpp in Sources */,

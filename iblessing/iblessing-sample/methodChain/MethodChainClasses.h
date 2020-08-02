@@ -13,6 +13,7 @@
 + (void)rootClassMethodCallFromPrimary;
 + (void)rootClassMethodCallFromInstanceClass;
 + (void)rootClassMethodCallFromReflection;
++ (void)rootClassMethodCallFromSub;
 - (void)rootInstanceMethodCallFromAllocate;
 - (void)rootInstanceMethodCallFromIvar;
 
@@ -25,10 +26,12 @@
 @property (nonatomic, strong) IBSRoot *root;
 @property (nonatomic, assign) char paddingEvil2;
 @property (nonatomic, assign) bool paddingEvil3;
+@property (nonatomic, copy) void (^ivarBlock)();
 
 + (void)testPrimaryCallToRootClassMethodAncestor;
 + (void)testReflectionCallToRootClassMethodAncestor;
 + (void)testInstanceCallToRootClassMethodAncestor;
++ (void)testCallFromSub;
 - (void)selfCallChain1;
 - (void)selfCallChain2;
 - (void)selfCallChain3;
