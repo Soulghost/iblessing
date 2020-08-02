@@ -1,3 +1,11 @@
+# Build Products
+*.a
+*.dylib
+*.so
+*.dll
+*.exe
+*.out
+
 # Logs
 logs
 *.log
