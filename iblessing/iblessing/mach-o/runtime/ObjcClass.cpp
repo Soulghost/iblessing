@@ -81,15 +81,11 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
         }
     };
 #endif
+    bool memOK;
+    
     uint64_t objc_data_addr = address;
     uint64_t objc_class_ro_offset = objc_data_addr + 32;
-    
-    bool memOK = false;
-    uint64_t objc_class_ro_addr = vm2->read64(objc_class_ro_offset, &memOK);
-    if (!memOK) {
-        return nullptr;
-    }
-    
+    uint64_t objc_class_ro_addr = rf64rn(objc_class_ro_offset);
     objc_class_ro_addr = trickAlignForClassRO(objc_class_ro_addr);
     uint64_t objc_classname_offset = objc_class_ro_addr + 24;
     uint64_t objc_classname_addr = vm2->read64(objc_classname_offset, &memOK);
@@ -98,7 +94,7 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
     }
     
     // ** stringtable is linkedit based
-    const char *className = VirtualMemoryV2::progressDefault()->readString(objc_classname_addr, 1000);
+    const char *className = vm2->readString(objc_classname_addr, 1000);
     if (!className) {
         return nullptr;
     }
@@ -119,11 +115,7 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
 #endif
     
     // handle instance methods
-    uint64_t objc_methodlist_addr = vm2->read64(objc_methodlist_offset, &memOK);
-    if (!memOK) {
-        return nullptr;
-    }
-    
+    uint64_t objc_methodlist_addr = rf64rn(objc_methodlist_offset);
     uint32_t objc_methodlist_count = objc_methodlist_addr ? vm2->read32(objc_methodlist_addr + 4, &memOK) : 0;
     if (!memOK) {
         return nullptr;

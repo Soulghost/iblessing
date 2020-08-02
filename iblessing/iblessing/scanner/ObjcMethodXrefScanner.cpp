@@ -72,6 +72,7 @@ public:
 static map<uc_engine *, EngineContext *> engineContexts;
 static pthread_mutex_t globalMutex;
 static pthread_mutex_t counterMutex;
+static pthread_mutex_t indexMutex;
 static uint64_t curCount = 0;
 static uint64_t totalCount = 0;
 
@@ -168,20 +169,23 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             }
             if (isAllocate) {
                 // FIXME: x0 class structure validate
-//                uint64_t x0;
-//                uc_err err = uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
-//                if (err == UC_ERR_OK) {
-//                    // FIXME: external class realize
-//                    bool success = false;
-//                    uint64_t classData = vm2->read64(x0, &success);
-//                    if (success && classData) {
-//                        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(x0);
-//                        if (classInfo) {
-//                            uint64_t encodedAddr = classInfo->address | HeapInstanceTrickMask;
-//                            rt->heapInstanceTrickAddress2RuntimeInfo[encodedAddr] = classInfo;
-//                        }
-//                    }
-//                }
+                uint64_t x0;
+                uc_err err = uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
+                if (err == UC_ERR_OK) {
+                    // FIXME: external class realize
+                    bool success = false;
+                    uint64_t classData = vm2->read64(x0, &success);
+                    if (success && classData) {
+                        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(x0);
+                        if (classInfo) {
+                            uint64_t encodedAddr = classInfo->address | HeapInstanceTrickMask;
+                            pthread_mutex_lock(&indexMutex);
+                            rt->heapInstanceTrickAddress2RuntimeInfo[encodedAddr] = classInfo;
+                            pthread_mutex_unlock(&indexMutex);
+                            uc_reg_write(uc, UC_ARM64_REG_X0, &encodedAddr);
+                        }
+                    }
+                }
             }
             
             // [instance class]
@@ -196,6 +200,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                  */
                 
                 // this is a trick before method emu start (x0 = &classInfo)
+                pthread_mutex_lock(&indexMutex);
                 if (x0 & SelfInstanceTrickMask) {
 //                    x0 = x0 & ~(SelfInstanceTrickMask);
                     // self call, write self's real class addr to x0
@@ -212,6 +217,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                 } else {
                     // other instance: TODO
                 }
+                pthread_mutex_unlock(&indexMutex);
             }
             if (symbol && strcmp(symbol->name.c_str(), "_objc_msgSend") == 0) {
                 isMsgSendOrWrapper = true;
@@ -346,6 +352,7 @@ void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &method
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
     assert(pthread_mutex_init(&globalMutex, &attr) == 0);
     assert(pthread_mutex_init(&counterMutex, &attr) == 0);
+    assert(pthread_mutex_init(&indexMutex, &attr) == 0);
     
     // create threads
     vector<pthread_t> threads;

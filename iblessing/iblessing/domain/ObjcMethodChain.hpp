@@ -41,6 +41,20 @@ public:
                                    impAddr);
     }
     
+    std::string getCompareKey() {
+        if (className.rfind("0x") == 0) {
+            return StringUtils::format("%s[%s %s]",
+                                       prefix.c_str(),
+                                       "0xcafecafecafecafe",
+                                       methodName.c_str());
+        } else {
+            return StringUtils::format("%s[%s %s]",
+                                       prefix.c_str(),
+                                       className.c_str(),
+                                       methodName.c_str());
+        }
+    }
+    
     bool operator < (MethodChain *rhs) {
         return getCommonDesc() < rhs->getCommonDesc();
     }
