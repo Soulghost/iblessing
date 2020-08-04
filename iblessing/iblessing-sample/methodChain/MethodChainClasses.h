@@ -26,7 +26,7 @@
 @property (nonatomic, strong) IBSRoot *root;
 @property (nonatomic, assign) char paddingEvil2;
 @property (nonatomic, assign) bool paddingEvil3;
-@property (nonatomic, copy) void (^ivarBlock)();
+@property (nonatomic, copy) void (^ivarBlock)(void);
 
 + (void)testPrimaryCallToRootClassMethodAncestor;
 + (void)testReflectionCallToRootClassMethodAncestor;
@@ -39,5 +39,13 @@
 
 - (void)testIvarCall;
 - (void)testAllocateCall;
+- (void)testLocalBlockOnStack;
+
+@end
+
+@interface BlockSubA : NSObject
+
+- (void)testAllocateCapture;
+- (void)testCallFromBlockArg;
 
 @end
