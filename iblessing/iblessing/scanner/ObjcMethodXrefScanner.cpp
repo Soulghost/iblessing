@@ -39,7 +39,7 @@
 //#define DebugMethod "currentCameraPositionSubject"
 //#define DebugTrackCall
 //#define DebugClass  "AFCXbsManager"
-#define ThreadCount 8
+#define ThreadCount 1
 //#define ShowFullLog 1
 //#define TinyTest 100
 //#define RecordPath "/Users/soulghost/Desktop/exploits/didi-iOS/iblessing_tracing_tinyx.txt"
@@ -70,6 +70,15 @@ public:
     uc_context *defaultContext;
     ObjcMethod *currentMethod;
     vector<ObjcMethod *> methods;
+    
+    // block status
+    bool isInBlockBuilder;
+    uint64_t blockIsaAddr;
+    uint64_t blockInvokerAddr;
+    string lastCommand;
+    
+    // FIXME: trick for uc reg and capstone reg types
+    arm64_reg lastDstReg;
 };
 
 static map<uc_engine *, EngineContext *> engineContexts;
@@ -105,6 +114,8 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             uint64_t pc = ctx->lastPc + size;
             assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
             free(codes);
+            ctx->lastCommand = "";
+            ctx->lastDstReg = ARM64_REG_INVALID;
             return; 
         }
         
@@ -114,6 +125,8 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             reachToEnd = true;
             free(codes);
             uc_emu_stop(uc);
+            ctx->lastCommand = "ret";
+            ctx->lastDstReg = ARM64_REG_INVALID;
             return;
         }
         
@@ -132,6 +145,17 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             // always jump to next ins
             uint64_t pc = address + size;
             assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
+        }
+        
+        // detect block builder
+        if (ctx->lastCommand == "ldr" &&
+            ctx->lastDstReg != ARM64_REG_INVALID) {
+            uint64_t xn = 0;
+            if (UC_ERR_OK == uc_reg_read(ctx->engine, ctx->lastDstReg, &xn)) {
+                if (rt->blockISAs.find(xn) != rt->blockISAs.end()) {
+//                    printf("[*] find block builder at 0x%llx\n", insn->address);
+                }
+            }
         }
         
         // record objc_msgSend, skip all bl
@@ -265,7 +289,8 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             pc = address + size;
             assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
         }
-        
+        ctx->lastCommand = insn->mnemonic;
+        ctx->lastDstReg = insn->detail->arm64.operands[0].reg;
         free(codes);
     });
     
@@ -296,6 +321,8 @@ void* pthread_uc_worker(void *ctx) {
 //        printf("[*] trace method at index %zu\n", i);
         uc_context_restore(context->engine, context->defaultContext);
         context->lastPc = 0;
+        context->isInBlockBuilder = false;
+        context->blockIsaAddr = 0;
         
         // init x0 as classref
         uint64_t selfTrickAddr = ((uint64_t)m->classInfo) | SelfInstanceTrickMask;
@@ -567,6 +594,9 @@ int ObjcMethodXrefScanner::start() {
                 externalClassInfo->className = symbolName;
             }
             rt->externalClassRuntimeInfo[symbolAddr] = externalClassInfo;
+        } else if (strcmp(symbolName, "__NSConcreteGlobalBlock") == 0 ||
+                   strcmp(symbolName, "__NSConcreteStackBlock") == 0) {
+            rt->blockISAs.insert(symbolAddr);
         }
         
         // record symbol

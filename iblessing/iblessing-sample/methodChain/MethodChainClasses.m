@@ -92,4 +92,33 @@
     [self.root rootInstanceMethodCallFromIvar];
 }
 
+- (void)localStackBlockInovker:(void (^)(BlockSubA *sub))callback {
+    callback([BlockSubA new]);
+}
+
+- (void)testSelfCapture {
+    
+}
+
+- (void)testLocalBlockOnStack {
+    BlockSubA *allocateCapture = [BlockSubA new];
+    [self localStackBlockInovker:^(BlockSubA *sub) {
+        [allocateCapture testAllocateCapture];
+        [self testSelfCapture];
+        [sub testCallFromBlockArg];
+    }];
+}
+
+@end
+
+@implementation BlockSubA
+
+- (void)testAllocateCapture {
+    
+}
+
+- (void)testCallFromBlockArg {
+    
+}
+
 @end
