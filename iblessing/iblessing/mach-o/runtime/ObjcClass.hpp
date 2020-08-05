@@ -21,9 +21,11 @@ class ObjcClassRuntimeInfo {
 public:
     ObjcClassRuntimeInfo() {
         isExternal = false;
+        isSub = false;
     }
     
     bool isExternal;
+    bool isSub;
     uint64_t address;
     std::string className;
     Vector<ObjcMethod *> methodList;
