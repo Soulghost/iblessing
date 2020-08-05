@@ -29,7 +29,7 @@ public:
     ObjcMethod(): isDummy(false) {}
     static ObjcMethod* createDummy(std::string name);
     bool operator < (ObjcMethod *other) {
-        return name == other->name;
+        return name < other->name;
     }
 };
 

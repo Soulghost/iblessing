@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include "ObjcObject.hpp"
 #include "ObjcMethod.hpp"
+#include "ObjcBlock.hpp"
 #include <set>
 
 NS_IB_BEGIN
@@ -25,7 +26,10 @@ public:
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> ivarInstanceTrickAddress2RuntimeInfo;
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> heapInstanceTrickAddress2RuntimeInfo;
     std::unordered_map<std::string, uint64_t> classList;
+    
+    // block
     std::set<uint64_t> blockISAs;
+    std::unordered_map<uint64_t, ObjcBlock *> invoker2block;
     
     static ObjcRuntime* getInstance();
     ObjcClassRuntimeInfo* getClassInfoByAddress(uint64_t address);

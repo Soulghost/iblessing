@@ -53,6 +53,7 @@
 		685CE85C24C57360002CC5E8 /* GeneratorDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE85724C57360002CC5E8 /* GeneratorDispatcher.cpp */; };
 		685CE85D24C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE85824C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp */; };
 		685CE88F24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE88D24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp */; };
+		68770C7124DAD45C003F9652 /* ObjcBlock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68770C6F24DAD45C003F9652 /* ObjcBlock.cpp */; };
 		68C362FA24C9C9D100441950 /* libSystem.B.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 68C362F924C9C9D000441950 /* libSystem.B.tbd */; };
 		68C3630024C9CA7200441950 /* csrutil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68C362FE24C9CA7200441950 /* csrutil.cpp */; };
 		68D755D724C714E00057E092 /* libunicorn.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D755D624C714E00057E092 /* libunicorn.a */; };
@@ -199,6 +200,8 @@
 		685CE88824C57390002CC5E8 /* stdint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stdint.h; sourceTree = "<group>"; };
 		685CE88D24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMethodChainSerializationManager.cpp; sourceTree = "<group>"; };
 		685CE88E24C68933002CC5E8 /* ObjcMethodChainSerializationManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMethodChainSerializationManager.hpp; sourceTree = "<group>"; };
+		68770C6F24DAD45C003F9652 /* ObjcBlock.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcBlock.cpp; sourceTree = "<group>"; };
+		68770C7024DAD45C003F9652 /* ObjcBlock.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcBlock.hpp; sourceTree = "<group>"; };
 		68C362F924C9C9D000441950 /* libSystem.B.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem.B.tbd; path = usr/lib/libSystem.B.tbd; sourceTree = SDKROOT; };
 		68C362FD24C9CA4500441950 /* csr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csr.h; sourceTree = "<group>"; };
 		68C362FE24C9CA7200441950 /* csrutil.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = csrutil.cpp; sourceTree = "<group>"; };
@@ -433,6 +436,8 @@
 				685CE80324C57079002CC5E8 /* ObjcClass.hpp */,
 				685CE80424C57079002CC5E8 /* ObjcMethod.hpp */,
 				685CE80524C57079002CC5E8 /* ObjcObject.cpp */,
+				68770C6F24DAD45C003F9652 /* ObjcBlock.cpp */,
+				68770C7024DAD45C003F9652 /* ObjcBlock.hpp */,
 			);
 			path = runtime;
 			sourceTree = "<group>";
@@ -846,6 +851,7 @@
 				685CE81224C57079002CC5E8 /* ARM64Runtime.cpp in Sources */,
 				685CE82424C57131002CC5E8 /* StringUtils.cpp in Sources */,
 				685CE80A24C57079002CC5E8 /* StringTable.cpp in Sources */,
+				68770C7124DAD45C003F9652 /* ObjcBlock.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1059,8 +1065,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 6CMYQQFFT8;
+				DEVELOPMENT_TEAM = K46WQ32REC;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				INSTALL_PATH = "";
@@ -1070,6 +1077,7 @@
 					"$(PROJECT_DIR)/iblessing/vendor/libs",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SYSTEM_HEADER_SEARCH_PATHS = (
 					"${SRCROOT}/../submodules/capstone/include",
 					"${SRCROOT}/../submodules/unicorn/include",
@@ -1081,8 +1089,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 6CMYQQFFT8;
+				DEVELOPMENT_TEAM = K46WQ32REC;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				INSTALL_PATH = "";
@@ -1092,6 +1101,7 @@
 					"$(PROJECT_DIR)/iblessing/vendor/libs",
 				);
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SYMROOT = build;
 				SYSTEM_HEADER_SEARCH_PATHS = (
 					"${SRCROOT}/../submodules/capstone/include",
