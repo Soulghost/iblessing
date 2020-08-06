@@ -28,10 +28,12 @@
 #include "VirtualMemoryV2.hpp"
 #include "ObjcMethodChainSerializationManager.hpp"
 
-#define IvarInstanceTrickMask 0x1000000000000000
-#define HeapInstanceTrickMask 0x2000000000000000
-#define SelfInstanceTrickMask 0x4000000000000000
-#define SelfSelectorTrickMask 0x8000000000000000
+#define ClassAsInstanceTrickMask 0x0100000000000000
+#define IvarInstanceTrickMask    0x1000000000000000
+#define HeapInstanceTrickMask    0x2000000000000000
+#define SelfInstanceTrickMask    0x4000000000000000
+#define SelfSelectorTrickMask    0x8000000000000000
+
 
 #define SubClassDummyAddress  0xcafecaaecaaecaae
 
@@ -76,6 +78,8 @@ public:
     int blockValidElementCount;
     uint64_t blockIsaAddr;
     uint64_t blockInvokerAddr;
+    uint64_t blockFlags;
+    uint64_t blockDescAddr;
     uint64_t blockSize;
     
     // FIXME: trick for uc reg and capstone reg types
@@ -123,6 +127,82 @@ static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
     block->stack = blockBuffer;
     block->stackSize = ctx->blockSize;
     block->invoker = ctx->blockInvokerAddr;
+    
+    // http://clang.llvm.org/docs/Block-ABI-Apple.html
+    struct Block_literal_1 {
+        void *isa; // initialized to &_NSConcreteStackBlock or &_NSConcreteGlobalBlock
+        int flags;
+        int reserved;
+        void (*invoke)(void *, ...);
+        struct Block_descriptor_1 {
+            unsigned long int reserved;         // NULL
+            unsigned long int size;         // sizeof(struct Block_literal_1)
+            // optional helper functions
+            void (*copy_helper)(void *dst, void *src);     // IFF (1<<25)
+            void (*dispose_helper)(void *src);             // IFF (1<<25)
+            // required ABI.2010.3.16
+            const char *signature;                         // IFF (1<<30)
+        } *descriptor;
+        // imported variables
+    };
+    
+#define BLOCK_HAS_COPY_DISPOSE   (1 << 25)
+#define BLOCK_HAS_SIGNATURE      (1 << 30)
+    
+    uint64_t signatureOffsetInDesc = 0;
+    if (ctx->blockFlags & BLOCK_HAS_SIGNATURE) {
+        signatureOffsetInDesc = 16;
+        if (ctx->blockFlags & BLOCK_HAS_COPY_DISPOSE) {
+            signatureOffsetInDesc += (8 * 2);
+        }
+    }
+    
+    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+    if (signatureOffsetInDesc > 0) {
+        uint64_t sigAddr = 0;
+        if (UC_ERR_OK == uc_mem_read(uc, ctx->blockDescAddr + signatureOffsetInDesc, &sigAddr, 8)) {
+            char *signature = vm2->readString(sigAddr, 1000);
+            vector<string> parts = StringUtils::split(signature, '@');
+            for (int i = 1; i < parts.size(); i++) {
+                string &part = parts[i];
+                if (i == 1) {
+                    if (part == "?0") {
+                        // common block
+                        block->commonBlock = true;
+                        continue;
+                    } else {
+                        block->commonBlock = false;
+                    }
+                }
+                
+                BlockVariable *blockVar = new BlockVariable();
+                if (part.length() > 2 && part[0] == '"') {
+                    stringstream ss;
+                    ss << part[1];
+                    for (int i = 2; i < part.length(); i++) {
+                        char c = part[i];
+                        if (c == '"') {
+                            break;
+                        }
+                        ss << c;
+                    }
+                    string className = ss.str();
+                    ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByName(className);
+                    if (classInfo) {
+                        blockVar->type = BlockVariableTypeObjcClass;
+                        blockVar->classInfo = classInfo;
+                    } else {
+                        blockVar->type = BlockVariableTypeUnknown;
+                    }
+                } else {
+                    blockVar->type = BlockVariableTypePrimary;
+                }
+                block->args.push_back(blockVar);
+            }
+        }
+    }
+    
+    
     rt->invoker2block[ctx->blockInvokerAddr] = block;
     printf("[*] finish block with invoker addr 0x%llx\n", ctx->blockInvokerAddr);
 }
@@ -258,6 +338,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                                 uint64_t targetAddr = sp + disp;
                                 if (targetAddr == ctx->blockIsaAddr + 0x8) {
                                     printf("\t[~] find block flags at 0x%llx, value 0x%llx\n", targetAddr, xn);
+                                    uc_mem_read(uc, targetAddr, &ctx->blockFlags, 4);
                                     ctx->blockValidElementCount++;
                                 } else if (targetAddr == ctx->blockIsaAddr + 0xc) {
                                     printf("\t[~] find block reserved at 0x%llx, value 0x%llx\n", targetAddr, xn);
@@ -268,6 +349,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                                     ctx->blockValidElementCount++;
                                 } else if (targetAddr == ctx->blockIsaAddr + 0x18) {
                                     printf("\t[~] find block desc at 0x%llx, value 0x%llx\n", targetAddr, xn);
+                                    uc_mem_read(uc, targetAddr, &ctx->blockDescAddr, 8);
                                     ctx->blockValidElementCount++;
                                 } else if (targetAddr >= ctx->blockIsaAddr + 0x20) {
                                     printf("\t[~] may find capture var at 0x%llx, value 0x%llx\n", targetAddr, xn);
@@ -783,12 +865,16 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
         return;
     }
     
+    if (strcmp(detectedSEL, "testAllocateCapture") == 0) {
+        
+    }
+    
     if (x0) {
         uint64_t addr = x0;
         instanceAddr = addr;
         if (x0 & SelfInstanceTrickMask) {
             // self call -[self foo]
-            detectedClassInfo = currentMethod->classInfo;
+            detectedClassInfo = reinterpret_cast<ObjcClassRuntimeInfo *>(x0 & ~(SelfInstanceTrickMask));
             methodPrefix = "-";
         } if (rt->address2RuntimeInfo.find(addr) != rt->address2RuntimeInfo.end()) {
             // +[Class foo]
@@ -827,6 +913,22 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     if (strcmp(detectedSEL, "class") == 0 && detectedClassInfo) {
         // -[instance class] => x0 = instance.class_addr
         uc_reg_write(uc, UC_ARM64_REG_X0, &detectedClassInfo->address);
+    }
+    
+    // detect +[Class new]
+    if (strcmp(detectedSEL, "new") == 0 && detectedClassInfo) {
+        bool success;
+        uint64_t classData = vm2->read64(x0, &success);
+        if (success && classData) {
+            ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(x0);
+            if (classInfo) {
+                uint64_t encodedAddr = classInfo->address | HeapInstanceTrickMask;
+                pthread_mutex_lock(&indexMutex);
+                rt->heapInstanceTrickAddress2RuntimeInfo[encodedAddr] = classInfo;
+                pthread_mutex_unlock(&indexMutex);
+                uc_reg_write(uc, UC_ARM64_REG_X0, &encodedAddr);
+            }
+        }
     }
     
     string classExpr;

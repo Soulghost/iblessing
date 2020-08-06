@@ -69,6 +69,14 @@ uint64_t ObjcRuntime::getClassAddrByName(string className) {
     return 0;
 }
 
+ObjcClassRuntimeInfo* ObjcRuntime::getClassInfoByName(std::string className) {
+    uint64_t addr = getClassAddrByName(className);
+    if (!addr) {
+        return nullptr;
+    }
+    return getClassInfoByAddress(addr);
+}
+
 ObjcClassRuntimeInfo* ObjcRuntime::evalReturnForIvarGetter(ObjcClassRuntimeInfo *targetClass, std::string getterSEL) {
     ObjcIvar *ivar = targetClass->name2ivar[getterSEL];
     if (ivar && ivar->type == IvarTypeObjcClass) {

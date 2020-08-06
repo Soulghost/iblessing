@@ -9,15 +9,29 @@
 #ifndef ObjcBlock_hpp
 #define ObjcBlock_hpp
 
-#include "Object.hpp"
+#include "ObjcClass.hpp"
+#include <vector>
 
 NS_IB_BEGIN
+
+enum BlockVariableType {
+    BlockVariableTypePrimary = 0,
+    BlockVariableTypeObjcClass,
+    BlockVariableTypeUnknown
+};
+
+struct BlockVariable {
+    BlockVariableType type;
+    ObjcClassRuntimeInfo *classInfo;
+};
 
 class ObjcBlock : public Object {
 public:
     void *stack;
     uint64_t stackSize;
     uint64_t invoker;
+    bool commonBlock; // is x0 = self
+    std::vector<BlockVariable *> args;
 };
 
 NS_IB_END
