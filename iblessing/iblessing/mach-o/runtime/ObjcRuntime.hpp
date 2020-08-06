@@ -36,6 +36,7 @@ public:
     ObjcClassRuntimeInfo* evalReturnForIvarGetter(ObjcClassRuntimeInfo *targetClass, std::string getterSEL);
     void loadClassList(uint64_t vmaddr, uint64_t size);
     uint64_t getClassAddrByName(std::string className);
+    ObjcClassRuntimeInfo* getClassInfoByName(std::string className);
     
 private:
     ObjcRuntime();
