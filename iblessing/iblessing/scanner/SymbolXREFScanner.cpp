@@ -15,6 +15,8 @@
 #include "SymbolTable.hpp"
 #include <set>
 
+#define XcodeDebug
+
 using namespace std;
 using namespace iblessing;
 
@@ -152,11 +154,16 @@ int SymbolXREFScanner::start() {
         if (isReturnCall) {
             recordRET();
         }
-#if 1
+#ifdef XcodeDebug
+        static long _filter = 0;
+        if (++_filter % 5000 == 0) {
+#endif
         float progress = 100.0 * (insn->address - startAddr) / addrRange;
         fprintf(stdout, "\r\t[*] %c 0x%llx/0x%llx (%.2f%%)", progressChars[progressCur], insn->address, endAddr, progress);
         fflush(stdout);
         progressCur = (++progressCur) % sizeof(progressChars);
+#ifdef XcodeDebug
+        }
 #endif
     });
     delete disasm;

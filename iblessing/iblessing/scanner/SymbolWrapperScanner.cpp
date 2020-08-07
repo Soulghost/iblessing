@@ -16,6 +16,8 @@
 #include "SymbolWrapperSerializationManager.hpp"
 #include <set>
 
+#define XcodeDebug
+
 using namespace std;
 using namespace iblessing;
 static uc_hook memexp_hook;
@@ -265,12 +267,20 @@ int SymbolWrapperScanner::start() {
             strcmp(insn->mnemonic, "adr") == 0) {
             hasMemLoader = true;
         }
-#if 1
         float progress = 100.0 * (insn->address - startAddr) / addrRange;
+#ifdef XcodeDebug
+        static long _filter = 0;
+        if (++_filter % 5000 == 0) {
+            
+#endif
         fprintf(stdout, "\r\t[*] %c 0x%llx/0x%llx (%.2f%%)", progressChars[progressCur], insn->address, endAddr, progress);
         fflush(stdout);
-        progressCur = (++progressCur) % sizeof(progressChars);
+            
+#ifdef XcodeDebug
+        }
 #endif
+
+        progressCur = (++progressCur) % sizeof(progressChars);
     });
     delete disasm;
 #endif

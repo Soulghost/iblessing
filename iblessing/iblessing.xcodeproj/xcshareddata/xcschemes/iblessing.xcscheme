@@ -96,7 +96,7 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug/WeChat_method-xrefs.iblessing.0.2.0.8.0428.txt"
+            argument = "/opt/one-btn/tmp/apps/&#x6296;&#x97f3;&#x77ed;&#x89c6;&#x9891;/Payload/Aweme"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -105,6 +105,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;symbols=_objc_msgSend&apos;"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&apos;antiWrapper=1&apos;"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument

@@ -35,16 +35,18 @@
 #define SelfSelectorTrickMask    0x8000000000000000
 
 
-#define SubClassDummyAddress  0xcafecaaecaaecaae
+#define SubClassDummyAddress      0xcafecaaecaaecaae
+#define ExternalClassDummyAddress 0xfacefacefaceface
 
 //#define UsingSet
 //#define DebugMethod "currentCameraPositionSubject"
 //#define DebugTrackCall
 //#define DebugClass  "AFCXbsManager"
-#define ThreadCount 1
+#define ThreadCount 8
 //#define ShowFullLog 1
 //#define TinyTest 100
 //#define RecordPath "/Users/soulghost/Desktop/exploits/didi-iOS/iblessing_tracing_tinyx.txt"
+#define XcodeDebug
 
 using namespace std;
 using namespace iblessing;
@@ -53,16 +55,23 @@ static string recordPath;
 static SymbolWrapperScanner *antiWrapperScanner;
 static uc_hook insn_hook, mem_hook, memexp_hook;
 
-#ifdef UsingSet
-    set<ObjcMethod *> _methods;
-#else
-    vector<ObjcMethod *> _methods;
-#endif
-
 static map<string, MethodChain *> sel2chain;
 
 static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uint64_t x1);
 static void storeMethodChains();
+
+static bool isValidClassInfo(ObjcClassRuntimeInfo *info) {
+    if (!info) {
+        return false;
+    }
+    
+    uint64_t addr = info->address;
+    if (ObjcRuntime::getInstance()->isClassObjectAtAddress(addr)) {
+        return true;
+    }
+    
+    return addr == SubClassDummyAddress || addr == ExternalClassDummyAddress;
+}
 
 class EngineContext {
 public:
@@ -204,7 +213,7 @@ static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
     
     
     rt->invoker2block[ctx->blockInvokerAddr] = block;
-    printf("[*] finish block with invoker addr 0x%llx\n", ctx->blockInvokerAddr);
+//    printf("[*] finish block with invoker addr 0x%llx\n", ctx->blockInvokerAddr);
 }
 
 static void startBlockSession(EngineContext *ctx, uc_engine *uc, cs_insn *insn) {
@@ -222,7 +231,7 @@ static void startBlockSession(EngineContext *ctx, uc_engine *uc, cs_insn *insn) 
         if (base == ARM64_REG_SP &&
             UC_ERR_OK == uc_reg_read(ctx->engine, UC_ARM64_REG_SP, &sp)) {
             uint64_t blockAddr = sp + disp;
-            printf("\n\t[~] find block build prologue at 0x%llx, block address on stack 0x%llx\n", ctx->lastInsn->address, blockAddr);
+//            printf("\n\t[~] find block build prologue at 0x%llx, block address on stack 0x%llx\n", ctx->lastInsn->address, blockAddr);
             
             ctx->isInBlockBuilder = true;
             ctx->blockIsaAddr = blockAddr;
@@ -321,7 +330,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             // block capture, method only
             if (!ctx->currentMethod->classInfo->isSub &&
                 strcmp(ctx->lastInsn->mnemonic, "str") == 0) {
-                cs_arm64 &detail = ctx->lastInsn->detail->arm64;
+                cs_arm64 detail = ctx->lastInsn->detail->arm64;
                 uint64_t xn = 0;
                 if (detail.operands[0].reg != ARM64_REG_INVALID &&
                     UC_ERR_OK == uc_reg_read(ctx->engine, detail.operands[0].reg, &xn)) {
@@ -337,22 +346,22 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                                 UC_ERR_OK == uc_reg_read(ctx->engine, UC_ARM64_REG_SP, &sp)) {
                                 uint64_t targetAddr = sp + disp;
                                 if (targetAddr == ctx->blockIsaAddr + 0x8) {
-                                    printf("\t[~] find block flags at 0x%llx, value 0x%llx\n", targetAddr, xn);
+//                                    printf("\t[~] find block flags at 0x%llx, value 0x%llx\n", targetAddr, xn);
                                     uc_mem_read(uc, targetAddr, &ctx->blockFlags, 4);
                                     ctx->blockValidElementCount++;
                                 } else if (targetAddr == ctx->blockIsaAddr + 0xc) {
-                                    printf("\t[~] find block reserved at 0x%llx, value 0x%llx\n", targetAddr, xn);
+//                                    printf("\t[~] find block reserved at 0x%llx, value 0x%llx\n", targetAddr, xn);
                                     ctx->blockValidElementCount++;
                                 } else if (targetAddr == ctx->blockIsaAddr + 0x10) {
-                                    printf("\t[~] find block invoker at 0x%llx, value 0x%llx\n", targetAddr, xn);
+//                                    printf("\t[~] find block invoker at 0x%llx, value 0x%llx\n", targetAddr, xn);
                                     uc_mem_read(uc, targetAddr, &ctx->blockInvokerAddr, 8);
                                     ctx->blockValidElementCount++;
                                 } else if (targetAddr == ctx->blockIsaAddr + 0x18) {
-                                    printf("\t[~] find block desc at 0x%llx, value 0x%llx\n", targetAddr, xn);
+//                                    printf("\t[~] find block desc at 0x%llx, value 0x%llx\n", targetAddr, xn);
                                     uc_mem_read(uc, targetAddr, &ctx->blockDescAddr, 8);
                                     ctx->blockValidElementCount++;
                                 } else if (targetAddr >= ctx->blockIsaAddr + 0x20) {
-                                    printf("\t[~] may find capture var at 0x%llx, value 0x%llx\n", targetAddr, xn);
+//                                    printf("\t[~] may find capture var at 0x%llx, value 0x%llx\n", targetAddr, xn);
                                     ctx->blockValidElementCount++;
                                     // FIXME: trick capture size 0x8
                                     ctx->blockSize += 0x8;
@@ -385,6 +394,36 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                             // write class addr to x0
                             uc_reg_write(uc, UC_ARM64_REG_X0, &classAddr);
                         }
+                    }
+                }
+            }
+            
+            // simulate runtime functions
+            if (symbol && strcmp(symbol->name.c_str(), "_objc_storeStrong") == 0) {
+#if 0
+                void
+                objc_storeStrong(id *location, id obj)
+                {
+                    id prev = *location;
+                    if (obj == prev) {
+                        return;
+                    }
+                    objc_retain(obj);
+                    *location = obj;
+                    objc_release(prev);
+                }
+#endif
+                // check x1 and store to x0
+                uint64_t x0, x1;
+                if (UC_ERR_OK == uc_reg_read(uc, UC_ARM64_REG_X0, &x0) &&
+                    UC_ERR_OK == uc_reg_read(uc, UC_ARM64_REG_X1, &x1)) {
+                    uint64_t locationAddr = x0;
+                    uint64_t objAddr = x1;
+                    if (!ctx->isInBlockBuilder) {
+                        uc_mem_write(uc, locationAddr, &objAddr, 8);
+                    } else if (objAddr != 0) {
+                        // FIXME: dirty trick for block capture list release
+                        uc_mem_write(uc, locationAddr, &objAddr, 8);
                     }
                 }
             }
@@ -483,6 +522,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
 #ifdef DebugTrackCall
                     printf("[****] |--- 0x%llx\n", insn->address);
 #endif
+                    // error at 0x00000001003b4884
                     trackCall(uc, ctx->currentMethod, x0, x1);
                     pthread_mutex_unlock(&globalMutex);
                 } else {
@@ -548,8 +588,22 @@ void* pthread_uc_worker(void *ctx) {
             if (rt->invoker2block.find(m->imp) != rt->invoker2block.end()) {
                 ObjcBlock *block = rt->invoker2block[m->imp];
                 uint64_t blockBase = 0x200000000;
-                assert(UC_ERR_OK == uc_reg_write(context->engine, UC_ARM64_REG_X0, &blockBase));
-                assert(UC_ERR_OK == uc_mem_write(context->engine, blockBase, block->stack, block->stackSize));
+                
+                // mapping block object to heap and set pointer
+                if (UC_ERR_OK != uc_reg_write(context->engine, UC_ARM64_REG_X0, &blockBase) ||
+                    UC_ERR_OK != uc_mem_write(context->engine, blockBase, block->stack, block->stackSize)) {
+                    // error -_-
+                }
+                
+                // set block args
+                for (int i = 0; i < std::min((int)block->args.size(), 8); i++) {
+                    BlockVariable *blockVar = block->args[i];
+                    if (blockVar->type == BlockVariableTypeObjcClass) {
+                        uint64_t encodedAddr = (uint64_t)blockVar->classInfo;
+                        encodedAddr = encodedAddr | ClassAsInstanceTrickMask;
+                        uc_reg_write(context->engine, UC_ARM64_REG_X1 + i, &encodedAddr);
+                    }
+                }
             }
         }
         
@@ -565,8 +619,15 @@ void* pthread_uc_worker(void *ctx) {
         
         pthread_mutex_lock(&counterMutex);
         curCount += 1;
+#ifndef XcodeDebug
         fprintf(stdout, "\r\t[*] progress: %lld / %lld (%.2f%%)", curCount, totalCount, 100.0 * curCount / totalCount);
         fflush(stdout);
+#else
+        if (curCount % 1000 == 0) {
+            fprintf(stdout, "\r\t[*] progress: %lld / %lld (%.2f%%)", curCount, totalCount, 100.0 * curCount / totalCount);
+            fflush(stdout);
+        }
+#endif
         pthread_mutex_unlock(&counterMutex);
     }
     return nullptr;
@@ -734,21 +795,28 @@ int ObjcMethodXrefScanner::start() {
         }
         ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(it->second);
 //        printf("\t[+] realize class %s, method count %lu\n", classInfo->className.c_str(), classInfo->methodList.size());
-        #ifdef DebugClass
+#ifdef DebugClass
         if (classInfo->className != DebugClass) {
             continue;
         } else {
             printf("\t[++] find debug class %s\n", DebugClass);
         }
-        #endif
+#endif
         Vector<ObjcMethod *> allMethods = classInfo->getAllMethods();
         methods.insert(methods.end(), allMethods.begin(), allMethods.end());
         for (ObjcMethod *m : allMethods) {
             impAddrs.insert(m->imp);
         }
         count++;
+#ifndef XcodeDebug
         fprintf(stdout, "\r\t[*] realize classes %lld/%lld (%.2f%%)", count, total, 100.0 * count / total);
         fflush(stdout);
+#else
+        if (count % 1000 == 0) {
+            fprintf(stdout, "\r\t[*] realize classes %lld/%lld (%.2f%%)", count, total, 100.0 * count / total);
+            fflush(stdout);
+        }
+#endif
     }
     printf("\n");
     printf("\t[+] get %lu methods to analyze\n", methods.size());
@@ -831,7 +899,10 @@ int ObjcMethodXrefScanner::start() {
 //        vm->writeBySize(new uint64_t(symbolAddr), symbolAddr, 8, MemoryUnit::MemoryType::Common);
     });
     
-    _methods = methods;
+    // remove dupliate elements
+    methods.erase(unique(methods.begin(), methods.end(), [](ObjcMethod *a, ObjcMethod *b) {
+        return a->imp == b->imp;
+    }), methods.end());
     
     printf("  [*] Step 3. track all calls\n");
     trace_all_methods(engines, methods, 0);
@@ -865,18 +936,17 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
         return;
     }
     
-    if (strcmp(detectedSEL, "testAllocateCapture") == 0) {
-        
-    }
-    
     if (x0) {
         uint64_t addr = x0;
         instanceAddr = addr;
         if (x0 & SelfInstanceTrickMask) {
             // self call -[self foo]
-            detectedClassInfo = reinterpret_cast<ObjcClassRuntimeInfo *>(x0 & ~(SelfInstanceTrickMask));
+            detectedClassInfo = reinterpret_cast<ObjcClassRuntimeInfo *>(x0 & (~SelfInstanceTrickMask));
             methodPrefix = "-";
-        } if (rt->address2RuntimeInfo.find(addr) != rt->address2RuntimeInfo.end()) {
+        } else if (x0 & ClassAsInstanceTrickMask) {
+            detectedClassInfo = reinterpret_cast<ObjcClassRuntimeInfo *>(x0 & (~ClassAsInstanceTrickMask));
+            methodPrefix = "-";
+        } else if (rt->address2RuntimeInfo.find(addr) != rt->address2RuntimeInfo.end()) {
             // +[Class foo]
             detectedClassInfo = rt->address2RuntimeInfo[addr];
             methodPrefix = "+";
@@ -901,12 +971,18 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
                 sym->name.rfind("_OBJC_") != -1 &&
                 sym->name.rfind("_$_") != -1) {
                 ObjcClassRuntimeInfo *externalInfo = new ObjcClassRuntimeInfo();
+                externalInfo->address = ExternalClassDummyAddress;
                 externalInfo->isExternal = true;
                 externalInfo->className = StringUtils::split(sym->name, '$')[1].substr(1);
                 detectedClassInfo = externalInfo;
                 methodPrefix = "+";
             }
         }
+    }
+    
+    // detected classInfo validation
+    if (!isValidClassInfo(detectedClassInfo)) {
+        detectedClassInfo = nullptr;
     }
     
     // deprecated, replaced by objc_opt_class
@@ -941,7 +1017,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     }
     
     // eval ivar method
-    if (detectedClassInfo && detectedSEL) {
+    if (detectedClassInfo && isValidClassInfo(detectedClassInfo) && detectedSEL) {
         ObjcClassRuntimeInfo *ivarClassInfo = rt->evalReturnForIvarGetter(detectedClassInfo, detectedSEL);
         if (ivarClassInfo) {
             // FIXME: ivar class addr trick mask
