@@ -37,6 +37,7 @@ public:
     void loadClassList(uint64_t vmaddr, uint64_t size);
     uint64_t getClassAddrByName(std::string className);
     ObjcClassRuntimeInfo* getClassInfoByName(std::string className);
+    bool isClassObjectAtAddress(uint64_t address);
     
 private:
     ObjcRuntime();
