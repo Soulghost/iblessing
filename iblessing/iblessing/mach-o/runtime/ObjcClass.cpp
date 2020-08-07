@@ -300,7 +300,11 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
     } else {
         info->superClassInfo = nullptr;
     }
-    ObjcRuntime::getInstance()->address2RuntimeInfo[address] = info;
+    
+    ObjcRuntime *rt = ObjcRuntime::getInstance();
+    rt->address2RuntimeInfo[address] = info;
+    rt->runtimeInfo2address[info] = address;
+
     return info;
 }
 

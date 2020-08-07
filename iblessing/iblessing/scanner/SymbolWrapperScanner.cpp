@@ -16,8 +16,6 @@
 #include "SymbolWrapperSerializationManager.hpp"
 #include <set>
 
-#define XcodeDebug
-
 using namespace std;
 using namespace iblessing;
 static uc_hook memexp_hook;

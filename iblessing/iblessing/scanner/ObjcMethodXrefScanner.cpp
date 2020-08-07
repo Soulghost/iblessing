@@ -34,7 +34,6 @@
 #define SelfInstanceTrickMask    0x4000000000000000
 #define SelfSelectorTrickMask    0x8000000000000000
 
-
 #define SubClassDummyAddress      0xcafecaaecaaecaae
 #define ExternalClassDummyAddress 0xfacefacefaceface
 
@@ -46,7 +45,6 @@
 //#define ShowFullLog 1
 //#define TinyTest 100
 //#define RecordPath "/Users/soulghost/Desktop/exploits/didi-iOS/iblessing_tracing_tinyx.txt"
-#define XcodeDebug
 
 using namespace std;
 using namespace iblessing;
@@ -61,16 +59,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
 static void storeMethodChains();
 
 static bool isValidClassInfo(ObjcClassRuntimeInfo *info) {
-    if (!info) {
-        return false;
-    }
-    
-    uint64_t addr = info->address;
-    if (ObjcRuntime::getInstance()->isClassObjectAtAddress(addr)) {
-        return true;
-    }
-    
-    return addr == SubClassDummyAddress || addr == ExternalClassDummyAddress;
+    return ObjcRuntime::getInstance()->isValidClassInfo(info);
 }
 
 class EngineContext {
@@ -256,6 +245,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     static ARM64Disassembler disasm;
     disasm.startDisassembly((uint8_t *)codes, address, [&](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
         *stop = true;
+        
+        if (!success) {
+            return;
+        }
         
         // FIXME: loop trick
         // detect loop
@@ -884,6 +877,7 @@ int ObjcMethodXrefScanner::start() {
                 externalClassInfo->className = symbolName;
             }
             rt->externalClassRuntimeInfo[symbolAddr] = externalClassInfo;
+            rt->runtimeInfo2address[externalClassInfo] = symbolAddr;
         } else if (strcmp(symbolName, "__NSConcreteGlobalBlock") == 0 ||
                    strcmp(symbolName, "__NSConcreteStackBlock") == 0) {
             rt->blockISAs.insert(symbolAddr);
