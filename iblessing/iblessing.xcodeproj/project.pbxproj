@@ -1067,9 +1067,13 @@
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = K46WQ32REC;
+				DEVELOPMENT_TEAM = 6CMYQQFFT8;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1091,7 +1095,7 @@
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = K46WQ32REC;
+				DEVELOPMENT_TEAM = 6CMYQQFFT8;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				INSTALL_PATH = "";

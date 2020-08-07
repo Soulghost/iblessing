@@ -15,8 +15,6 @@
 #include "SymbolTable.hpp"
 #include <set>
 
-#define XcodeDebug
-
 using namespace std;
 using namespace iblessing;
 

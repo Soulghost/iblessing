@@ -115,14 +115,16 @@ int ObjcClassXrefScanner::start() {
             *stop = true;
             return;
         }
-#if 0
+        
         if (!success) {
+#if 1
             cout << "\t[-]" << termcolor::yellow;
             cout << StringUtils::format(" an error occurred when disassemble at address 0x%llx", insn->address);
             cout << termcolor::reset << endl;
+#endif
             return;
         }
-#endif
+        
         if (strcmp(insn->mnemonic, "adrp") == 0) {
             ARM64Runtime::handleADRP(insn, nullptr, nullptr, false);
         }
