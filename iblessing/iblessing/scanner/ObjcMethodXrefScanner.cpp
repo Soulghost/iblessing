@@ -801,6 +801,9 @@ int ObjcMethodXrefScanner::start() {
             antiWrapperScanner = reinterpret_cast<SymbolWrapperScanner *>(s);
             antiWrapperScanner->start();
         }
+        cout << termcolor::yellow << "    [!] Warning: the anti-wrapper mode consumes a huge amount of memory,";
+        cout << " this may be related to a memory leak or emulator problem, and I haven't solved it yet";
+        cout << termcolor::reset << endl;
     } else {
         antiWrapperScanner = nullptr;
     }
