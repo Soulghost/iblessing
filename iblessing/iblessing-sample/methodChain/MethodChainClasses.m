@@ -30,6 +30,10 @@
     
 }
 
++ (void)rootClassMethodCallFromSub {
+    
+}
+
 @end
 
 

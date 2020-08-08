@@ -85,7 +85,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug/Aweme_wrapper-graph.iblessing.txt"
@@ -97,7 +97,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/opt/one-btn/tmp/apps/&#x6296;&#x97f3;&#x77ed;&#x89c6;&#x9891;/Payload/Aweme.app/Aweme"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d"
