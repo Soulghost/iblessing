@@ -42,7 +42,7 @@ void SymbolWrapperScanner::init() {
     // setup default thread state
     assert(uc_context_alloc(uc, &ctx) == UC_ERR_OK);
     
-    uint64_t unicorn_sp_start = 0x1fffffff;
+    uint64_t unicorn_sp_start = 0x200000000;
     uc_reg_write(uc, UC_ARM64_REG_SP, &unicorn_sp_start);
     
     // set FPEN on CPACR_EL1
@@ -193,7 +193,7 @@ int SymbolWrapperScanner::start() {
                     block.startAddr = funcStartCursor;
                     block.endAddr = insn->address;
                     block.regLinkGraph = currentGraph;
-                    block.transformer = [&](AntiWrapperBlock block, AntiWrapperArgs args) {
+                    block.transformer = [=](AntiWrapperBlock block, AntiWrapperArgs args) {
                         pthread_mutex_lock(&wrapperLock);
                         uc_context_restore(uc, ctx);
                         for (int i = 0; i < args.nArgs; i++) {
@@ -215,6 +215,8 @@ int SymbolWrapperScanner::start() {
                         if (err) {
 //                            printf("wrapper simulator uc error %s at 0x%llx\n", uc_strerror(err), block.startAddr);
                         }
+                        uc_emu_stop(uc);
+                        
                         pthread_mutex_unlock(&wrapperLock);
                         
                         for (int i = 0; i < args.nArgs; i++) {

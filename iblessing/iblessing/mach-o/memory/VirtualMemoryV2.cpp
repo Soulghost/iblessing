@@ -260,7 +260,9 @@ char* VirtualMemoryV2::readAsCFStringContent(uint64_t address, bool needCheck) {
     uc_err err = uc_mem_read(uc, cfstr->data, content, cfstr->length);
     if (err != UC_ERR_OK) {
         free(content);
+        free(cfstr);
         return nullptr;
     }
+    free(cfstr);
     return content;
 }

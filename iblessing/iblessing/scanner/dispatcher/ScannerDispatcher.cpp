@@ -96,6 +96,7 @@ int ScannerDispatcher::start(std::string scannerId, std::map<std::string, std::s
         return 1;
     }
     
+    s->jobs = jobs;
     int ret = s->start();
     delete s;
     return ret;

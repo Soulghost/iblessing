@@ -10,7 +10,6 @@
 #include "ObjcRuntime.hpp"
 #include "VirtualMemory.hpp"
 #include "termcolor.h"
-#include "ARM64Disasembler.hpp"
 #include "ARM64Runtime.hpp"
 #include "SymbolTable.hpp"
 #include "ARM64ThreadState.hpp"
@@ -21,6 +20,7 @@
 #include <string>
 #include "DyldSimulator.hpp"
 #include <unicorn/unicorn.h>
+#include <capstone/capstone.h>
 #include <pthread.h>
 #include "SymbolWrapperScanner.hpp"
 #include "SymbolXREFScanner.hpp"
@@ -41,7 +41,7 @@
 //#define DebugMethod "currentCameraPositionSubject"
 //#define DebugTrackCall
 //#define DebugClass  "AFCXbsManager"
-#define ThreadCount 8
+//#define ThreadCount 8
 //#define ShowFullLog 1
 //#define TinyTest 100
 //#define RecordPath "/Users/soulghost/Desktop/exploits/didi-iOS/iblessing_tracing_tinyx.txt"
@@ -62,12 +62,26 @@ static bool isValidClassInfo(ObjcClassRuntimeInfo *info) {
     return ObjcRuntime::getInstance()->isValidClassInfo(info);
 }
 
+static cs_insn* copy_insn(cs_insn *insn) {
+    cs_insn *buffer = (cs_insn *)malloc(sizeof(cs_insn));
+    memcpy(buffer, insn, sizeof(cs_insn));
+    buffer->detail = (cs_detail *)malloc(sizeof(cs_detail));
+    memcpy(buffer->detail, insn->detail, sizeof(cs_detail));
+    return buffer;
+}
+
+static void free_insn(cs_insn *insn) {
+    free(insn->detail);
+    free(insn);
+}
+
 class EngineContext {
 public:
     int identifer;
     uc_engine *engine;
     uint64_t lastPc;
     uc_context *defaultContext;
+    csh disasmHandler;
     ObjcMethod *currentMethod;
     vector<ObjcMethod *> methods;
     
@@ -82,6 +96,13 @@ public:
     
     // FIXME: trick for uc reg and capstone reg types
     cs_insn *lastInsn;
+    
+    void setLastInsn(cs_insn *insn) {
+        if (lastInsn) {
+            free_insn(lastInsn);
+        }
+        lastInsn = copy_insn(insn);
+    }
 };
 
 static map<uc_engine *, EngineContext *> engineContexts;
@@ -90,19 +111,6 @@ static pthread_mutex_t counterMutex;
 static pthread_mutex_t indexMutex;
 static uint64_t curCount = 0;
 static uint64_t totalCount = 0;
-
-static cs_insn* copy_insn(cs_insn *insn) {
-    cs_insn *buffer = (cs_insn *)malloc(sizeof(cs_insn));
-    memcpy(buffer, insn, sizeof(cs_insn));
-    buffer->detail = (cs_detail *)malloc(sizeof(cs_detail));
-    memcpy(buffer->detail, insn->detail, sizeof(cs_detail));
-    return buffer;
-}
-
-static void free_insn(cs_insn *insn) {
-    free(insn->detail);
-    free(insn);
-}
 
 static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
     if (!ctx->isInBlockBuilder) {
@@ -214,7 +222,7 @@ static void startBlockSession(EngineContext *ctx, uc_engine *uc, cs_insn *insn) 
     }
     
     // detect str mem op
-    cs_arm64 &detail = ctx->lastInsn->detail->arm64;
+    cs_arm64 detail = ctx->lastInsn->detail->arm64;
     cs_arm64_op op = detail.operands[1];
     if (op.type == ARM64_OP_MEM) {
         arm64_reg base = op.mem.base;
@@ -236,6 +244,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     void *codes = malloc(sizeof(uint32_t));
     uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
     if (err != UC_ERR_OK) {
+        free(codes);
         return;
     }
     
@@ -245,121 +254,106 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     
     bool reachToEnd = false;
-    static ARM64Disassembler disasm;
-    disasm.startDisassembly((uint8_t *)codes, address, [&](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
-        *stop = true;
-        
-        if (!success) {
-            return;
+    cs_insn *insn = nullptr;
+    size_t count = cs_disasm(ctx->disasmHandler, (uint8_t *)codes, 4, address, 0, &insn);
+    if (count != 1) {
+        if (insn && count > 0) {
+            cs_free(insn, count);
         }
-        
-        // FIXME: loop trick
-        // detect loop
-        if (address <= ctx->lastPc) {
+        free(codes);
+        return;
+    }
+    
+    // FIXME: loop trick
+    // detect loop
+    if (address <= ctx->lastPc) {
 #if ShowFullLog
-            printf("\t[*] Warn: detect loop, skip out\n");
+        printf("\t[*] Warn: detect loop, skip out\n");
 #endif
-            uint64_t pc = ctx->lastPc + size;
-            assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
-            free(codes);
-            ctx->lastInsn = copy_insn(insn);
-            return; 
-        }
-        
-        // detect return
-        // FIXME: wrapped return, tiktok 0x1064B6A08
-        if (ARM64Runtime::isRET(insn)) {
-            reachToEnd = true;
-            free(codes);
-            uc_emu_stop(uc);
-            ctx->lastInsn = copy_insn(insn);
-            finishBlockSession(ctx, uc);
-            return;
-        }
-        
-        // split at condition branch
-        // FIXME: skip now
-        if (strcmp(insn->mnemonic, "cbz") == 0 ||
-            strcmp(insn->mnemonic, "cbnz") == 0) {
-            // always jump to next ins
-            uint64_t pc = address + size;
-            assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
-        }
-        
-        // skip branches
-        if (strncmp(insn->mnemonic, "b.", 2) == 0 ||
-            strncmp(insn->mnemonic, "bl.", 3) == 0) {
-            // always jump to next ins
-            uint64_t pc = address + size;
-            assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
-        }
-        
-        // skip blr
-        if (strcmp(insn->mnemonic, "blr") == 0) {
-            // always jump to next ins
-            uint64_t pc = address + size;
-            assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
-        }
-        
-        // detect block builder
-//        if (ctx->lastInsn &&
-//            strcmp(ctx->lastInsn->mnemonic, "ldr") == 0) {
-//            uint64_t xn = 0;
-//            if (UC_ERR_OK == uc_reg_read(ctx->engine, ctx->lastInsn->detail->arm64.operands[0].reg, &xn)) {
-//                if (rt->blockISAs.find(xn) != rt->blockISAs.end()) {
-//                    printf("[~] find block builder at 0x%llx\n", ctx->lastInsn->address);
-//                }
-//
-//        }
-//        if (ctx->lastInsn && strcmp(ctx->lastInsn->mnemonic, "add") == 0) {
-//            arm64_reg reg1 = ctx->lastInsn->detail->arm64.operands[1].reg;
-//            arm64_reg reg0 = ctx->lastInsn->detail->arm64.operands[0].reg;
-//            if (reg1 == ARM64_REG_SP) {
-//                uint64_t xn = 0;
-//                if (UC_ERR_OK == uc_reg_read(ctx->engine, reg0, &xn) &&
-//                    rt->blockISAs.find(xn) != rt->blockISAs.end()) {
-//
-//                }
-//            }
-//        }
-        if (ctx->lastInsn) {
-            // block capture, method only
-            if (!ctx->currentMethod->classInfo->isSub &&
-                strcmp(ctx->lastInsn->mnemonic, "str") == 0) {
-                cs_arm64 detail = ctx->lastInsn->detail->arm64;
-                uint64_t xn = 0;
-                if (detail.operands[0].reg != ARM64_REG_INVALID &&
-                    UC_ERR_OK == uc_reg_read(ctx->engine, detail.operands[0].reg, &xn)) {
-                    if (rt->blockISAs.find(xn) != rt->blockISAs.end()) {
-                        startBlockSession(ctx, uc, ctx->lastInsn);
-                    } else if (ctx->isInBlockBuilder) {
-                        cs_arm64_op op = detail.operands[1];
-                        if (op.type == ARM64_OP_MEM) {
-                            arm64_reg base = op.mem.base;
-                            int32_t disp = op.mem.disp;
-                            uint64_t sp = 0;
-                            if (base == ARM64_REG_SP &&
-                                UC_ERR_OK == uc_reg_read(ctx->engine, UC_ARM64_REG_SP, &sp)) {
-                                uint64_t targetAddr = sp + disp;
-                                if (targetAddr == ctx->blockIsaAddr + 0x8) {
+        uint64_t pc = ctx->lastPc + size;
+        assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
+        ctx->setLastInsn(insn);
+        free(codes);
+        cs_free(insn, count);
+        return;
+    }
+    
+    // detect return
+    // FIXME: wrapped return, tiktok 0x1064B6A08
+    if (ARM64Runtime::isRET(insn)) {
+        reachToEnd = true;
+        ctx->setLastInsn(insn);
+        free(codes);
+        cs_free(insn, count);
+        uc_emu_stop(uc);
+        finishBlockSession(ctx, uc);
+        return;
+    }
+    
+    // split at condition branch
+    // FIXME: skip now
+    if (strcmp(insn->mnemonic, "cbz") == 0 ||
+        strcmp(insn->mnemonic, "cbnz") == 0) {
+        // always jump to next ins
+        uint64_t pc = address + size;
+        assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
+    }
+    
+    // skip branches
+    if (strncmp(insn->mnemonic, "b.", 2) == 0 ||
+        strncmp(insn->mnemonic, "bl.", 3) == 0) {
+        // always jump to next ins
+        uint64_t pc = address + size;
+        assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
+    }
+    
+    // skip blr
+    if (strcmp(insn->mnemonic, "blr") == 0) {
+        // always jump to next ins
+        uint64_t pc = address + size;
+        assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
+    }
+    
+    // detect block
+    if (ctx->lastInsn) {
+        // block capture, method only
+        if (!ctx->currentMethod->classInfo->isSub &&
+            strcmp(ctx->lastInsn->mnemonic, "str") == 0) {
+            cs_arm64 detail = ctx->lastInsn->detail->arm64;
+            uint64_t xn = 0;
+            if (detail.operands[0].reg != ARM64_REG_INVALID &&
+                UC_ERR_OK == uc_reg_read(ctx->engine, detail.operands[0].reg, &xn)) {
+                if (rt->blockISAs.find(xn) != rt->blockISAs.end()) {
+                    startBlockSession(ctx, uc, ctx->lastInsn);
+                } else if (ctx->isInBlockBuilder) {
+                    cs_arm64_op op = detail.operands[1];
+                    if (op.type == ARM64_OP_MEM) {
+                        arm64_reg base = op.mem.base;
+                        int32_t disp = op.mem.disp;
+                        uint64_t sp = 0;
+                        if (base == ARM64_REG_SP &&
+                            UC_ERR_OK == uc_reg_read(ctx->engine, UC_ARM64_REG_SP, &sp)) {
+                            uint64_t targetAddr = sp + disp;
+                            if (targetAddr == ctx->blockIsaAddr + 0x8) {
 //                                    printf("\t[~] find block flags at 0x%llx, value 0x%llx\n", targetAddr, xn);
-                                    uc_mem_read(uc, targetAddr, &ctx->blockFlags, 4);
-                                    ctx->blockValidElementCount++;
-                                } else if (targetAddr == ctx->blockIsaAddr + 0xc) {
+                                uc_mem_read(uc, targetAddr, &ctx->blockFlags, 4);
+                                ctx->blockValidElementCount++;
+                            } else if (targetAddr == ctx->blockIsaAddr + 0xc) {
 //                                    printf("\t[~] find block reserved at 0x%llx, value 0x%llx\n", targetAddr, xn);
-                                    ctx->blockValidElementCount++;
-                                } else if (targetAddr == ctx->blockIsaAddr + 0x10) {
+                                ctx->blockValidElementCount++;
+                            } else if (targetAddr == ctx->blockIsaAddr + 0x10) {
 //                                    printf("\t[~] find block invoker at 0x%llx, value 0x%llx\n", targetAddr, xn);
-                                    uc_mem_read(uc, targetAddr, &ctx->blockInvokerAddr, 8);
-                                    ctx->blockValidElementCount++;
-                                } else if (targetAddr == ctx->blockIsaAddr + 0x18) {
+                                uc_mem_read(uc, targetAddr, &ctx->blockInvokerAddr, 8);
+                                ctx->blockValidElementCount++;
+                            } else if (targetAddr == ctx->blockIsaAddr + 0x18) {
 //                                    printf("\t[~] find block desc at 0x%llx, value 0x%llx\n", targetAddr, xn);
-                                    uc_mem_read(uc, targetAddr, &ctx->blockDescAddr, 8);
-                                    ctx->blockValidElementCount++;
-                                } else if (targetAddr >= ctx->blockIsaAddr + 0x20) {
+                                uc_mem_read(uc, targetAddr, &ctx->blockDescAddr, 8);
+                                ctx->blockValidElementCount++;
+                            } else if (targetAddr >= ctx->blockIsaAddr + 0x20) {
 //                                    printf("\t[~] may find capture var at 0x%llx, value 0x%llx\n", targetAddr, xn);
-                                    ctx->blockValidElementCount++;
-                                    // FIXME: trick capture size 0x8
+                                ctx->blockValidElementCount++;
+                                // FIXME: trick capture size 0x8
+                                if (ctx->blockSize < 0x1000) {
                                     ctx->blockSize += 0x8;
                                 }
                             }
@@ -368,178 +362,175 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                 }
             }
         }
-        
-        // record objc_msgSend, skip all bl
-        if (strcmp(insn->mnemonic, "b") == 0 ||
-            strcmp(insn->mnemonic, "bl") == 0) {
-            uint64_t pc = insn[0].detail->arm64.operands[0].imm;
-            bool isMsgSendOrWrapper = false;
-            Symbol *symbol = symtab->getSymbolByAddress(pc);
-            
-            // string to class
-            if (symbol && strcmp(symbol->name.c_str(), "_NSClassFromString") == 0) {
-                // parse CFString
-                uint64_t x0 = 0;
-                uc_err err = uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
-                if (err == UC_ERR_OK) {
-                    char *className = vm2->readAsCFStringContent(x0);
-                    if (className) {
-                        uint64_t classAddr = rt->getClassAddrByName(className);
-                        free(className);
-                        if (classAddr) {
-                            // write class addr to x0
-                            uc_reg_write(uc, UC_ARM64_REG_X0, &classAddr);
-                        }
-                    }
-                }
-            }
-            
-            // simulate runtime functions
-            if (symbol && strcmp(symbol->name.c_str(), "_objc_storeStrong") == 0) {
-#if 0
-                void
-                objc_storeStrong(id *location, id obj)
-                {
-                    id prev = *location;
-                    if (obj == prev) {
-                        return;
-                    }
-                    objc_retain(obj);
-                    *location = obj;
-                    objc_release(prev);
-                }
-#endif
-                // check x1 and store to x0
-                uint64_t x0, x1;
-                if (UC_ERR_OK == uc_reg_read(uc, UC_ARM64_REG_X0, &x0) &&
-                    UC_ERR_OK == uc_reg_read(uc, UC_ARM64_REG_X1, &x1)) {
-                    uint64_t locationAddr = x0;
-                    uint64_t objAddr = x1;
-                    if (!ctx->isInBlockBuilder) {
-                        uc_mem_write(uc, locationAddr, &objAddr, 8);
-                    } else if (objAddr != 0) {
-                        // FIXME: dirty trick for block capture list release
-                        uc_mem_write(uc, locationAddr, &objAddr, 8);
-                    }
-                }
-            }
-            
-            // allocate
-            bool isAllocate = false;
-            if (symbol && strcmp(symbol->name.c_str(), "_objc_alloc_init") == 0) {
-                // simple allocate
-                isAllocate = true;
-            } else if (symbol && strcmp(symbol->name.c_str(), "_objc_alloc") == 0) {
-                // custom init allocate
-                isAllocate = true;
-            } else if (symbol && strcmp(symbol->name.c_str(), "_objc_allocWithZone") == 0) {
-                // FIXME: swift instance allocate
-            }
-            if (isAllocate) {
-                // FIXME: x0 class structure validate
-                uint64_t x0;
-                uc_err err = uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
-                if (err == UC_ERR_OK) {
-                    // FIXME: external class realize
-                    bool success = false;
-                    uint64_t classData = vm2->read64(x0, &success);
-                    if (success && classData) {
-                        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(x0);
-                        if (classInfo) {
-                            uint64_t encodedAddr = classInfo->address | HeapInstanceTrickMask;
-                            pthread_mutex_lock(&indexMutex);
-                            rt->heapInstanceTrickAddress2RuntimeInfo[encodedAddr] = classInfo;
-                            pthread_mutex_unlock(&indexMutex);
-                            uc_reg_write(uc, UC_ARM64_REG_X0, &encodedAddr);
-                        }
-                    }
-                }
-            }
-            
-            // [instance class]
-            if (symbol && strcmp(symbol->name.c_str(), "_objc_opt_class") == 0) {
-                uint64_t x0;
-                assert(UC_ERR_OK == uc_reg_read(uc, UC_ARM64_REG_X0, &x0));
-                
-                /**
-                    x0 = self => [self class]
-                    x0 = ivar => [ivar class]
-                    x0 = other instance => not support now
-                 */
-                
-                // this is a trick before method emu start (x0 = &classInfo)
-                pthread_mutex_lock(&indexMutex);
-                if (x0 & SelfInstanceTrickMask) {
-//                    x0 = x0 & ~(SelfInstanceTrickMask);
-                    // self call, write self's real class addr to x0
-                    uc_reg_write(uc, UC_ARM64_REG_X0, &ctx->currentMethod->classInfo->address);
-                } else if (rt->ivarInstanceTrickAddress2RuntimeInfo.find(x0) != rt->ivarInstanceTrickAddress2RuntimeInfo.end()) {
-                    // ivar instance, write ivar's real class addr to x0
-                    ObjcClassRuntimeInfo *ivarClassInfo = rt->ivarInstanceTrickAddress2RuntimeInfo[x0];
-                    uc_reg_write(uc, UC_ARM64_REG_X0, &ivarClassInfo->address);
-                } else if (rt->heapInstanceTrickAddress2RuntimeInfo.find(x0) !=
-                           rt->heapInstanceTrickAddress2RuntimeInfo.end()) {
-                    // heap instance from allocate
-                    ObjcClassRuntimeInfo *heapClassInfo = rt->heapInstanceTrickAddress2RuntimeInfo[x0];
-                    uc_reg_write(uc, UC_ARM64_REG_X0, &heapClassInfo->address);
-                } else {
-                    // other instance: TODO
-                }
-                pthread_mutex_unlock(&indexMutex);
-            }
-            if (symbol && strcmp(symbol->name.c_str(), "_objc_msgSend") == 0) {
-                isMsgSendOrWrapper = true;
-            } else {
-                if (antiWrapperScanner && antiWrapperScanner->antiWrapper.isWrappedCall(pc)) {
-                    AntiWrapperArgs args;
-                    args.nArgs = 31;
-                    for (int i = 0; i < 31; i++) {
-                        if (i <= 28) {
-                            uc_reg_read(uc, UC_ARM64_REG_X0 + i, &args.x[i]);
-                        } else {
-                            uc_reg_read(uc, UC_ARM64_REG_X29 + i - 29, &args.x[i]);
-                        }
-                    }
-                    
-                    // we only take care of x0, x1, dont pollute other regs
-                    args = antiWrapperScanner->antiWrapper.performWrapperTransform(pc, args);
-                    for (int i = 0; i < 2; i++) {
-                        uc_reg_write(uc, UC_ARM64_REG_X0 + i, &args.x[i]);
-                    }
-                    isMsgSendOrWrapper = true;
-                }
-            }
-            
-            if (isMsgSendOrWrapper) {
-                uint64_t x0 = 0, x1 = 0;
-                if (uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK &&
-                    uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK) {
-                    pthread_mutex_lock(&globalMutex);
-#ifdef DebugTrackCall
-                    printf("[****] |--- 0x%llx\n", insn->address);
-#endif
-                    // error at 0x00000001003b4884
-                    trackCall(uc, ctx->currentMethod, x0, x1);
-                    pthread_mutex_unlock(&globalMutex);
-                } else {
-                    cout << termcolor::yellow;
-                    cout << StringUtils::format("\t[+] failed to resolve objc_msgSend at 0x%llx\n", insn->address);
-                    cout << termcolor::reset << endl;
-                }
-            }
-            // jump to next ins
-            pc = address + size;
-            assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
-//            finishBlockSession(ctx, uc);
-        }
-
-        if (ctx->lastInsn) {
-            free_insn(ctx->lastInsn);
-        }
-        ctx->lastInsn = copy_insn(insn);
-        free(codes);
-    });
+    }
     
+    // record objc_msgSend, skip all bl
+    if (strcmp(insn->mnemonic, "b") == 0 ||
+        strcmp(insn->mnemonic, "bl") == 0) {
+        uint64_t pc = insn[0].detail->arm64.operands[0].imm;
+        bool isMsgSendOrWrapper = false;
+        Symbol *symbol = symtab->getSymbolByAddress(pc);
+        
+        // string to class
+        if (symbol && strcmp(symbol->name.c_str(), "_NSClassFromString") == 0) {
+            // parse CFString
+            uint64_t x0 = 0;
+            uc_err err = uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
+            if (err == UC_ERR_OK) {
+                char *className = vm2->readAsCFStringContent(x0);
+                if (className) {
+                    uint64_t classAddr = rt->getClassAddrByName(className);
+                    free(className);
+                    if (classAddr) {
+                        // write class addr to x0
+                        uc_reg_write(uc, UC_ARM64_REG_X0, &classAddr);
+                    }
+                }
+            }
+        }
+        
+        // simulate runtime functions
+        if (symbol && strcmp(symbol->name.c_str(), "_objc_storeStrong") == 0) {
+#if 0
+            void
+            objc_storeStrong(id *location, id obj)
+            {
+                id prev = *location;
+                if (obj == prev) {
+                    return;
+                }
+                objc_retain(obj);
+                *location = obj;
+                objc_release(prev);
+            }
+#endif
+            // check x1 and store to x0
+            uint64_t x0, x1;
+            if (UC_ERR_OK == uc_reg_read(uc, UC_ARM64_REG_X0, &x0) &&
+                UC_ERR_OK == uc_reg_read(uc, UC_ARM64_REG_X1, &x1)) {
+                uint64_t locationAddr = x0;
+                uint64_t objAddr = x1;
+                if (!ctx->isInBlockBuilder) {
+                    uc_mem_write(uc, locationAddr, &objAddr, 8);
+                } else if (objAddr != 0) {
+                    // FIXME: dirty trick for block capture list release
+                    uc_mem_write(uc, locationAddr, &objAddr, 8);
+                }
+            }
+        }
+        
+        // allocate
+        bool isAllocate = false;
+        if (symbol && strcmp(symbol->name.c_str(), "_objc_alloc_init") == 0) {
+            // simple allocate
+            isAllocate = true;
+        } else if (symbol && strcmp(symbol->name.c_str(), "_objc_alloc") == 0) {
+            // custom init allocate
+            isAllocate = true;
+        } else if (symbol && strcmp(symbol->name.c_str(), "_objc_allocWithZone") == 0) {
+            // FIXME: swift instance allocate
+        }
+        if (isAllocate) {
+            // FIXME: x0 class structure validate
+            uint64_t x0;
+            uc_err err = uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
+            if (err == UC_ERR_OK) {
+                // FIXME: external class realize
+                bool success = false;
+                uint64_t classData = vm2->read64(x0, &success);
+                if (success && classData) {
+                    ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(x0);
+                    if (classInfo) {
+                        uint64_t encodedAddr = classInfo->address | HeapInstanceTrickMask;
+                        pthread_mutex_lock(&indexMutex);
+                        rt->heapInstanceTrickAddress2RuntimeInfo[encodedAddr] = classInfo;
+                        pthread_mutex_unlock(&indexMutex);
+                        uc_reg_write(uc, UC_ARM64_REG_X0, &encodedAddr);
+                    }
+                }
+            }
+        }
+        
+        // [instance class]
+        if (symbol && strcmp(symbol->name.c_str(), "_objc_opt_class") == 0) {
+            uint64_t x0;
+            assert(UC_ERR_OK == uc_reg_read(uc, UC_ARM64_REG_X0, &x0));
+            
+            /**
+                x0 = self => [self class]
+                x0 = ivar => [ivar class]
+                x0 = other instance => not support now
+             */
+            
+            // this is a trick before method emu start (x0 = &classInfo)
+            pthread_mutex_lock(&indexMutex);
+            if (x0 & SelfInstanceTrickMask) {
+//                    x0 = x0 & ~(SelfInstanceTrickMask);
+                // self call, write self's real class addr to x0
+                uc_reg_write(uc, UC_ARM64_REG_X0, &ctx->currentMethod->classInfo->address);
+            } else if (rt->ivarInstanceTrickAddress2RuntimeInfo.find(x0) != rt->ivarInstanceTrickAddress2RuntimeInfo.end()) {
+                // ivar instance, write ivar's real class addr to x0
+                ObjcClassRuntimeInfo *ivarClassInfo = rt->ivarInstanceTrickAddress2RuntimeInfo[x0];
+                uc_reg_write(uc, UC_ARM64_REG_X0, &ivarClassInfo->address);
+            } else if (rt->heapInstanceTrickAddress2RuntimeInfo.find(x0) !=
+                       rt->heapInstanceTrickAddress2RuntimeInfo.end()) {
+                // heap instance from allocate
+                ObjcClassRuntimeInfo *heapClassInfo = rt->heapInstanceTrickAddress2RuntimeInfo[x0];
+                uc_reg_write(uc, UC_ARM64_REG_X0, &heapClassInfo->address);
+            } else {
+                // other instance: TODO
+            }
+            pthread_mutex_unlock(&indexMutex);
+        }
+        if (symbol && strcmp(symbol->name.c_str(), "_objc_msgSend") == 0) {
+            isMsgSendOrWrapper = true;
+        } else {
+            if (antiWrapperScanner && antiWrapperScanner->antiWrapper.isWrappedCall(pc)) {
+                AntiWrapperArgs args;
+                args.nArgs = 31;
+                for (int i = 0; i < 31; i++) {
+                    if (i <= 28) {
+                        uc_reg_read(uc, UC_ARM64_REG_X0 + i, &args.x[i]);
+                    } else {
+                        uc_reg_read(uc, UC_ARM64_REG_X29 + i - 29, &args.x[i]);
+                    }
+                }
+                
+                // we only take care of x0, x1, dont pollute other regs
+                args = antiWrapperScanner->antiWrapper.performWrapperTransform(pc, args);
+                for (int i = 0; i < 2; i++) {
+                    uc_reg_write(uc, UC_ARM64_REG_X0 + i, &args.x[i]);
+                }
+                isMsgSendOrWrapper = true;
+            }
+        }
+        
+        if (isMsgSendOrWrapper) {
+            uint64_t x0 = 0, x1 = 0;
+            if (uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK &&
+                uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK) {
+                pthread_mutex_lock(&globalMutex);
+#ifdef DebugTrackCall
+                printf("[****] |--- 0x%llx\n", insn->address);
+#endif
+                // error at 0x00000001003b4884
+                trackCall(uc, ctx->currentMethod, x0, x1);
+                pthread_mutex_unlock(&globalMutex);
+            } else {
+                cout << termcolor::yellow;
+                cout << StringUtils::format("\t[+] failed to resolve objc_msgSend at 0x%llx\n", insn->address);
+                cout << termcolor::reset << endl;
+            }
+        }
+        // jump to next ins
+        pc = address + size;
+        assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
+//            finishBlockSession(ctx, uc);
+    }
+
+    ctx->setLastInsn(insn);
+    free(codes);
+    cs_free(insn, count);
     ctx->lastPc = address;
 }
 
@@ -726,10 +717,17 @@ uc_engine* createEngine(int identifier) {
     uc_reg_write(uc, UC_ARM64_REG_CPACR_EL1, &fpen);
     uc_context_save(uc, ctx);
     
+    // create disasm handle
+    csh handle;
+    assert(cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle) == CS_ERR_OK);
+    // enable detail
+    cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
+    
     // build context
     EngineContext *engineCtx = new EngineContext();
     engineCtx->identifer = identifier;
     engineCtx->engine = uc;
+    engineCtx->disasmHandler = handle;
     engineCtx->defaultContext = ctx;
     engineCtx->lastPc = 0;
     engineCtx->currentMethod = NULL;
@@ -740,7 +738,7 @@ uc_engine* createEngine(int identifier) {
 int ObjcMethodXrefScanner::start() {
     printf("[*] start ObjcMethodXrefScanner Exploit Scanner\n");
     vector<uc_engine *> engines;
-    for (int i = 0; i < ThreadCount; i++) {
+    for (int i = 0; i < jobs; i++) {
         engines.push_back(createEngine(i));
     }
     
