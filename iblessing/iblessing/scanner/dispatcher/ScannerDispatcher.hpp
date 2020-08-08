@@ -21,6 +21,8 @@ typedef std::function<Scanner* (void)> ScannerProvider;
 
 class ScannerDispatcher {
 public:
+    int jobs;
+    
     ScannerDispatcher();
     void registerScanner(std::string scannerId, ScannerProvider provider);
     int start(std::string scannerId, std::map<std::string, std::string> options, std::string inputPath, std::string outputPath);

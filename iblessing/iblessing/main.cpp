@@ -31,7 +31,7 @@ int main(int argc, const char *argv[]) {
            \n");
     
     // hello text
-    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.2.1 (http://blog.asm.im)\n");
+    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.2.1.5 (http://blog.asm.im)\n");
     printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
     if (CSRUtil::isSIPon()) {
         printf("[***] System Integrity Protection is on\n");
@@ -67,6 +67,10 @@ int main(int argc, const char *argv[]) {
     parser.add_argument()
     .names({"-d", "--data"})
     .description("extra data");
+    
+    parser.add_argument()
+    .names({"-j", "--jobs"})
+    .description("specifies the number of jobs to run simultaneously");
     
     parser.enable_help();
     
@@ -207,11 +211,21 @@ int main(int argc, const char *argv[]) {
             }
         }
         
+        int jobs = 8;
+        if (parser.exists("jobs")) {
+            jobs = atoi(parser.get<string>("jobs").c_str());
+            if (jobs <= 0 || jobs > 16) {
+                jobs = 8;
+            }
+        }
+        printf("[*] set jobs count to %d\n", jobs);
+        
         string filePath = parser.get<string>("file");
         printf("[*] input file is %s\n", filePath.c_str());
-        ScannerDispatcher *scanner = new ScannerDispatcher();
-        int ret = scanner->start(scannerId, options, filePath, outputFilePath);
-        delete scanner;
+        ScannerDispatcher *dispatcher = new ScannerDispatcher();
+        dispatcher->jobs = jobs;
+        int ret = dispatcher->start(scannerId, options, filePath, outputFilePath);
+        delete dispatcher;
         return ret;
     } else {
         cout << termcolor::red;

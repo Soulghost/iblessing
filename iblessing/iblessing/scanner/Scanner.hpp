@@ -32,6 +32,7 @@ public:
     std::string fileName;
     std::string identifier;
     std::string desc;
+    int jobs;
     bool isBinaryScanner;
     
     // FIXME: buggy design pattern
