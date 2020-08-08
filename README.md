@@ -42,6 +42,7 @@ In case you need support regarding iblessing or anything associated with it, you
 - send mail to xiuyutong1994#gmail.com
 
 # Changelog
+- 2020.08.08 - Improve objc_msgSend xref scanner, add sub xref supoort, including block arguments and capture list
 - 2020.07.30 - Improve symbol-wrapper scanner, and add ida scripts for symbol wrapper rename and prototype modification
 - 2020.07.21 - First release 
 
