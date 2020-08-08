@@ -167,7 +167,7 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     
     // sanity check
     if (!textSeg64) {
-        return SC_ERR_MACHO_MISSING_SEGMENT_SYMTAB;
+        return SC_ERR_MACHO_MISSING_SEGMENT_TEXT;
     }
     
     // build string table
