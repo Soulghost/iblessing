@@ -31,7 +31,6 @@
 + (void)testPrimaryCallToRootClassMethodAncestor;
 + (void)testReflectionCallToRootClassMethodAncestor;
 + (void)testInstanceCallToRootClassMethodAncestor;
-+ (void)testCallFromSub;
 - (void)selfCallChain1;
 - (void)selfCallChain2;
 - (void)selfCallChain3;
