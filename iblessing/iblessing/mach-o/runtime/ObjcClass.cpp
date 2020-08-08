@@ -281,7 +281,12 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
                 }
                 
                 string ivarName = ivar.name;
-                string getterName = ivarName.substr(1);
+                string getterName;
+                if (ivarName.length() > 1) {
+                    getterName = ivarName.substr(1);
+                } else {
+                    getterName = ivarName;
+                }
                 
                 info->ivarList.pushBack(objcIvar);
                 info->name2ivar[getterName] = objcIvar;

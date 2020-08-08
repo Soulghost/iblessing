@@ -183,7 +183,7 @@ uint32_t VirtualMemoryV2::read32(uint64_t address, bool *success) {
 }
 
 char* VirtualMemoryV2::readString(uint64_t address, uint64_t limit) {
-    char *charBuf = (char *)malloc(limit);
+    char *charBuf = (char *)malloc(limit + 1);
     uint64_t offset = 0;
     uint64_t unPrintCount = 0;
     bool ok = true;
@@ -207,7 +207,10 @@ char* VirtualMemoryV2::readString(uint64_t address, uint64_t limit) {
     }
     
     charBuf[offset] = 0;
-    return charBuf;
+    char *strBuffer = (char *)malloc(offset + 1);
+    memcpy(strBuffer, charBuf, offset + 1);
+    free(charBuf);
+    return strBuffer;
 }
 
 CFString* VirtualMemoryV2::readAsCFString(uint64_t address, bool needCheck) {

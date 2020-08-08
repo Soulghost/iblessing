@@ -160,7 +160,10 @@ static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
         uint64_t sigAddr = 0;
         if (UC_ERR_OK == uc_mem_read(uc, ctx->blockDescAddr + signatureOffsetInDesc, &sigAddr, 8)) {
             char *signature = vm2->readString(sigAddr, 1000);
-            vector<string> parts = StringUtils::split(signature, '@');
+            vector<string> parts;
+            if (signature) {
+                parts = StringUtils::split(signature, '@');
+            }
             for (int i = 1; i < parts.size(); i++) {
                 string &part = parts[i];
                 if (i == 1) {
