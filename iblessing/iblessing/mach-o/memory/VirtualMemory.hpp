@@ -68,6 +68,8 @@ public:
     // extra info
     std::vector<struct segment_command_64 *> segmentHeaders;
     dyld_info_command *dyldinfo;
+    struct segment_command_64 *textSeg;
+    struct section_64 *textSect;
     
     void storeRegister(ARM64Register *reg, uint64_t address);
     uint64_t storeObject(void *data, uint64_t size, MemoryUnit::MemoryType type);

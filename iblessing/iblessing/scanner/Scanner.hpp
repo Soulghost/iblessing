@@ -10,15 +10,19 @@
 #define Scanner_hpp
 
 #include "Object.hpp"
+#include "ScannerDisassemblyDriver.hpp"
 #include <map>
 #include <string>
+
+NS_IB_BEGIN
 
 class Scanner {
 public:
     Scanner(std::string identifier, std::string desc, bool isBinaryScanner = true):
         identifier(identifier),
         desc(desc),
-        isBinaryScanner(isBinaryScanner)
+        isBinaryScanner(isBinaryScanner),
+        driver(nullptr)
     {}
     
     virtual ~Scanner() {};
@@ -30,9 +34,13 @@ public:
     std::string desc;
     bool isBinaryScanner;
     
+    // FIXME: buggy design pattern
     void *dispatcher;
+    ScannerDisassemblyDriver *driver;
     
     virtual int start() = 0;
 };
+
+NS_IB_END
 
 #endif /* Scanner_hpp */

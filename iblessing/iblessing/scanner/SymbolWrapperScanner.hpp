@@ -34,6 +34,11 @@ public:
     virtual int start();
     
 private:
+    uint64_t funcStartCursor = 0;
+    uint8_t progressCur = 0;
+    bool hasMemLoader = false;
+    AntiWrapperRegLinkGraph currentGraph = {};
+    
     void init();
 };
 

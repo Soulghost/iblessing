@@ -36,6 +36,9 @@ public:
     virtual int start();
     
 private:
+    std::map<std::string, std::set<SymbolXREF>> currentXREFs = {};
+    uint64_t funcStartCursor = 0;
+    uint8_t progressCur = 0;
     void init();
 };
 

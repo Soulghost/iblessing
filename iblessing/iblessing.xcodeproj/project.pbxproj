@@ -56,6 +56,7 @@
 		68A028C024DE7F9300077CE0 /* ScannerContextManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028BE24DE7F9300077CE0 /* ScannerContextManager.cpp */; };
 		68A028C324DE80AB00077CE0 /* ScannerContext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028C124DE80AB00077CE0 /* ScannerContext.cpp */; };
 		68A028CB24DE897F00077CE0 /* ScannerDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028C924DE897F00077CE0 /* ScannerDispatcher.cpp */; };
+		68A028D624DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028D424DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp */; };
 		68C362FA24C9C9D100441950 /* libSystem.B.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 68C362F924C9C9D000441950 /* libSystem.B.tbd */; };
 		68C3630024C9CA7200441950 /* csrutil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68C362FE24C9CA7200441950 /* csrutil.cpp */; };
 		68D755D724C714E00057E092 /* libunicorn.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D755D624C714E00057E092 /* libunicorn.a */; };
@@ -209,6 +210,8 @@
 		68A028C624DE823200077CE0 /* ScannerCommon.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScannerCommon.hpp; sourceTree = "<group>"; };
 		68A028C924DE897F00077CE0 /* ScannerDispatcher.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ScannerDispatcher.cpp; sourceTree = "<group>"; };
 		68A028CA24DE897F00077CE0 /* ScannerDispatcher.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScannerDispatcher.hpp; sourceTree = "<group>"; };
+		68A028D424DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScannerDisassemblyDriver.cpp; sourceTree = "<group>"; };
+		68A028D524DE8F5400077CE0 /* ScannerDisassemblyDriver.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScannerDisassemblyDriver.hpp; sourceTree = "<group>"; };
 		68C362F924C9C9D000441950 /* libSystem.B.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem.B.tbd; path = usr/lib/libSystem.B.tbd; sourceTree = SDKROOT; };
 		68C362FD24C9CA4500441950 /* csr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csr.h; sourceTree = "<group>"; };
 		68C362FE24C9CA7200441950 /* csrutil.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = csrutil.cpp; sourceTree = "<group>"; };
@@ -509,23 +512,24 @@
 		685CE83524C572A0002CC5E8 /* scanner */ = {
 			isa = PBXGroup;
 			children = (
+				68A028D324DE8F3600077CE0 /* driver */,
 				68A028C824DE894B00077CE0 /* dispatcher */,
 				68A028C424DE821F00077CE0 /* common */,
 				68A028BD24DE7F8000077CE0 /* context */,
 				685CE83624C572A0002CC5E8 /* SymbolWrapperScanner.hpp */,
+				685CE84024C572A0002CC5E8 /* SymbolWrapperScanner.cpp */,
+				685B5B8D24D6711E00C30CFD /* SymbolXREFScanner.hpp */,
+				685B5B8C24D6711E00C30CFD /* SymbolXREFScanner.cpp */,
+				685CE83E24C572A0002CC5E8 /* ObjcMethodXrefScanner.hpp */,
+				685CE83A24C572A0002CC5E8 /* ObjcMethodXrefScanner.cpp */,
 				685CE83724C572A0002CC5E8 /* PredicateScanner.hpp */,
 				685CE83924C572A0002CC5E8 /* ObjcClassXrefScanner.cpp */,
-				685CE83A24C572A0002CC5E8 /* ObjcMethodXrefScanner.cpp */,
 				685CE83B24C572A0002CC5E8 /* AppInfoScanner.mm */,
 				685CE83C24C572A0002CC5E8 /* Scanner.cpp */,
 				685CE83D24C572A0002CC5E8 /* ObjcClassXrefScanner.hpp */,
-				685CE83E24C572A0002CC5E8 /* ObjcMethodXrefScanner.hpp */,
 				685CE83F24C572A0002CC5E8 /* Scanner.hpp */,
-				685CE84024C572A0002CC5E8 /* SymbolWrapperScanner.cpp */,
 				685CE84124C572A0002CC5E8 /* PredicateScanner.cpp */,
 				685CE84324C572A0002CC5E8 /* AppInfoScanner.hpp */,
-				685B5B8C24D6711E00C30CFD /* SymbolXREFScanner.cpp */,
-				685B5B8D24D6711E00C30CFD /* SymbolXREFScanner.hpp */,
 			);
 			path = scanner;
 			sourceTree = "<group>";
@@ -690,6 +694,15 @@
 				68A028CA24DE897F00077CE0 /* ScannerDispatcher.hpp */,
 			);
 			path = dispatcher;
+			sourceTree = "<group>";
+		};
+		68A028D324DE8F3600077CE0 /* driver */ = {
+			isa = PBXGroup;
+			children = (
+				68A028D424DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp */,
+				68A028D524DE8F5400077CE0 /* ScannerDisassemblyDriver.hpp */,
+			);
+			path = driver;
 			sourceTree = "<group>";
 		};
 		68C362FB24C9CA2E00441950 /* platform */ = {
@@ -882,6 +895,7 @@
 				685CE85B24C57360002CC5E8 /* Generator.cpp in Sources */,
 				685CE80E24C57079002CC5E8 /* ARM64Registers.cpp in Sources */,
 				685CE81824C57079002CC5E8 /* UnicornARM64Runtime.cpp in Sources */,
+				68A028D624DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp in Sources */,
 				685CE84A24C572A0002CC5E8 /* PredicateScanner.cpp in Sources */,
 				68C3630024C9CA7200441950 /* csrutil.cpp in Sources */,
 				685CE84924C572A0002CC5E8 /* SymbolWrapperScanner.cpp in Sources */,
@@ -1109,8 +1123,8 @@
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
-					"DEBUG=1",
 					"$(inherited)",
+					"DEBUG=1",
 				);
 				INSTALL_PATH = "";
 				LIBRARY_SEARCH_PATHS = (

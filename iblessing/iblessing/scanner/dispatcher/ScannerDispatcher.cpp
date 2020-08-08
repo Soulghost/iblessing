@@ -102,7 +102,7 @@ int ScannerDispatcher::start(std::string scannerId, std::map<std::string, std::s
 }
 
 
-Scanner* ScannerDispatcher::prepareForScanner(std::string scannerId, std::map<std::string, std::string> options, std::string inputPath, std::string outputPath) {
+Scanner* ScannerDispatcher::prepareForScanner(std::string scannerId, std::map<std::string, std::string> options, std::string inputPath, std::string outputPath, ScannerDisassemblyDriver *driver) {
     // input validate
     if (!fexists(inputPath)) {
         cout << termcolor::red << "[-] ScannerDispatcher Error: input file " << inputPath << " not exist";
@@ -129,6 +129,11 @@ Scanner* ScannerDispatcher::prepareForScanner(std::string scannerId, std::map<st
             cout << termcolor::red << "[-] ScannerDispatcher Error: cannot load binary context for file " << inputPath;
             cout << termcolor::reset << endl;
             return nullptr;
+        }
+        
+        // load driver
+        if (driver) {
+            s->driver = driver;
         }
     }
     
