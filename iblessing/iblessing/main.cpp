@@ -10,7 +10,7 @@
 #include "util/StringUtils.h"
 #include "vendor/argparse/argparse.h"
 #include "vendor/termcolor/termcolor.h"
-#include "scanner/ScannerDispatcher.hpp"
+#include "scanner/dispatcher/ScannerDispatcher.hpp"
 #include "generator/GeneratorDispatcher.hpp"
 #include "platform/macos/csrutil.hpp"
 
