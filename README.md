@@ -18,8 +18,7 @@
 - [x] Scanners using unicorn to partially simulate Mach-O arm64 code execution and find some features
 - [x] Generators that can provide secondary processing on scanner's report to start a query server, or generate script for IDA
 
-- Super Scanner Features
-  - Super objc_msgSend Xrefs Scanner 😄
+- Super objc_msgSend Xrefs Scanner 😄
     - [x] objc method and subs (such as block) emulation to generate xrefs like flare-emu
     - [x] objc function wrapper detect and ida usercall generate
     - [x] objc_msgSend sub functions analysis
