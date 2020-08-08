@@ -65,11 +65,21 @@ void SymbolWrapperScanner::init() {
 }
 
 int SymbolWrapperScanner::start() {
-    cout << "[*] start Symbol Wrapper Scanner" << endl;
+    ScannerDisassemblyDriver *disasmDriver = this->driver;
+    bool localDriver = false;
+    if (!disasmDriver) {
+        printf("\t[*] using local driver\n");
+        disasmDriver = new ScannerDisassemblyDriver();
+        localDriver = true;
+    }
+    
+    const char *prepadding = localDriver ? "" : "    ";
+    
+    cout << prepadding << "[*] start Symbol Wrapper Scanner" << endl;
     
     if (options.find("symbols") == options.end()) {
         cout << termcolor::red;
-        cout << StringUtils::format("Error: you should specific symbols by -d 'symbols=<symbol>,<symbol>' or 'symbols=*'");
+        cout << StringUtils::format("%s[-] Error: you should specific symbols by -d 'symbols=<symbol>,<symbol>' or 'symbols=*'", prepadding);
         cout << termcolor::reset << endl;
         return 1;
     }
@@ -89,7 +99,7 @@ int SymbolWrapperScanner::start() {
     // setup recordPath
     string graphPath = StringUtils::path_join(outputPath, fileName + "_wrapper-graph.iblessing.txt");
     
-    printf("  [*] try to find wrappers for");
+    printf("%s  [*] try to find wrappers for", prepadding);
     bool first = true;
     for (string symbol : symbols) {
         printf("%s%s", first ? "" : ", ", symbol.c_str());
@@ -97,58 +107,34 @@ int SymbolWrapperScanner::start() {
     }
     printf("\n");
     
-    printf("  [*] Step1. find __TEXT,__text\n");
+    printf("%s  [*] Step1. find __TEXT,__text\n", prepadding);
     VirtualMemory *vm = VirtualMemory::progressDefault();
-    struct section_64 *textSect = nullptr;
-    struct segment_command_64 *textSeg = nullptr;
-    for (struct segment_command_64 *seg : vm->segmentHeaders) {
-        if (strncmp(seg->segname, "__TEXT", 16) == 0) {
-            textSeg = seg;
-            struct section_64 *sect = (struct section_64 *)((uint8_t *)seg + sizeof(struct segment_command_64));
-            if (strncmp(sect->sectname, "__text", 16) == 0) {
-                textSect = sect;
-                break;
-            }
-        }
-    }
-    if (!textSect) {
-        cout << "\t" << termcolor::red << "[-] Error: cannot find __TEXT,__text section";
-        cout << termcolor::reset << endl;
-        return 1;
-    }
-    printf("\t[+] find __TEXT,__text at 0x%llx\n", textSect->addr);
+    struct section_64 *textSect = vm->textSect;
+    struct segment_command_64 *textSeg = vm->textSeg;
+    printf("%s\t[+] find __TEXT,__text at 0x%llx\n", prepadding, textSect->addr);
     assert(UC_ERR_OK == uc_mem_map(uc, textSeg->vmaddr, textSeg->vmsize, UC_PROT_READ | UC_PROT_EXEC));
     assert(UC_ERR_OK == uc_mem_write(uc, textSeg->vmaddr, vm->mappedFile + textSeg->fileoff, textSeg->vmsize));
-    printf("\t[+] mapping text segment 0x%llx ~ 0x%llx to unicorn engine", textSeg->vmaddr, textSeg->vmaddr + textSeg->vmsize);
+    printf("%s\t[+] mapping text segment 0x%llx ~ 0x%llx to unicorn engine\n", prepadding, textSeg->vmaddr, textSeg->vmaddr + textSeg->vmsize);
     
-    printf("\n  [*] Step 2. scan in __text\n");
-    uint64_t funcStartCursor = 0;
-#if 1
-    ARM64Disassembler *disasm = new ARM64Disassembler();
+    printf("%s  [*] Step 2. scan in __text\n", prepadding);
+    
+    
     uint64_t startAddr = textSect->addr;
     uint64_t endAddr = textSect->addr + textSect->size;
     uint64_t addrRange = endAddr - startAddr;
     uint8_t *codeData = vm->mappedFile + textSect->offset;
-    printf("\t[*] start disassembler at 0x%llx\n", startAddr);
+    printf("%s\t[*] start disassembler at 0x%llx\n", prepadding, startAddr);
     string last_mnemonic = "";
     char progressChars[] = {'\\', '|', '/', '-'};
-    uint8_t progressCur = 0;
 #if 0
     uint64_t stub = 0x10038436C;
     codeData = codeData + stub - startAddr;
     startAddr = stub;
 #endif
     
-    SymbolTable *symtab = SymbolTable::getInstance();
-    bool hasMemLoader = false;
     funcStartCursor = startAddr;
-    AntiWrapperRegLinkGraph currentGraph;
-    disasm->startDisassembly(codeData, startAddr, [&](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
-        if (insn->address >= endAddr) {
-            printf("\n\t[*] reach to end of __text, stop\n");
-            *stop = true;
-            return;
-        }
+    disasmDriver->subscribeDisassemblyEvent(this, [=](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
+        SymbolTable *symtab = SymbolTable::getInstance();
 #if 0
         if (!success) {
             cout << "\t[-]" << termcolor::yellow;
@@ -265,41 +251,49 @@ int SymbolWrapperScanner::start() {
             strcmp(insn->mnemonic, "adr") == 0) {
             hasMemLoader = true;
         }
-        float progress = 100.0 * (insn->address - startAddr) / addrRange;
+        
+        if (localDriver) {
+            float progress = 100.0 * (insn->address - startAddr) / addrRange;
 #ifdef XcodeDebug
-        static long _filter = 0;
-        if (++_filter % 5000 == 0) {
-            
+            static long _filter = 0;
+            if (++_filter % 5000 == 0) {
+                
 #endif
-        fprintf(stdout, "\r\t[*] %c 0x%llx/0x%llx (%.2f%%)", progressChars[progressCur], insn->address, endAddr, progress);
-        fflush(stdout);
-            
+            fprintf(stdout, "\r\t[*] %c 0x%llx/0x%llx (%.2f%%)", progressChars[progressCur], insn->address, endAddr, progress);
+            fflush(stdout);
+                
 #ifdef XcodeDebug
-        }
+            }
 #endif
 
-        progressCur = (++progressCur) % sizeof(progressChars);
+            progressCur = (++progressCur) % sizeof(progressChars);
+        }
+        
+        if (*stop) {
+            cout << prepadding << "\t[*] A total of ";
+            cout << termcolor::green << antiWrapper.simpleWrapperMap.size();
+            cout << termcolor::reset;
+            cout << " wrappers were found" << endl;
+            
+            if (localDriver) {
+                printf("\n%s  [*] Step 3. serialize wrapper graph to file\n", prepadding);
+            }
+            if (SymbolWrapperSerializationManager::createReportFromAntiWrapper(graphPath, antiWrapper, symbol2proto)) {
+                printf("%s\t[*] wrapper graph file saved to %s\n", prepadding, graphPath.c_str());
+            } else {
+                printf("%s\t[*] error: cannot save to path %s\n", prepadding, graphPath.c_str());
+            }
+            
+            printf("%s[*] Symbol Wrapper Scanner finished\n", prepadding);
+        }
     });
-    delete disasm;
-#endif
     
-    // play a transform
-#if 0
-    uint64_t wrapperAddr = 0x1000221B0;
-    AntiWrapperArgs args;
-    args.x[0] = 0xaaaaaaaa;
-    args.x[1] = 0xbbbbbbbb;
-    args.x[20] = 0xfadeface;
-    args.nArgs = 21;
-    args = antiWrapper.performWrapperTransform(wrapperAddr, args);
-    printf("the x0 0x%llx, x1 0x%llx\n", args.x[0], args.x[1]);
-#endif
-    
-    printf("\n  [*] Step 3. serialize wrapper graph to file\n");
-    if (SymbolWrapperSerializationManager::createReportFromAntiWrapper(graphPath, antiWrapper, symbol2proto)) {
-        printf("\t[*] saved to %s\n", graphPath.c_str());
+    if (localDriver) {
+        disasmDriver->startDisassembly(codeData, startAddr, endAddr);
+        delete disasmDriver;
     } else {
-        printf("\t[*] error: cannot save to path %s\n", graphPath.c_str());
+        printf("%s\t[*] Wating for driver event\n", prepadding);
     }
+    
     return 0;
 }

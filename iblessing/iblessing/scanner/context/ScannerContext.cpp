@@ -147,6 +147,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     vm->mappedSize = fileStatus.st_size;
     vm->segmentHeaders = segmentHeaders;
     vm->dyldinfo = dyld_info;
+    vm->textSect = textSect;
+    vm->textSeg = textSeg64;
     
     // load vm-v2
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();

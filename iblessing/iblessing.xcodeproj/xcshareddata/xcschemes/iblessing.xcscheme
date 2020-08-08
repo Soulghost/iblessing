@@ -101,7 +101,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;symbols=_objc_msgSend&apos;"
@@ -109,7 +109,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;antiWrapper=1&apos;"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;diff=/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug/new1/Chrome_method-xrefs.iblessing.txt&apos;"

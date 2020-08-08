@@ -738,31 +738,6 @@ uc_engine* createEngine(int identifier) {
 }
 
 int ObjcMethodXrefScanner::start() {
-    if (options.find("antiWrapper") != options.end()) {
-        ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
-        options["symbols"] = "_objc_msgSend";
-        Scanner *s = dispatcher->prepareForScanner("symbol-wrapper", options, inputPath, outputPath);
-        if (s) {
-            antiWrapperScanner = reinterpret_cast<SymbolWrapperScanner *>(s);
-            cout << termcolor::yellow;
-            cout << "[*] !!! Notice: enter anti-wrapper mode, start anti-wrapper scanner";
-            cout << termcolor::reset << endl;
-            if (0 == antiWrapperScanner->start()) {
-                cout << termcolor::green;
-                cout << "[+] anti-wrapper finished\n";
-                cout << termcolor::reset << endl;
-            } else {
-                cout << termcolor::yellow;
-                cout << "[+] Warn: anti-wrapper finished\n";
-                cout << termcolor::reset << endl;
-            }
-        }
-    } else {
-        antiWrapperScanner = nullptr;
-    }
-    
-    recordPath = StringUtils::path_join(outputPath, fileName + "_method-xrefs.iblessing.txt");
-    
     printf("[*] start ObjcMethodXrefScanner Exploit Scanner\n");
     vector<uc_engine *> engines;
     for (int i = 0; i < ThreadCount; i++) {
@@ -817,49 +792,87 @@ int ObjcMethodXrefScanner::start() {
     printf("\n");
     printf("\t[+] get %lu methods to analyze\n", methods.size());
     
-    printf("  [*] Step 1.1 collect objc_msgSend subs\n");
+    
+    printf("  [*] Step 2. Start sub-scanners\n");
+    ScannerDisassemblyDriver *sharedDriver = new ScannerDisassemblyDriver();
+    if (options.find("antiWrapper") != options.end()) {
+        ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
+        options["symbols"] = "_objc_msgSend";
+        Scanner *s = dispatcher->prepareForScanner("symbol-wrapper", options, inputPath, outputPath, sharedDriver);
+        if (s) {
+            antiWrapperScanner = reinterpret_cast<SymbolWrapperScanner *>(s);
+            antiWrapperScanner->start();
+        }
+    } else {
+        antiWrapperScanner = nullptr;
+    }
+    
+    recordPath = StringUtils::path_join(outputPath, fileName + "_method-xrefs.iblessing.txt");
+    
     SymbolXREFScanner *sxrefScanner = nullptr;
     ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
     options["symbols"] = "_objc_msgSend";
-    Scanner *s = dispatcher->prepareForScanner("symbol-xref", options, inputPath, outputPath);
+    Scanner *s = dispatcher->prepareForScanner("symbol-xref", options, inputPath, outputPath, sharedDriver);
     if (s) {
         sxrefScanner = reinterpret_cast<SymbolXREFScanner *>(s);
-        if (0 == sxrefScanner->start()) {
-            cout << termcolor::green;
-            cout << "  [+] collect subs finished";
-            cout << termcolor::reset << endl;
-        } else {
-            cout << termcolor::yellow;
-            cout << "  [*] Warn: collect subs failed";
-            cout << termcolor::reset << endl;
-        }
-        
-        // create common classInfo for subs
-        ObjcClassRuntimeInfo *subClassInfo = new ObjcClassRuntimeInfo();
-        subClassInfo->address = SubClassDummyAddress;
-        subClassInfo->isExternal = true;
-        subClassInfo->isSub = true;
-        subClassInfo->className = StringUtils::format("iblessing_SubClass");
-        for (auto it = sxrefScanner->xrefs.begin(); it != sxrefScanner->xrefs.end(); it++) {
-            for (SymbolXREF sxref : it->second) {
-                if (impAddrs.find(sxref.startAddr) != impAddrs.end()) {
-                    // skip imp
-                    continue;
-                }
-                
-                // find a sub
-                ObjcMethod *subMethod = new ObjcMethod();
-                subMethod->classInfo = subClassInfo;
-                subMethod->isClassMethod = true;
-                subMethod->imp = sxref.startAddr;
-                subMethod->name = StringUtils::format("sub_0x%llx", sxref.startAddr);
-                methods.push_back(subMethod);
-            }
-        }
-        delete sxrefScanner;
+        sxrefScanner->start();
+    } else {
+        cout << termcolor::red << "    [-] Error: cannot find symbol-xref scanner";
+        cout << termcolor::reset << endl;
+        return 1;
     }
     
-    printf("  [*] Step 2. dyld load non-lazy symbols\n");
+    printf("    [*] Dispatching Disassembly Driver\n");
+    struct section_64 *textSect = vm->textSect;
+    uint64_t startAddr = textSect->addr;
+    uint64_t endAddr = textSect->addr + textSect->size;
+    uint64_t addrRange = endAddr - startAddr;
+    uint8_t *codeData = vm->mappedFile + textSect->offset;
+    string last_mnemonic = "";
+    char progressChars[] = {'\\', '|', '/', '-'};
+    uint8_t progressCur = 0;
+    sharedDriver->startDisassembly(codeData, startAddr, endAddr, [&](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
+        float progress = 100.0 * (insn->address - startAddr) / addrRange;
+#ifdef XcodeDebug
+        static long _filter = 0;
+        if (++_filter % 5000 == 0) {
+            
+#endif
+        fprintf(stdout, "\r\t[*] %c 0x%llx/0x%llx (%.2f%%)", progressChars[progressCur], insn->address, endAddr, progress);
+        fflush(stdout);
+            
+#ifdef XcodeDebug
+        }
+#endif
+        progressCur = (++progressCur) % sizeof(progressChars);
+    });
+    
+    printf("  [*] Step 3. Create Common ClassInfo for subs and add to analysis list\n");
+    // create common classInfo for subs
+    ObjcClassRuntimeInfo *subClassInfo = new ObjcClassRuntimeInfo();
+    subClassInfo->address = SubClassDummyAddress;
+    subClassInfo->isExternal = true;
+    subClassInfo->isSub = true;
+    subClassInfo->className = StringUtils::format("iblessing_SubClass");
+    for (auto it = sxrefScanner->xrefs.begin(); it != sxrefScanner->xrefs.end(); it++) {
+        for (SymbolXREF sxref : it->second) {
+            if (impAddrs.find(sxref.startAddr) != impAddrs.end()) {
+                // skip imp
+                continue;
+            }
+            
+            // find a sub
+            ObjcMethod *subMethod = new ObjcMethod();
+            subMethod->classInfo = subClassInfo;
+            subMethod->isClassMethod = true;
+            subMethod->imp = sxref.startAddr;
+            subMethod->name = StringUtils::format("sub_0x%llx", sxref.startAddr);
+            methods.push_back(subMethod);
+        }
+    }
+    delete sxrefScanner;
+    
+    printf("  [*] Step 4. dyld load non-lazy symbols\n");
     DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
         uint64_t symbolAddr = addr + addend;
         
@@ -901,8 +914,13 @@ int ObjcMethodXrefScanner::start() {
         return a->imp == b->imp;
     }), methods.end());
     
-    printf("  [*] Step 3. track all calls\n");
+    printf("  [*] Step 5. track all calls\n");
     trace_all_methods(engines, methods, 0);
+    
+    if (antiWrapperScanner) {
+        delete antiWrapperScanner;
+    }
+    printf("  [*] ObjcMethodXrefScanner Exploit Scanner finished\n");
     return 0;
 }
 
@@ -1116,7 +1134,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
 }
 
 static void storeMethodChains() {
-    printf("  [*] Step 4. serialize call chains to file\n");
+    printf("  [*] Step 6. serialize call chains to file\n");
     if (ObjcMethodChainSerializationManager::storeMethodChain(recordPath, sel2chain)) {
         printf("\t[*] saved to %s\n", recordPath.c_str());
     } else {
