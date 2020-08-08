@@ -17,8 +17,14 @@
 - [x] Scanners making dynamic analysis for arm64 assembly code and find key information or attack surface
 - [x] Scanners using unicorn to partially simulate Mach-O arm64 code execution and find some features
 - [x] Generators that can provide secondary processing on scanner's report to start a query server, or generate script for IDA
-- [ ] objc function wrapper detect and ida usercall generate (working on)
-- [ ] objc_msgSend sub functions analysis
+
+- Super Scanner Features
+  - Super objc_msgSend Xrefs Scanner 😄
+    - [x] objc method and subs (such as block) emulation to generate xrefs like flare-emu
+    - [x] objc function wrapper detect and ida usercall generate
+    - [x] objc_msgSend sub functions analysis
+    - [x] objc block to objc_msgSend xrefs in args and capture list
+    
 - [ ] Diagnostic logs
 - [ ] Tests
 - [ ] More flexible scanner infrastructure for new scanner plugins
