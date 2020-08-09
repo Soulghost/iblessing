@@ -167,7 +167,7 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
         std::string symbolName = StringUtils::format("-[%s %s]", info->className.c_str(), method->name.c_str());
         Symbol *symbol = new Symbol();
         symbol->name = symbolName;
-        struct nlist_64 *nl_info = (struct nlist_64 *)malloc(sizeof(struct nlist_64));
+        struct ib_nlist_64 *nl_info = (struct ib_nlist_64 *)malloc(sizeof(struct ib_nlist_64));
         nl_info->n_value = imp_addr;
         symbol->info = nl_info;
         symtab->insertSymbol(symbol);
@@ -224,7 +224,7 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
         std::string symbolName = StringUtils::format("+[%s %s]", info->className.c_str(), method->name.c_str());
         Symbol *symbol = new Symbol();
         symbol->name = symbolName;
-        struct nlist_64 *nl_info = (struct nlist_64 *)malloc(sizeof(struct nlist_64));
+        struct ib_nlist_64 *nl_info = (struct ib_nlist_64 *)malloc(sizeof(struct ib_nlist_64));
         nl_info->n_value = imp_addr;
         symbol->info = nl_info;
         symtab->insertSymbol(symbol);

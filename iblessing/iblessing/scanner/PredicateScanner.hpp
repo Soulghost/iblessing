@@ -10,7 +10,6 @@
 #define PredicateScanner_hpp
 
 #include "Object.hpp"
-#include <mach-o/loader.h>
 #include <vector>
 #include "Scanner.hpp"
 

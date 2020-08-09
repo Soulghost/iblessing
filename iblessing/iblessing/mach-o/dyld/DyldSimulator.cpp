@@ -52,7 +52,7 @@ static intptr_t read_sleb128(const uint8_t*& p, const uint8_t* end)
 }
 
 
-bool DyldSimulator::eachBind(uint8_t *mappedData, std::vector<struct segment_command_64 *> segmentHeaders, dyld_info_command *dyldinfo, DyldBindHandler handler) {
+bool DyldSimulator::eachBind(uint8_t *mappedData, std::vector<struct ib_segment_command_64 *> segmentHeaders, ib_dyld_info_command *dyldinfo, DyldBindHandler handler) {
     uint32_t bind_off = dyldinfo->bind_off;
     uint32_t bind_size = dyldinfo->bind_size;
     const uint8_t * const bind_start = mappedData + bind_off;
@@ -68,44 +68,44 @@ bool DyldSimulator::eachBind(uint8_t *mappedData, std::vector<struct segment_com
     uint64_t segmentEndAddress = 0;
     uint64_t address = 0;
     while (!done && (p < bind_end)) {
-        uint8_t immediate = *p & BIND_IMMEDIATE_MASK;
-        uint8_t opcode = *p & BIND_OPCODE_MASK;
+        uint8_t immediate = *p & IB_BIND_IMMEDIATE_MASK;
+        uint8_t opcode = *p & IB_BIND_OPCODE_MASK;
         ++p;
         switch (opcode) {
-            case BIND_OPCODE_DONE:
+            case IB_BIND_OPCODE_DONE:
                 done = true;
                 printf("[+] bind info parsed done\n");
                 break;
-            case BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
+            case IB_BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
                 libraryOrdinal = immediate;
                 printf("[+] set dylib ordinal to %lld\n", libraryOrdinal);
                 break;
-            case BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
+            case IB_BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
                 libraryOrdinal = read_uleb128(p, bind_end);
                 break;
-            case BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
+            case IB_BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
                 // the special ordinals are negative numbers
                 if ( immediate == 0 )
                     libraryOrdinal = 0;
                 else {
-                    int8_t signExtended = BIND_OPCODE_MASK | immediate;
+                    int8_t signExtended = IB_BIND_OPCODE_MASK | immediate;
                     libraryOrdinal = signExtended;
                 }
                 break;
-            case BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
+            case IB_BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
                 symbolName = (char*)p;
                 symbolFlags = immediate;
                 while (*p != '\0')
                     ++p;
                 ++p;
                 break;
-            case BIND_OPCODE_SET_TYPE_IMM:
+            case IB_BIND_OPCODE_SET_TYPE_IMM:
                 type = immediate;
                 break;
-            case BIND_OPCODE_SET_ADDEND_SLEB:
+            case IB_BIND_OPCODE_SET_ADDEND_SLEB:
                 addend = read_sleb128(p, bind_end);
                 break;
-            case BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
+            case IB_BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
                 segmentIndex = immediate;
                 if ( segmentIndex >= segmentHeaders.size() )
                     printf("[-]BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB has segment %d which is too large (0..%lu)\n",
@@ -113,10 +113,10 @@ bool DyldSimulator::eachBind(uint8_t *mappedData, std::vector<struct segment_com
                 address = segmentHeaders[segmentIndex]->vmaddr + read_uleb128(p, bind_end);
                 segmentEndAddress = address + segmentHeaders[segmentIndex]->vmsize;
                 break;
-            case BIND_OPCODE_ADD_ADDR_ULEB:
+            case IB_BIND_OPCODE_ADD_ADDR_ULEB:
                 address += read_uleb128(p, bind_end);
                 break;
-            case BIND_OPCODE_DO_BIND:
+            case IB_BIND_OPCODE_DO_BIND:
                 if ( address >= segmentEndAddress ) {
                     printf("[-] address exceeded segment range\n");
                     return false;
@@ -126,7 +126,7 @@ bool DyldSimulator::eachBind(uint8_t *mappedData, std::vector<struct segment_com
                 handler(address, type, symbolName, symbolFlags, addend, libraryOrdinal, "");
                 address += sizeof(intptr_t);
                 break;
-            case BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
+            case IB_BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
                 if ( address >= segmentEndAddress ) {
                     printf("[-] address exceeded segment range\n");
                     return false;
@@ -136,7 +136,7 @@ bool DyldSimulator::eachBind(uint8_t *mappedData, std::vector<struct segment_com
                 handler(address, type, symbolName, symbolFlags, addend, libraryOrdinal, "");
                 address += read_uleb128(p, bind_end) + sizeof(intptr_t);
                 break;
-            case BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
+            case IB_BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
                 if ( address >= segmentEndAddress ) {
                     printf("[-] address exceeded segment range\n");
                     return false;
@@ -146,7 +146,7 @@ bool DyldSimulator::eachBind(uint8_t *mappedData, std::vector<struct segment_com
                 handler(address, type, symbolName, symbolFlags, addend, libraryOrdinal, "");
                 address += immediate*sizeof(intptr_t) + sizeof(intptr_t);
                 break;
-            case BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
+            case IB_BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
                 uint64_t count = read_uleb128(p, bind_end);
                 uint64_t skip = read_uleb128(p, bind_end);
                 for (uint32_t i=0; i < count; ++i) {

@@ -11,9 +11,9 @@
 
 #include "Object.hpp"
 #include <unordered_map>
-#include "ARM64Registers.hpp"
 #include <vector>
-#include <mach-o/loader.h>
+#include "ARM64Registers.hpp"
+#include "mach-universal.hpp"
 
 NS_IB_BEGIN
 
@@ -66,10 +66,10 @@ public:
     uint64_t vmaddr_bss_end;
     
     // extra info
-    std::vector<struct segment_command_64 *> segmentHeaders;
-    dyld_info_command *dyldinfo;
-    struct segment_command_64 *textSeg;
-    struct section_64 *textSect;
+    std::vector<struct ib_segment_command_64 *> segmentHeaders;
+    ib_dyld_info_command *dyldinfo;
+    struct ib_segment_command_64 *textSeg;
+    struct ib_section_64 *textSect;
     
     void storeRegister(ARM64Register *reg, uint64_t address);
     uint64_t storeObject(void *data, uint64_t size, MemoryUnit::MemoryType type);
