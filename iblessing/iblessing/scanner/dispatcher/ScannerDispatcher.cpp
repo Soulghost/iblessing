@@ -42,7 +42,6 @@
 #include "ObjcClassXrefScanner.hpp"
 #include "SymbolWrapperScanner.hpp"
 #include "SymbolXREFScanner.hpp"
-#include "AppInfoScanner.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -71,10 +70,6 @@ ScannerDispatcher::ScannerDispatcher() {
     
     this->registerScanner("symbol-xref", []() {
         return new SymbolXREFScanner("symbol-xref", "symbol xref scanner");
-    });
-    
-    this->registerScanner("app-info", []() {
-        return new AppInfoScanner("app-info", "extract app infos");
     });
 }
 
