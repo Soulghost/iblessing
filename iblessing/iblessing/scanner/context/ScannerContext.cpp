@@ -17,10 +17,7 @@
 #include "ObjcRuntime.hpp"
 #include "StringTable.hpp"
 #include "SymbolTable.hpp"
-
-// FIXME: Cocoa Header
-#include <mach-o/loader.h>
-#include <mach-o/swap.h>
+#include "mach-universal.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -42,15 +39,15 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     }
     
     // read header
-    struct mach_header_64 *hdr = (struct mach_header_64 *)mappedFile;
+    struct ib_mach_header_64 *hdr = (struct ib_mach_header_64 *)mappedFile;
     uint32_t magic = hdr->magic;
     switch (magic) {
-        case MH_MAGIC_64:
-        case MH_CIGAM_64:
+        case IB_MH_MAGIC_64:
+        case IB_MH_CIGAM_64:
             cout << "[+] ScannerContext detect mach-o header 64" << endl;
-            if (magic == MH_CIGAM_64) {
+            if (magic == IB_MH_CIGAM_64) {
                 cout << "[+] ScannerContext detect big-endian, swap header to litten-endian" << endl;
-                swap_mach_header_64(hdr, NX_LittleEndian);
+                ib_swap_mach_header_64(hdr, IB_LittleEndian);
             } else {
                 cout << "[+] ScannerContext detect litten-endian" << endl;
             }
@@ -69,23 +66,23 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     uint64_t vmaddr_bss_end = 0;
     
     uint32_t ncmds = hdr->ncmds;
-    uint8_t *cmds = mappedFile + sizeof(struct mach_header_64);
+    uint8_t *cmds = mappedFile + sizeof(struct ib_mach_header_64);
     
-    struct symtab_command *symtab_cmd = nullptr;
-    struct dysymtab_command *dysymtab_cmd = nullptr;
-    struct segment_command_64 *textSeg64 = nullptr;
-    struct section_64 *textSect = nullptr;
-    struct entry_point_command *mainSeg = nullptr;
-    struct dyld_info_command *dyld_info = nullptr;
+    struct ib_symtab_command *symtab_cmd = nullptr;
+    struct ib_dysymtab_command *dysymtab_cmd = nullptr;
+    struct ib_segment_command_64 *textSeg64 = nullptr;
+    struct ib_section_64 *textSect = nullptr;
+    struct ib_entry_point_command *mainSeg = nullptr;
+    struct ib_dyld_info_command *dyld_info = nullptr;
     uint64_t objc_classlist_addr = 0;
     uint64_t objc_classlist_size = 0;
-    std::vector<struct section_64 *> sectionHeaders;
-    std::vector<struct segment_command_64 *> segmentHeaders;
+    std::vector<struct ib_section_64 *> sectionHeaders;
+    std::vector<struct ib_segment_command_64 *> segmentHeaders;
     for (uint32_t i = 0; i < ncmds; i++) {
-        struct load_command *lc = (struct load_command *)cmds;
+        struct ib_load_command *lc = (struct ib_load_command *)cmds;
         switch (lc->cmd) {
-            case LC_SEGMENT_64: {
-                struct segment_command_64 *seg64 = (struct segment_command_64 *)lc;
+            case IB_LC_SEGMENT_64: {
+                struct ib_segment_command_64 *seg64 = (struct ib_segment_command_64 *)lc;
                 segmentHeaders.push_back(seg64);
                 if (strncmp(seg64->segname, "__TEXT", 6) == 0) {
                     textSeg64 = seg64;
@@ -95,7 +92,7 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
                 }
                 
                 if (seg64->nsects > 0) {
-                    struct section_64 *sect = (struct section_64 *)((uint8_t *)seg64 + sizeof(struct segment_command_64));
+                    struct ib_section_64 *sect = (struct ib_section_64 *)((uint8_t *)seg64 + sizeof(struct ib_segment_command_64));
                     for (uint32_t i = 0; i < seg64->nsects; i++) {
                         // * Notice: sectname is char[16]
                         if (strncmp(sect->sectname, "__text", 16) == 0) {
@@ -115,21 +112,21 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
                 }
                 break;
             }
-            case LC_MAIN: {
-                struct entry_point_command *lc_main = (struct entry_point_command *)lc;
+            case IB_LC_MAIN: {
+                struct ib_entry_point_command *lc_main = (struct ib_entry_point_command *)lc;
                 mainSeg = lc_main;
                 break;
             }
-            case LC_SYMTAB: {
-                symtab_cmd = (struct symtab_command *)lc;
+            case IB_LC_SYMTAB: {
+                symtab_cmd = (struct ib_symtab_command *)lc;
                 break;
             }
-            case LC_DYSYMTAB: {
-                dysymtab_cmd = (struct dysymtab_command *)lc;
+            case IB_LC_DYSYMTAB: {
+                dysymtab_cmd = (struct ib_dysymtab_command *)lc;
                 break;
             }
-            case LC_DYLD_INFO_ONLY: {
-                dyld_info = (struct dyld_info_command *)lc;
+            case IB_LC_DYLD_INFO_ONLY: {
+                dyld_info = (struct ib_dyld_info_command *)lc;
                 break;
             }
             default:
@@ -158,7 +155,7 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     objcRuntime->loadClassList(objc_classlist_addr, objc_classlist_size);
 
     // sort sectionHeaders by offset
-    sort(sectionHeaders.begin(), sectionHeaders.end(), [&](struct section_64 *a, struct section_64 *b) {
+    sort(sectionHeaders.begin(), sectionHeaders.end(), [&](struct ib_section_64 *a, struct ib_section_64 *b) {
         return a->offset < b->offset;
     });
     

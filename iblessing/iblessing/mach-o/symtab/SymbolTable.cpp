@@ -39,14 +39,14 @@ void SymbolTable::sync() {
 }
 
 void SymbolTable::buildSymbolTable(uint8_t *data, uint64_t nSymbols) {
-    struct nlist_64 *li = (struct nlist_64 *)data;
+    struct ib_nlist_64 *li = (struct ib_nlist_64 *)data;
     StringTable *strtab = StringTable::getInstance();
     
     for (uint64_t i = 0; i < nSymbols; i++) {
         uint32_t strIdx = li->n_un.n_strx;
         std::string symName = strtab->getStringAtIndex(strIdx);
         
-        if ((li->n_type & N_STAB) == 0) {
+        if ((li->n_type & IB_N_STAB) == 0) {
             uint64_t symAddr = li->n_value;
             // non-lazy symbol
             if (symAddr != 0) {
@@ -68,19 +68,19 @@ void SymbolTable::buildSymbolTable(uint8_t *data, uint64_t nSymbols) {
     }
 }
 
-void SymbolTable::buildDynamicSymbolTable(std::vector<struct section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols, uint8_t *mappedData) {
+void SymbolTable::buildDynamicSymbolTable(std::vector<struct ib_section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols, uint8_t *mappedData) {
     uint32_t *dyTableEntries = (uint32_t *)data;
     for (size_t i = 0; i < nSymbols; i++) {
-        struct section_64 *symSect = nullptr;
+        struct ib_section_64 *symSect = nullptr;
         for (size_t j = sectionHeaders.size() - 1; j >= 0; j--) {
-            struct section_64 *sectHeader = sectionHeaders[j];
+            struct ib_section_64 *sectHeader = sectionHeaders[j];
             
             // only search for lazy symbol sections
             uint32_t flags = sectHeader->flags;
-            if ((flags & SECTION_TYPE) != S_SYMBOL_STUBS &&
-                (flags & SECTION_TYPE) != S_LAZY_SYMBOL_POINTERS &&
-                (flags & SECTION_TYPE) != S_LAZY_DYLIB_SYMBOL_POINTERS &&
-                (flags & SECTION_TYPE) != S_NON_LAZY_SYMBOL_POINTERS) {
+            if ((flags & IB_SECTION_TYPE) != IB_S_SYMBOL_STUBS &&
+                (flags & IB_SECTION_TYPE) != IB_S_LAZY_SYMBOL_POINTERS &&
+                (flags & IB_SECTION_TYPE) != IB_S_LAZY_DYLIB_SYMBOL_POINTERS &&
+                (flags & IB_SECTION_TYPE) != IB_S_NON_LAZY_SYMBOL_POINTERS) {
                 continue;
             }
             
@@ -107,7 +107,7 @@ void SymbolTable::buildDynamicSymbolTable(std::vector<struct section_64 *> secti
         
         // build symbol
         Symbol *lazySymbol = new Symbol();
-        if ((symIdx & (INDIRECT_SYMBOL_LOCAL | INDIRECT_SYMBOL_ABS)) == 0) {
+        if ((symIdx & (IB_INDIRECT_SYMBOL_LOCAL | IB_INDIRECT_SYMBOL_ABS)) == 0) {
             // stubs
             if (symIdx >= symbolTable.size()) {
                 cout << termcolor::red;
@@ -127,7 +127,7 @@ void SymbolTable::buildDynamicSymbolTable(std::vector<struct section_64 *> secti
             name2symbol[lazySymbol->name].pushBack(lazySymbol);
         } else {
             switch (symIdx) {
-                case INDIRECT_SYMBOL_LOCAL: {
+                case IB_INDIRECT_SYMBOL_LOCAL: {
                     uint64_t targetAddr = pointerAddr - (symSect->addr - symSect->offset);
                     uint64_t targetPointer = *(uint64_t *)(mappedData + targetAddr);
                     
@@ -137,7 +137,7 @@ void SymbolTable::buildDynamicSymbolTable(std::vector<struct section_64 *> secti
                     }
                     break;
                 }
-                case INDIRECT_SYMBOL_ABS: {
+                case IB_INDIRECT_SYMBOL_ABS: {
                     
                     break;
                 }

@@ -9,9 +9,6 @@
 #ifndef ObjcClassXrefScanner_hpp
 #define ObjcClassXrefScanner_hpp
 
-#include "Object.hpp"
-#include <mach-o/loader.h>
-#include <vector>
 #include "Scanner.hpp"
 
 NS_IB_BEGIN

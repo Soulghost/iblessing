@@ -38,6 +38,7 @@ set(iblessing.SOURCE_INCLUDES
     iblessing/common/macro
 
     # mach-o
+    iblessing/mach-o/polyfill
     iblessing/mach-o/disasm
     iblessing/mach-o/dyld
     iblessing/mach-o/memory
@@ -77,6 +78,7 @@ set(iblessing.SOURCE_LIST
     iblessing/infra/Object.cpp
 
     # mach-o
+    iblessing/mach-o/polyfill/mach-universal.cpp
     iblessing/mach-o/disasm/ARM64Disasembler.cpp
     iblessing/mach-o/disasm/ARM64Registers.cpp
     iblessing/mach-o/disasm/ARM64ThreadState.cpp
@@ -135,7 +137,7 @@ set(iblessing.SOURCE_LIST
     iblessing/domain/ObjcMethodChain.cpp
 
     # platform-specific
-    iblessing/platform/macos/csrutil.cpp
+    # iblessing/platform/macos/csrutil.cpp
 )
 
 target_include_directories(iblessing PRIVATE 

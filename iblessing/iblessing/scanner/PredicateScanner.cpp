@@ -48,10 +48,10 @@ int PredicateScanner::start() {
     });
     
     printf("  [*] Step 2. find __TEXT,__text\n");
-    struct section_64 *textSect = nullptr;
-    for (struct segment_command_64 *seg : vm->segmentHeaders) {
+    struct ib_section_64 *textSect = nullptr;
+    for (struct ib_segment_command_64 *seg : vm->segmentHeaders) {
         if (strncmp(seg->segname, "__TEXT", 16) == 0) {
-            struct section_64 *sect = (struct section_64 *)((uint8_t *)seg + sizeof(struct segment_command_64));
+            struct ib_section_64 *sect = (struct ib_section_64 *)((uint8_t *)seg + sizeof(struct ib_segment_command_64));
             if (strncmp(sect->sectname, "__text", 16) == 0) {
                 textSect = sect;
                 break;
