@@ -13,6 +13,7 @@
 #include <vector>
 #include <string>
 #include "Generator.hpp"
+#include <functional>
 
 NS_IB_BEGIN;
 

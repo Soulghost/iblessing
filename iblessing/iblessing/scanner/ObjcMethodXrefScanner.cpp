@@ -19,9 +19,9 @@
 #include <fstream>
 #include <string>
 #include "DyldSimulator.hpp"
+#include <pthread.h>
 #include <unicorn/unicorn.h>
 #include <capstone/capstone.h>
-#include <pthread.h>
 #include "SymbolWrapperScanner.hpp"
 #include "SymbolXREFScanner.hpp"
 #include "ScannerDispatcher.hpp"

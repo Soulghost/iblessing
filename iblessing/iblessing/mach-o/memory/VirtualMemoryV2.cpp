@@ -8,7 +8,6 @@
 
 #include "VirtualMemoryV2.hpp"
 #include "VirtualMemory.hpp"
-#include <architecture/byte_order.h>
 #include "termcolor.h"
 #include "StringUtils.h"
 #include <vector>

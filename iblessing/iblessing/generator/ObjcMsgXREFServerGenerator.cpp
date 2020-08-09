@@ -15,6 +15,7 @@
 #include "../vendor/rapidjson/writer.h"
 #include "../vendor/rapidjson/stringbuffer.h"
 #include "termcolor.h"
+#include <pthread.h>
 
 using namespace std;
 using namespace httplib;

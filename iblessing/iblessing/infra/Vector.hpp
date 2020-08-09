@@ -28,6 +28,7 @@ THE SOFTWARE.
 #define __CCVECTOR_H__
 
 #include <vector>
+#include <algorithm>
 #include "Object.hpp"
 
 /**
