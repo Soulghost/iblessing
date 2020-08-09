@@ -40,7 +40,12 @@ int VirtualMemoryV2::loadWithMachOData(uint8_t *mappedFile) {
     // mapping 12GB memory region, first 4GB is PAGEZERO
     uint64_t unicorn_vm_size = 12L * 1024 * 1024 * 1024;
     uint64_t unicorn_vm_start = 0;
-    assert(uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size, UC_PROT_ALL) == UC_ERR_OK);
+    err = uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size, UC_PROT_ALL);
+    if (err != UC_ERR_OK) {
+        cout << termcolor::red << "[-] Error: unicorn error: " << uc_strerror(err);
+        cout << termcolor::reset << endl;
+        exit(1);
+    }
     
     // first of all, mapping the whole file
     VirtualMemory *vm = VirtualMemory::progressDefault();
