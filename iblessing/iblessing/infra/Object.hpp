@@ -12,6 +12,9 @@
 #include <cstdio>
 #include <iostream>
 #include <cassert>
+#include <string>
+#include <functional>
+#include <string.h>
 #include "CommonDefines.hpp"
 
 NS_IB_BEGIN

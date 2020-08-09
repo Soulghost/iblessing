@@ -4,6 +4,7 @@ project(iblessing VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+SET(CMAKE_CXX_FLAGS -pthread)
 set(CMAKE_C_STANDARD 11)
 
 # main executable

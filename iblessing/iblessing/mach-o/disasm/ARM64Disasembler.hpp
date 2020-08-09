@@ -11,6 +11,7 @@
 
 #include "Object.hpp"
 #include <capstone/capstone.h>
+#include <functional>
 
 NS_IB_BEGIN
 
