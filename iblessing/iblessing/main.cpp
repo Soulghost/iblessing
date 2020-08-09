@@ -7,12 +7,12 @@
 //
 
 #include <cstdio>
-#include "util/StringUtils.h"
-#include "vendor/argparse/argparse.h"
-#include "vendor/termcolor/termcolor.h"
-#include "scanner/dispatcher/ScannerDispatcher.hpp"
-#include "generator/GeneratorDispatcher.hpp"
-#include "platform/macos/csrutil.hpp"
+#include "StringUtils.h"
+#include "argparse.h"
+#include "termcolor.h"
+#include "ScannerDispatcher.hpp"
+#include "GeneratorDispatcher.hpp"
+#include "csrutil.hpp"
 
 using namespace std;
 using namespace argparse;

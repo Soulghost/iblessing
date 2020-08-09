@@ -42,7 +42,6 @@
 		685CE82424C57131002CC5E8 /* StringUtils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE82224C57130002CC5E8 /* StringUtils.cpp */; };
 		685CE84524C572A0002CC5E8 /* ObjcClassXrefScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE83924C572A0002CC5E8 /* ObjcClassXrefScanner.cpp */; };
 		685CE84624C572A0002CC5E8 /* ObjcMethodXrefScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE83A24C572A0002CC5E8 /* ObjcMethodXrefScanner.cpp */; };
-		685CE84724C572A0002CC5E8 /* AppInfoScanner.mm in Sources */ = {isa = PBXBuildFile; fileRef = 685CE83B24C572A0002CC5E8 /* AppInfoScanner.mm */; };
 		685CE84824C572A0002CC5E8 /* Scanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE83C24C572A0002CC5E8 /* Scanner.cpp */; };
 		685CE84924C572A0002CC5E8 /* SymbolWrapperScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE84024C572A0002CC5E8 /* SymbolWrapperScanner.cpp */; };
 		685CE84A24C572A0002CC5E8 /* PredicateScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE84124C572A0002CC5E8 /* PredicateScanner.cpp */; };
@@ -143,14 +142,12 @@
 		685CE83724C572A0002CC5E8 /* PredicateScanner.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = PredicateScanner.hpp; sourceTree = "<group>"; };
 		685CE83924C572A0002CC5E8 /* ObjcClassXrefScanner.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcClassXrefScanner.cpp; sourceTree = "<group>"; };
 		685CE83A24C572A0002CC5E8 /* ObjcMethodXrefScanner.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMethodXrefScanner.cpp; sourceTree = "<group>"; };
-		685CE83B24C572A0002CC5E8 /* AppInfoScanner.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AppInfoScanner.mm; sourceTree = "<group>"; };
 		685CE83C24C572A0002CC5E8 /* Scanner.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Scanner.cpp; sourceTree = "<group>"; };
 		685CE83D24C572A0002CC5E8 /* ObjcClassXrefScanner.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ObjcClassXrefScanner.hpp; sourceTree = "<group>"; };
 		685CE83E24C572A0002CC5E8 /* ObjcMethodXrefScanner.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ObjcMethodXrefScanner.hpp; sourceTree = "<group>"; };
 		685CE83F24C572A0002CC5E8 /* Scanner.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = Scanner.hpp; sourceTree = "<group>"; };
 		685CE84024C572A0002CC5E8 /* SymbolWrapperScanner.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SymbolWrapperScanner.cpp; sourceTree = "<group>"; };
 		685CE84124C572A0002CC5E8 /* PredicateScanner.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = PredicateScanner.cpp; sourceTree = "<group>"; };
-		685CE84324C572A0002CC5E8 /* AppInfoScanner.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AppInfoScanner.hpp; sourceTree = "<group>"; };
 		685CE84D24C572D4002CC5E8 /* AntiWrapper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = AntiWrapper.cpp; sourceTree = "<group>"; };
 		685CE84E24C572D4002CC5E8 /* AntiWrapper.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = AntiWrapper.hpp; sourceTree = "<group>"; };
 		685CE85124C57308002CC5E8 /* ObjcMethodChain.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMethodChain.cpp; sourceTree = "<group>"; };
@@ -524,12 +521,10 @@
 				685CE83A24C572A0002CC5E8 /* ObjcMethodXrefScanner.cpp */,
 				685CE83724C572A0002CC5E8 /* PredicateScanner.hpp */,
 				685CE83924C572A0002CC5E8 /* ObjcClassXrefScanner.cpp */,
-				685CE83B24C572A0002CC5E8 /* AppInfoScanner.mm */,
 				685CE83C24C572A0002CC5E8 /* Scanner.cpp */,
 				685CE83D24C572A0002CC5E8 /* ObjcClassXrefScanner.hpp */,
 				685CE83F24C572A0002CC5E8 /* Scanner.hpp */,
 				685CE84124C572A0002CC5E8 /* PredicateScanner.cpp */,
-				685CE84324C572A0002CC5E8 /* AppInfoScanner.hpp */,
 			);
 			path = scanner;
 			sourceTree = "<group>";
@@ -890,7 +885,6 @@
 				6829631D24D0460500EF9251 /* FunctionPrototype.cpp in Sources */,
 				685CE81124C57079002CC5E8 /* DyldSimulator.cpp in Sources */,
 				68A028CB24DE897F00077CE0 /* ScannerDispatcher.cpp in Sources */,
-				685CE84724C572A0002CC5E8 /* AppInfoScanner.mm in Sources */,
 				685CE85C24C57360002CC5E8 /* GeneratorDispatcher.cpp in Sources */,
 				685CE85B24C57360002CC5E8 /* Generator.cpp in Sources */,
 				685CE80E24C57079002CC5E8 /* ARM64Registers.cpp in Sources */,
