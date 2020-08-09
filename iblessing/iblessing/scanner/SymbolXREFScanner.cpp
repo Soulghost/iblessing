@@ -55,7 +55,7 @@ int SymbolXREFScanner::start() {
     
     printf("%s  [*] Step1. find __TEXT,__text\n", prepadding);
     VirtualMemory *vm = VirtualMemory::progressDefault();
-    struct section_64 *textSect = vm->textSect;
+    struct ib_section_64 *textSect = vm->textSect;
     printf("%s\t[+] find __TEXT,__text at 0x%llx\n", prepadding, textSect->addr);
     
     printf("%s  [*] Step 2. scan in __text\n", prepadding);

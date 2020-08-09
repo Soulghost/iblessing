@@ -824,7 +824,7 @@ int ObjcMethodXrefScanner::start() {
     }
     
     printf("    [*] Dispatching Disassembly Driver\n");
-    struct section_64 *textSect = vm->textSect;
+    struct ib_section_64 *textSect = vm->textSect;
     uint64_t startAddr = textSect->addr;
     uint64_t endAddr = textSect->addr + textSect->size;
     uint64_t addrRange = endAddr - startAddr;
@@ -903,7 +903,7 @@ int ObjcMethodXrefScanner::start() {
         // record symbol
         Symbol *sym = new Symbol();
         sym->name = symbolName;
-        struct nlist_64 *nl = (struct nlist_64 *)calloc(1, sizeof(nlist_64));
+        struct ib_nlist_64 *nl = (struct ib_nlist_64 *)calloc(1, sizeof(ib_nlist_64));
         nl->n_value = symbolAddr;
         sym->info = nl;
         symtab->insertSymbol(sym);

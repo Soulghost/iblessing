@@ -10,7 +10,7 @@
 #define Symbol_hpp
 
 #include "Object.hpp"
-#include <mach-o/nlist.h>
+#include "mach-universal.hpp"
 
 NS_IB_BEGIN
 
@@ -20,7 +20,7 @@ public:
     virtual ~Symbol();
     
     std::string name;
-    struct nlist_64 *info;
+    struct ib_nlist_64 *info;
 };
 
 NS_IB_END

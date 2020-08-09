@@ -7,6 +7,7 @@
 //
 
 #include "ScannerDispatcher.hpp"
+
 #include <iostream>
 #include <fstream>
 #include <cstdio>
@@ -16,29 +17,12 @@
 #include <sys/unistd.h>
 #include <sys/mman.h>
 
-#include <mach-o/loader.h>
-#include <mach-o/fat.h>
-#include <mach-o/swap.h>
-#include <architecture/byte_order.h>
-
-#include "ScannerContextManager.hpp"
 #include "termcolor.h"
 #include "StringUtils.h"
-#include <capstone/capstone.h>
-#include "SymbolTable.hpp"
-#include "StringTable.hpp"
-#include "ARM64Registers.hpp"
-#include "ARM64Disasembler.hpp"
-#include "VirtualMemory.hpp"
-#include "VirtualMemoryV2.hpp"
-#include "ARM64Runtime.hpp"
-#include "ARM64ThreadState.hpp"
-#include "ObjcRuntime.hpp"
-#include "PredicateScanner.hpp"
-#include "ObjcMethodXrefScanner.hpp"
 
-#include "ObjcMethodXrefScanner.hpp"
+#include "ScannerContextManager.hpp"
 #include "PredicateScanner.hpp"
+#include "ObjcMethodXrefScanner.hpp"
 #include "ObjcClassXrefScanner.hpp"
 #include "SymbolWrapperScanner.hpp"
 #include "SymbolXREFScanner.hpp"

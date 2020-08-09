@@ -109,8 +109,8 @@ int SymbolWrapperScanner::start() {
     
     printf("%s  [*] Step1. find __TEXT,__text\n", prepadding);
     VirtualMemory *vm = VirtualMemory::progressDefault();
-    struct section_64 *textSect = vm->textSect;
-    struct segment_command_64 *textSeg = vm->textSeg;
+    struct ib_section_64 *textSect = vm->textSect;
+    struct ib_segment_command_64 *textSeg = vm->textSeg;
     printf("%s\t[+] find __TEXT,__text at 0x%llx\n", prepadding, textSect->addr);
     assert(UC_ERR_OK == uc_mem_map(uc, textSeg->vmaddr, textSeg->vmsize, UC_PROT_READ | UC_PROT_EXEC));
     assert(UC_ERR_OK == uc_mem_write(uc, textSeg->vmaddr, vm->mappedFile + textSeg->fileoff, textSeg->vmsize));
