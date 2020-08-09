@@ -28,8 +28,9 @@ THE SOFTWARE.
 
 #include "StringUtils.h"
 #include <sstream>
-#include <filesystem>
 #include <cassert>
+#include <stdarg.h>
+#include <string.h>
 
 namespace StringUtils {
 /*--- This a C++ universal sprintf in the future.

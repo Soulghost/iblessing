@@ -15,6 +15,7 @@
 #include "StringUtils.h"
 #include "SymbolWrapperSerializationManager.hpp"
 #include <set>
+#include <pthread.h>
 
 using namespace std;
 using namespace iblessing;
