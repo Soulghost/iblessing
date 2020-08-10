@@ -15,6 +15,7 @@
 #include "ObjcMsgXREFServerGenerator.hpp"
 #include "ObjcMsgXREFStatisticsGenerator.hpp"
 #include "IDASymbolWrapperNamingScriptGenerator.hpp"
+#include "ObjcMsgXREFReportGenerator.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -31,6 +32,10 @@ GeneratorDispatcher::GeneratorDispatcher() {
     
     registerGenerator("objc-msg-xref-server", []() {
         return new ObjcMsgXREFServerGenerator("objc-msg-xref-server", "server to query objc-msg xrefs");
+    });
+    
+    registerGenerator("objc-msg-xref-json", []() {
+        return new ObjcMsgXREFReportGenerator("objc-msg-xref-json", "generate objc msg xref report in json format");
     });
     
     registerGenerator("objc-msg-xref-statistic", []() {
