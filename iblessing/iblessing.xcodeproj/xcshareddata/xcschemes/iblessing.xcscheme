@@ -57,11 +57,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "scan"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "generator"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-i"
@@ -73,26 +73,26 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "objc-msg-xref-statistic"
-            isEnabled = "NO">
+            argument = "objc-msg-xref-json"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-f"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug/Aweme_wrapper-graph.iblessing.txt"
+            argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/opt/one-btn/tmp/apps/WeChat/Payload/WeChat.app/WeChat"
+            argument = "/Users/soulghost/Desktop/git/iblessing-public/build/Aweme_method-xrefs.iblessing.txt"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug/iblessing-sample_method-xrefs.iblessing.txt"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
