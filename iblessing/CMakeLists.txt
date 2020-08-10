@@ -4,8 +4,32 @@ project(iblessing VERSION 1.0)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-SET(CMAKE_CXX_FLAGS -pthread)
+set(CMAKE_CXX_FLAGS -pthread)
 set(CMAKE_C_STANDARD 11)
+
+option(iblessing.CSR_ENABLED "System Integrity Protection Manager Option" OFF)
+option(iblessing.COCOA_FOUNDATION_ENABLED "Cocoa Foundation Framework Option" OFF)
+
+if (iblessing.PLATFORM) 
+    message(STATUS "Platform to build: ${iblessing.PLATFORM}")
+else()
+    message(STATUS "Cannot find platform to build, set iblessing.PLATFORM to macos")
+    set(iblessing.PLATFORM "macos")
+endif()
+
+if (NOT (iblessing.PLATFORM STREQUAL "macos") 
+    AND
+    NOT (iblessing.PLATFORM STREQUAL "linux"))
+    message(FATAL_ERROR "iblessing.platform can only be macos or linux")
+endif()
+
+if (iblessing.PLATFORM STREQUAL "macos")
+    message(STATUS "Enable System Integrity Protection Manager")
+    set(iblessing.CSR_ENABLED ON)
+
+    message(STATUS "Enable Cocoa Frameworks")
+    set(iblessing.COCOA_FOUNDATION_ENABLED ON)
+endif()
 
 # main executable
 add_executable(iblessing iblessing/main.cpp)
@@ -13,6 +37,15 @@ add_executable(iblessing iblessing/main.cpp)
 # vendor libs
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/capstone/libcapstone.a)
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/unicorn/libunicorn.a)
+
+# macro inject
+if (iblessing.CSR_ENABLED) 
+    target_compile_definitions(iblessing PRIVATE IB_CSR_ENABLED)
+endif()
+
+if (iblessing.COCOA_FOUNDATION_ENABLED) 
+    target_compile_definitions(iblessing PRIVATE IB_COCOA_FOUNDATION_ENABLED)
+endif()
 
 set(iblessing.VENDOR_INCLUDES
     ${CMAKE_SOURCE_DIR}/../submodules/capstone/include
@@ -66,10 +99,13 @@ set(iblessing.SOURCE_INCLUDES
 
     # domain
     iblessing/domain
-
-    # platform-specific
-    iblessing/platform/macos
 )
+
+if (iblessing.CSR_ENABLED)
+    set(iblessing.SOURCE_INCLUDES ${iblessing.SOURCE_INCLUDES}
+        iblessing/platform/macos
+    )
+endif()
 
 set(iblessing.SOURCE_LIST
     # utils
@@ -136,10 +172,22 @@ set(iblessing.SOURCE_LIST
 
     # domain
     iblessing/domain/ObjcMethodChain.cpp
-
-    # platform-specific
-    # iblessing/platform/macos/csrutil.cpp
 )
+
+if (iblessing.CSR_ENABLED)
+    set(iblessing.SOURCE_LIST ${iblessing.SOURCE_LIST}
+        iblessing/platform/macos/csrutil.cpp
+    )
+endif()
+
+if (iblessing.COCOA_FOUNDATION_ENABLED) 
+    set(iblessing.SOURCE_LIST ${iblessing.SOURCE_LIST}
+        # cocoa scanner
+        iblessing/scanner/AppInfoScanner.mm
+    )
+
+    target_link_libraries(iblessing "-framework Foundation")
+endif()
 
 target_include_directories(iblessing PRIVATE 
                            ${iblessing.SOURCE_INCLUDES}
