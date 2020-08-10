@@ -12,7 +12,10 @@
 #include "termcolor.h"
 #include "ScannerDispatcher.hpp"
 #include "GeneratorDispatcher.hpp"
-//#include "csrutil.hpp"
+
+#ifdef IB_CSR_ENABLED
+#include "csrutil.hpp"
+#endif
 
 using namespace std;
 using namespace argparse;
@@ -33,9 +36,13 @@ int main(int argc, const char *argv[]) {
     // hello text
     printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.2.1.6 (http://blog.asm.im)\n");
     printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
-//    if (CSRUtil::isSIPon()) {
-//        printf("[***] System Integrity Protection is on\n");
-//    }
+
+#ifdef IB_CSR_ENABLED
+    if (CSRUtil::isSIPon()) {
+        printf("[***] System Integrity Protection is on\n");
+    }
+#endif
+
     printf("\n");
     
     // parse args

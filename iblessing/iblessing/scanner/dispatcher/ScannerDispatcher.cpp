@@ -27,6 +27,10 @@
 #include "SymbolWrapperScanner.hpp"
 #include "SymbolXREFScanner.hpp"
 
+#ifdef IB_COCOA_FOUNDATION_ENABLED
+#include "AppInfoScanner.hpp"
+#endif
+
 using namespace std;
 using namespace iblessing;
 
@@ -36,6 +40,12 @@ static bool fexists(string filename) {
 }
 
 ScannerDispatcher::ScannerDispatcher() {
+#ifdef IB_COCOA_FOUNDATION_ENABLED
+    this->registerScanner("app-info", []() {
+        return new AppInfoScanner("app-info", "extract app infos");
+    });
+#endif
+    
     this->registerScanner("objc-msg-xref", []() {
         return new ObjcMethodXrefScanner("objc-msg-xref", "generate objc_msgSend xrefs record");
     });
