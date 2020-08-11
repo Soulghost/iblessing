@@ -36,7 +36,7 @@ static rapidjson::Value produceMethodRefs(set<pair<MethodChain *, uint64_t>> &me
         }
         uint64_t callerAddr = methodRef.second;
         methodRefObject.AddMember("id", chain->chainId, allocator);
-        methodRefObject.AddMember("callerAddr", jsonString(StringUtils::format("0x%llx", callerAddr).c_str(), allocator), allocator);
+        methodRefObject.AddMember("addr", jsonString(StringUtils::format("0x%llx", callerAddr).c_str(), allocator), allocator);
         methodRefsObject.PushBack(methodRefObject, allocator);
     }
     return methodRefsObject;
@@ -90,6 +90,7 @@ int ObjcMsgXREFReportGenerator::start() {
             filterCount++;
         }
         methodObject.AddMember("sel", jsonString(cmd, allocator), allocator);
+        methodObject.AddMember("imp", jsonString(StringUtils::format("0x%llx", chain->impAddr).c_str(), allocator), allocator);
         methodObject.AddMember("preMethods", produceMethodRefs(chain->prevMethods, allocator), allocator);
         methodObject.AddMember("postMethods", produceMethodRefs(chain->nextMethods, allocator), allocator);
         allMethodsObject.PushBack(methodObject, allocator);
