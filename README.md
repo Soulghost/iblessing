@@ -11,6 +11,7 @@
 - `iblessing` is based on [unicorn engine](https://github.com/unicorn-engine/unicorn) and [capstone engine](https://github.com/aquynh/capstone).
 
 # Features
+- [x] 🔥 Cross-platform: Tested on macOS and Ubuntu.
 - [x] iOS App static info extract, including metadata, deeplinks, urls, etc.
 - [x] Mach-O parser and dyld symbol bind simulator
 - [x] Objective-C class realizing and parsing
