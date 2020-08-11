@@ -23,7 +23,7 @@
     - [x] objc function wrapper detect and ida usercall generate
     - [x] objc_msgSend sub functions analysis
     - [x] objc block to objc_msgSend xrefs in args and capture list
-    - [ ] report format including json, etc.
+    - [x] report format including json, etc.
     
 - [ ] Diagnostic logs
 - [ ] Tests
