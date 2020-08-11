@@ -54,6 +54,27 @@ In case you need support regarding iblessing or anything associated with it, you
 2. run chmod +x for the binary
 3. For more tutorails, please check the [Documentation & Help](https://github.com/Soulghost/iblessing#documentation--help) below.
 
+# How to Build
+## CMake
+- Platform: macOS, Linux
+
+To get started compiling iblessing, please follow the steps below:
+```
+git clone https://github.com/Soulghost/iblessing
+cd iblessing
+./compile.sh
+```
+
+## XcodeBuild
+- Platform: macOS
+
+To get started compiling iblessing, please follow the steps below:
+```
+git clone https://github.com/Soulghost/iblessing
+cd iblessing
+./compile-cmake.sh
+```
+
 ## Shortcuts
 - [Basic Concepts](https://github.com/Soulghost/iblessing#basic-concepts)
 - Scanners
@@ -66,16 +87,6 @@ In case you need support regarding iblessing or anything associated with it, you
   - [Generate objc_msgSend Xrefs Query Server](https://github.com/Soulghost/iblessing#generate-objc_msgsend-xrefs-query-server)
   - [Generate IDA Scripts for objc_msgSend xrefs](https://github.com/Soulghost/iblessing#generate-ida-scripts-for-objc_msgsend-xrefs)
   - :new: [Generate IDA Scripts for objc function wrapper rename and prototype modification](https://github.com/Soulghost/iblessing/blob/features/anti_wrapper/README.md#genereate-ida-script-for-objc-runtime-function-rename-and-prototype-modification)
-
-# How to Compile
-- Platform: macOS Only (Will support linux in the future)
-
-To get started compiling iblessing, please follow the steps below:
-```
-git clone https://github.com/Soulghost/iblessing
-cd iblessing
-sh compile.sh
-```
 
 ***If there are any errors, you can manully compile capstone and unicorn, then drag libcapstone.a and libunicorn.a to the Xcode project's vendor/libs.***
 
