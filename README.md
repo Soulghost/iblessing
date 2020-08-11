@@ -60,7 +60,7 @@ In case you need support regarding iblessing or anything associated with it, you
 
 To get started compiling iblessing, please follow the steps below:
 ```
-git clone https://github.com/Soulghost/iblessing
+git clone --recursive -j4 https://github.com/Soulghost/iblessing
 cd iblessing
 ./compile-cmake.sh
 ```
@@ -70,7 +70,7 @@ cd iblessing
 
 To get started compiling iblessing, please follow the steps below:
 ```
-git clone https://github.com/Soulghost/iblessing
+git clone --recursive -j4 https://github.com/Soulghost/iblessing
 cd iblessing
 ./compile.sh
 ```
