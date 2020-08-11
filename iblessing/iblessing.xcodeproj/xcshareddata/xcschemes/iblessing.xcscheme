@@ -89,11 +89,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug/iblessing-sample_method-xrefs.iblessing.txt"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/opt/one-btn/tmp/apps/WeChat/Payload/WeChat_method-xrefs.iblessing.txt"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/opt/one-btn/tmp/apps/&#x6296;&#x97f3;&#x77ed;&#x89c6;&#x9891;/Payload/Aweme.app/Aweme"
