@@ -152,7 +152,7 @@ bool ObjcMsgXREFServerGenerator::loadMethodChains() {
         return false;
     }
     
-    printf("\t [+] load storage from disk succeeded!\n");
+    printf("\t[+] load storage from disk succeeded!\n");
     return true;
 }
 

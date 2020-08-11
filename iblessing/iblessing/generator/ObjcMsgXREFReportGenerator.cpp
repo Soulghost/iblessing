@@ -54,6 +54,13 @@ int ObjcMsgXREFReportGenerator::start() {
     }
     ss.clear();
     
+    bool filterUnprintable = true;
+    if (options.find("unprintable") != options.end()) {
+        string unprintable = options["unprintable"];
+        int opt = atoi(unprintable.c_str());
+        filterUnprintable = opt >= 1;
+    }
+    
     if (!loadMethodChains()) {
         cout << termcolor::red;
         cout << StringUtils::format("  [!] failed to parse %s\n", inputPath.c_str());
@@ -72,12 +79,17 @@ int ObjcMsgXREFReportGenerator::start() {
         return a.second->chainId < b.second->chainId;
     });
     
+    uint64_t filterCount = 0;
     for (auto it = methods.begin(); it != methods.end(); it++) {
-        string cmd = it->first;
+        const char *cmd = it->first.c_str();
         MethodChain *chain = it->second;
         rapidjson::Value methodObject(rapidjson::kObjectType);
         methodObject.AddMember("id", chain->chainId, allocator);
-        methodObject.AddMember("sel", jsonString(cmd.c_str(), allocator), allocator);
+        if (filterUnprintable && StringUtils::countNonPrintablecharacters(cmd, 1000) > 0) {
+            cmd = "<<unprintable>>";
+            filterCount++;
+        }
+        methodObject.AddMember("sel", jsonString(cmd, allocator), allocator);
         methodObject.AddMember("preMethods", produceMethodRefs(chain->prevMethods, allocator), allocator);
         methodObject.AddMember("postMethods", produceMethodRefs(chain->nextMethods, allocator), allocator);
         allMethodsObject.PushBack(methodObject, allocator);
@@ -91,6 +103,11 @@ int ObjcMsgXREFReportGenerator::start() {
     d.Accept(writer);
     ss << strbuf.GetString();
     ss.close();
+    if (filterCount > 0) {
+        cout << "  [*] filter ";
+        cout << termcolor::green << filterCount << termcolor::reset;
+        cout << " unprintable method expr(s)" << endl;
+    }
     printf("  [*] saved to %s\n", reportPath.c_str());
     return 0;
 }
@@ -101,6 +118,6 @@ bool ObjcMsgXREFReportGenerator::loadMethodChains() {
         return false;
     }
     
-    printf("\t [+] load storage from disk succeeded!\n");
+    printf("\t[+] load storage from disk succeeded!\n");
     return true;
 }
