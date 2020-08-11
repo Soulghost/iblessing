@@ -62,7 +62,7 @@ To get started compiling iblessing, please follow the steps below:
 ```
 git clone https://github.com/Soulghost/iblessing
 cd iblessing
-./compile.sh
+./compile-cmake.sh
 ```
 
 ## XcodeBuild
@@ -72,7 +72,7 @@ To get started compiling iblessing, please follow the steps below:
 ```
 git clone https://github.com/Soulghost/iblessing
 cd iblessing
-./compile-cmake.sh
+./compile.sh
 ```
 
 ## Shortcuts
