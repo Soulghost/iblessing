@@ -1,8 +1,8 @@
 language: cpp
 sudo: false
 
-before_script:
-  - git clone --recursive -j4 https://github.com/Soulghost/iblessing
+git:
+  submodules: true
 
 script:
   - ./compile-cmake.sh
