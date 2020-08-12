@@ -1,0 +1,16 @@
+language: cpp
+sudo: false
+
+before_script:
+  - git clone --recursive -j4 https://github.com/Soulghost/iblessing
+
+script:
+  - ./compile-cmake.sh
+  
+compiler:
+  - clang
+  - gcc
+  
+os:
+  - linux
+  - osx
