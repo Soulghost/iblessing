@@ -7,13 +7,21 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
-
+  build-linux:
     runs-on: ubuntu-latest
-
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@master
       with:
         submodules: true
     - name: cmake
       run: ./compile-cmake.sh
+  
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@master
+      with:
+        submodules: true
+    - name: cmake
+      run: ./compile-cmake.sh
+
