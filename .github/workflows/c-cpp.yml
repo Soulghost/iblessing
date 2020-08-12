@@ -15,9 +15,5 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: true
-    - name: update submodules
-      run:  git submodule foreach update
-    - name: show files
-      run:  ls submodules/capstone
     - name: cmake
       run: ./compile-cmake.sh
