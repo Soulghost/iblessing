@@ -14,6 +14,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: update submodules
-      run: git pull --recurse-submodules && git submodule update
+      run:  git submodule foreach update
+    - name: show files
+      run:  ls submodules/capstone
     - name: cmake
       run: ./compile-cmake.sh
