@@ -13,5 +13,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: update submodules
+      run: git pull --recurse-submodules && git submodule update
     - name: cmake
       run: ./compile-cmake.sh
