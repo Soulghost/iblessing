@@ -121,20 +121,20 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
 }
 
 - (void)testMixedBlockOnStack {
-//    [self localStackBlockInvoker2:^(NSString *a, BOOL b, id c, IBSRoot *d, BlockSubA *e, BlockSubB *f) {
-//        [[d class] rootClassMethodCallFromBlockArgs];
-//        [d rootInstanceMethodCallFromBlockArgs];
-//        [e testCallFromBlockArg];
-//        [f testCallFromblockArg];
-//        [self testSelfCapture];
-//    }];
-//    
-//    [self localStackBlockInvoker3:^NSString *(int a, BlockSubB *b, BOOL c, BOOL *d, int *e, __unsafe_unretained Class f, BlockSubA *g) {
-//        [b testCallFromblockArg];
-//        [g testCallFromBlockArg];
-//        [self testSelfCapture];
-//        return @"xxx";
-//    }];
+    [self localStackBlockInvoker2:^(NSString *a, BOOL b, id c, IBSRoot *d, BlockSubA *e, BlockSubB *f) {
+        [[d class] rootClassMethodCallFromBlockArgs];
+        [d rootInstanceMethodCallFromBlockArgs];
+        [e testCallFromBlockArg];
+        [f testCallFromblockArg];
+        [self testSelfCapture];
+    }];
+
+    [self localStackBlockInvoker3:^NSString *(int a, BlockSubB *b, BOOL c, BOOL *d, int *e, __unsafe_unretained Class f, BlockSubA *g) {
+        [b testCallFromblockArg];
+        [g testCallFromBlockArg];
+        [self testSelfCapture];
+        return @"xxx";
+    }];
 }
 
 @end

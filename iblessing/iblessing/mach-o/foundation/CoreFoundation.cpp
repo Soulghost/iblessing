@@ -12,10 +12,13 @@
 #include <set>
 #include <map>
 #include "termcolor.h"
-#include <ctype.h>
 
 using namespace std;
 using namespace iblessing;
+
+static bool is_number(char c) {
+    return c >= '0' && c <= '9';
+}
 
 vector<string> CoreFoundation::argumentsFromSignature(const char *signaure) {
     static set<char> primaryTypes{
@@ -60,7 +63,7 @@ vector<string> CoreFoundation::argumentsFromSignature(const char *signaure) {
             i++;
         } else if (c == '^') {
             stringstream ss;
-            while (i < len && !isnumber(signaure[i])) {
+            while (i < len && !is_number(signaure[i])) {
                 ss << signaure[i];
                 i++;
             }
@@ -108,12 +111,12 @@ vector<string> CoreFoundation::argumentsFromSignature(const char *signaure) {
         
         
         // slide to nums
-        while (i < len && !isnumber(signaure[i])) {
+        while (i < len && !is_number(signaure[i])) {
             i++;
         }
         
         // skip offset or size nums
-        while (i < len && isnumber(signaure[i])) {
+        while (i < len && is_number(signaure[i])) {
             i++;
         }
         
@@ -130,7 +133,6 @@ vector<string> CoreFoundation::argumentsFromSignature(const char *signaure) {
             duplicateCount = 0;
         }
     }
-    
     
     return args;
 }
