@@ -14,3 +14,12 @@ compiler:
 os:
   - linux
   - osx
+
+deploy:
+  provider: releases
+  prerelease: true
+  api_key: "GITHUB OAUTH TOKEN"
+  file: cmake-build/iblessing
+  skip_cleanup: true
+  on:
+    tags: true
