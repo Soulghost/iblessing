@@ -79,6 +79,7 @@ set(iblessing.SOURCE_INCLUDES
     iblessing/mach-o/runtime
     iblessing/mach-o/structs
     iblessing/mach-o/symtab
+    iblessing/mach-o/foundation
 
     # scanner
     iblessing/scanner
@@ -138,6 +139,8 @@ set(iblessing.SOURCE_LIST
     iblessing/mach-o/symtab/StringTable.cpp
     iblessing/mach-o/symtab/Symbol.cpp
     iblessing/mach-o/symtab/SymbolTable.cpp
+
+    iblessing/mach-o/foundation/CoreFoundation.cpp
 
     # scanner
     iblessing/scanner/context/ScannerContext.cpp

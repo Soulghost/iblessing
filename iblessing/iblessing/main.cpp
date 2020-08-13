@@ -34,7 +34,7 @@ int main(int argc, const char *argv[]) {
            \n");
     
     // hello text
-    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.2.2.1 (http://blog.asm.im)\n");
+    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.2.3 (http://blog.asm.im)\n");
     printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
 
 #ifdef IB_CSR_ENABLED
