@@ -169,31 +169,33 @@ static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
         uint64_t sigAddr = 0;
         if (UC_ERR_OK == uc_mem_read(uc, ctx->blockDescAddr + signatureOffsetInDesc, &sigAddr, 8)) {
             char *signature = vm2->readString(sigAddr, 1000);
-            vector<string> args = CoreFoundation::argumentsFromSignature(signature);
-            // args[0] is return value
-            for (int i = 1; i < args.size(); i++) {
-                string &arg = args[i];
-                if (i == 1) {
-                    block->commonBlock = (arg == "@?");
-                } else if (StringUtils::has_prefix(arg, "@")) {
-                    BlockVariable *blockVar = new BlockVariable();
-                    if (arg.size() > 1) {
-                        string className = arg.substr(1);
-                        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByName(className);
-                        if (classInfo) {
-                            blockVar->type = BlockVariableTypeObjcClass;
-                            blockVar->classInfo = classInfo;
+            if (signature) {
+                vector<string> args = CoreFoundation::argumentsFromSignature(signature);
+                // args[0] is return value
+                for (int i = 1; i < args.size(); i++) {
+                    string &arg = args[i];
+                    if (i == 1) {
+                        block->commonBlock = (arg == "@?");
+                    } else if (StringUtils::has_prefix(arg, "@")) {
+                        BlockVariable *blockVar = new BlockVariable();
+                        if (arg.size() > 1) {
+                            string className = arg.substr(1);
+                            ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByName(className);
+                            if (classInfo) {
+                                blockVar->type = BlockVariableTypeObjcClass;
+                                blockVar->classInfo = classInfo;
+                            } else {
+                                blockVar->type = BlockVariableTypeUnknown;
+                            }
                         } else {
                             blockVar->type = BlockVariableTypeUnknown;
                         }
+                        block->args.push_back(blockVar);
                     } else {
+                        BlockVariable *blockVar = new BlockVariable();
                         blockVar->type = BlockVariableTypeUnknown;
+                        block->args.push_back(blockVar);
                     }
-                    block->args.push_back(blockVar);
-                } else {
-                    BlockVariable *blockVar = new BlockVariable();
-                    blockVar->type = BlockVariableTypeUnknown;
-                    block->args.push_back(blockVar);
                 }
             }
         }
