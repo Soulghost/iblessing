@@ -12,6 +12,7 @@
 #include <set>
 #include <map>
 #include "termcolor.h"
+#include <ctype.h>
 
 using namespace std;
 using namespace iblessing;
