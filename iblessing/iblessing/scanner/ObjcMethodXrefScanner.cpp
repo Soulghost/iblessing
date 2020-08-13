@@ -108,7 +108,6 @@ public:
 
 static map<uc_engine *, EngineContext *> engineContexts;
 static pthread_mutex_t traceRecordMutex;
-static pthread_mutex_t blockIndexMutex;
 static pthread_mutex_t counterMutex;
 static pthread_mutex_t indexMutex;
 static uint64_t curCount = 0;
@@ -200,9 +199,9 @@ static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
         }
     }
     
-    pthread_mutex_lock(&blockIndexMutex);
+    pthread_mutex_lock(&indexMutex);
     rt->invoker2block[ctx->blockInvokerAddr] = block;
-    pthread_mutex_unlock(&blockIndexMutex);
+    pthread_mutex_unlock(&indexMutex);
 //    printf("[*] finish block with invoker addr 0x%llx\n", ctx->blockInvokerAddr);
 }
 
@@ -218,22 +217,22 @@ static void captureBlockElement(cs_insn *lastInsn, EngineContext *ctx, uint64_t 
             UC_ERR_OK == uc_reg_read(ctx->engine, UC_ARM64_REG_SP, &sp)) {
             uint64_t targetAddr = sp + disp;
             if (targetAddr == ctx->blockIsaAddr + 0x8) {
-                printf("\t[~] find block flags at 0x%llx, value 0x%llx\n", targetAddr, xn);
+//                printf("\t[~] find block flags at 0x%llx, value 0x%llx\n", targetAddr, xn);
                 uc_mem_read(uc, targetAddr, &ctx->blockFlags, 4);
                 ctx->blockValidElementCount++;
             } else if (targetAddr == ctx->blockIsaAddr + 0xc) {
-                printf("\t[~] find block reserved at 0x%llx, value 0x%llx\n", targetAddr, xn);
+//                printf("\t[~] find block reserved at 0x%llx, value 0x%llx\n", targetAddr, xn);
                 ctx->blockValidElementCount++;
             } else if (targetAddr == ctx->blockIsaAddr + 0x10) {
-                printf("\t[~] find block invoker at 0x%llx, value 0x%llx\n", targetAddr, xn);
+//                printf("\t[~] find block invoker at 0x%llx, value 0x%llx\n", targetAddr, xn);
                 uc_mem_read(uc, targetAddr, &ctx->blockInvokerAddr, 8);
                 ctx->blockValidElementCount++;
             } else if (targetAddr == ctx->blockIsaAddr + 0x18) {
-                printf("\t[~] find block desc at 0x%llx, value 0x%llx\n", targetAddr, xn);
+//                printf("\t[~] find block desc at 0x%llx, value 0x%llx\n", targetAddr, xn);
                 uc_mem_read(uc, targetAddr, &ctx->blockDescAddr, 8);
                 ctx->blockValidElementCount++;
             } else if (targetAddr >= ctx->blockIsaAddr + 0x20) {
-                printf("\t[~] may find capture var at 0x%llx, value 0x%llx\n", targetAddr, xn);
+//                printf("\t[~] may find capture var at 0x%llx, value 0x%llx\n", targetAddr, xn);
                 ctx->blockValidElementCount++;
                 // FIXME: trick capture size 0x8
                 if (ctx->blockSize < 0x1000) {
@@ -313,8 +312,8 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         ctx->setLastInsn(insn);
         free(codes);
         cs_free(insn, count);
-        uc_emu_stop(uc);
         finishBlockSession(ctx, uc);
+        uc_emu_stop(uc);
         return;
     }
     
@@ -642,18 +641,8 @@ void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &method
     curCount = 0;
     totalCount = methodCount;
     
-    // create global lock
-    pthread_mutexattr_t attr = {0};
-    assert(pthread_mutexattr_init(&attr) == 0);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    assert(pthread_mutex_init(&traceRecordMutex, &attr) == 0);
-    assert(pthread_mutex_init(&blockIndexMutex, &attr) == 0);
-    assert(pthread_mutex_init(&counterMutex, &attr) == 0);
-    assert(pthread_mutex_init(&indexMutex, &attr) == 0);
-    
     // create threads
     vector<pthread_t> threads;
-    
     size_t startIdx = 0;
     for (size_t i = 0; i < groupCount; i++) {
         EngineContext *ctx = engineContexts[engines[i]];
@@ -915,6 +904,15 @@ int ObjcMethodXrefScanner::start() {
     subMethods.erase(unique(subMethods.begin(), subMethods.end(), [](ObjcMethod *a, ObjcMethod *b) {
         return a->imp == b->imp;
     }), subMethods.end());
+    
+    
+    // create global lock
+    pthread_mutexattr_t attr = {0};
+    assert(pthread_mutexattr_init(&attr) == 0);
+    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
+    assert(pthread_mutex_init(&traceRecordMutex, &attr) == 0);
+    assert(pthread_mutex_init(&counterMutex, &attr) == 0);
+    assert(pthread_mutex_init(&indexMutex, &attr) == 0);
     
     printf("  [*] Step 5. track all objc calls\n");
     trace_all_methods(engines, methods);

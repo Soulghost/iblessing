@@ -11,6 +11,7 @@
 #include <sstream>
 #include <set>
 #include <map>
+#include "termcolor.h"
 
 using namespace std;
 using namespace iblessing;
@@ -35,7 +36,15 @@ vector<string> CoreFoundation::argumentsFromSignature(const char *signaure) {
     // "v16@?0@\"BlockSubA\"8"
     // "v32@?0@8Q16^B24"
     
+    // deadlock
+    // RxBaseApplicationDelegate application:handleActionWithIdentifier:forRemoteNotification:withResponseInfo:completionHandler:
+    // v24@?0@\"<RxApplicationService>\"8@?<v@?>16
+    
+    size_t lastIndex = 0;
+    int duplicateCount = 0;
     for (size_t i = 0; i < strlen(signaure);) {
+        lastIndex = i;
+        
         char c = signaure[i];
         
         // check for primary type
@@ -63,7 +72,7 @@ vector<string> CoreFoundation::argumentsFromSignature(const char *signaure) {
             while (i < len && signaure[i] != end) {
                 i++;
             }
-            // find end
+            // consume end
             i++;
         }
         
@@ -96,9 +105,28 @@ vector<string> CoreFoundation::argumentsFromSignature(const char *signaure) {
             }
         }
         
+        
+        // slide to nums
+        while (i < len && !isnumber(signaure[i])) {
+            i++;
+        }
+        
         // skip offset or size nums
         while (i < len && isnumber(signaure[i])) {
             i++;
+        }
+        
+        if (i == lastIndex) {
+            duplicateCount++;
+            if (duplicateCount > 100) {
+                cout << endl;
+                cout << termcolor::red << "[-] Oh, there is a deadlock in signature compute, ";
+                cout << "the signature is " << signaure << termcolor::reset;
+                cout << endl;
+                exit(1);
+            }
+        } else {
+            duplicateCount = 0;
         }
     }
     
