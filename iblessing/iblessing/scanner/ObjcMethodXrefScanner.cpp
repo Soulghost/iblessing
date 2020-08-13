@@ -212,10 +212,10 @@ static void captureBlockElement(cs_insn *lastInsn, EngineContext *ctx, uint64_t 
     if (op.type == ARM64_OP_MEM) {
         arm64_reg base = op.mem.base;
         int32_t disp = op.mem.disp;
-        uint64_t sp = 0;
-        if (base == ARM64_REG_SP &&
-            UC_ERR_OK == uc_reg_read(ctx->engine, UC_ARM64_REG_SP, &sp)) {
-            uint64_t targetAddr = sp + disp;
+        uint64_t xn = 0;
+        if ((base == ARM64_REG_SP || base == ARM64_REG_X29) &&
+            UC_ERR_OK == uc_reg_read(ctx->engine, base, &xn)) {
+            uint64_t targetAddr = xn + disp;
             if (targetAddr == ctx->blockIsaAddr + 0x8) {
 //                printf("\t[~] find block flags at 0x%llx, value 0x%llx\n", targetAddr, xn);
                 uc_mem_read(uc, targetAddr, &ctx->blockFlags, 4);
@@ -254,10 +254,10 @@ static void startBlockSession(EngineContext *ctx, uc_engine *uc, cs_insn *insn) 
     if (op.type == ARM64_OP_MEM) {
         arm64_reg base = op.mem.base;
         int32_t disp = op.mem.disp;
-        uint64_t sp = 0;
-        if (base == ARM64_REG_SP &&
-            UC_ERR_OK == uc_reg_read(ctx->engine, UC_ARM64_REG_SP, &sp)) {
-            uint64_t blockAddr = sp + disp;
+        uint64_t xn = 0;
+        if ((base == ARM64_REG_SP || base == ARM64_REG_X29) &&
+            UC_ERR_OK == uc_reg_read(ctx->engine, base, &xn)) {
+            uint64_t blockAddr = xn + disp;
 //            printf("\n\t[~] find block build prologue at 0x%llx, block address on stack 0x%llx\n", ctx->lastInsn->address, blockAddr);
             
             ctx->isInBlockBuilder = true;
@@ -345,7 +345,8 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     if (ctx->lastInsn) {
         // block capture, method only
         if (!ctx->currentMethod->classInfo->isSub &&
-            strcmp(ctx->lastInsn->mnemonic, "str") == 0) {
+            (strcmp(ctx->lastInsn->mnemonic, "str")  == 0 ||
+             strcmp(ctx->lastInsn->mnemonic, "stur") == 0)) {
             cs_arm64 detail = ctx->lastInsn->detail->arm64;
             uint64_t xn = 0;
             if (detail.operands[0].reg != ARM64_REG_INVALID &&
