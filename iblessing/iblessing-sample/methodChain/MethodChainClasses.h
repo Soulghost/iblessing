@@ -13,7 +13,6 @@
 + (void)rootClassMethodCallFromPrimary;
 + (void)rootClassMethodCallFromInstanceClass;
 + (void)rootClassMethodCallFromReflection;
-+ (void)rootClassMethodCallFromSub;
 - (void)rootInstanceMethodCallFromAllocate;
 - (void)rootInstanceMethodCallFromIvar;
 
@@ -46,5 +45,11 @@
 
 - (void)testAllocateCapture;
 - (void)testCallFromBlockArg;
+
+@end
+
+@interface BlockSubB : NSObject
+
+- (void)testCallFromblockArg;
 
 @end

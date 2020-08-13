@@ -97,6 +97,11 @@ std::string path_join(std::string a, std::string b) {
     return a + "/" + b;
 }
 
+bool has_prefix(const std::string &str, const std::string &prefix)
+{
+    return str.rfind(prefix, 0) == 0;
+}
+
 bool has_suffix(const std::string &str, const std::string &suffix)
 {
     return str.size() >= suffix.size() &&

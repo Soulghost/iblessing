@@ -52,6 +52,7 @@
 		685CE85D24C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE85824C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp */; };
 		685CE88F24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE88D24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp */; };
 		6866173B24DFF93A00C4FBB3 /* mach-universal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6866173924DFF93A00C4FBB3 /* mach-universal.cpp */; };
+		6866173F24E51CA300C4FBB3 /* CoreFoundation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6866173D24E51CA300C4FBB3 /* CoreFoundation.cpp */; };
 		68770C7124DAD45C003F9652 /* ObjcBlock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68770C6F24DAD45C003F9652 /* ObjcBlock.cpp */; };
 		68770C9124E1118D003F9652 /* CocoaAppInfoScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68770C8F24E1118D003F9652 /* CocoaAppInfoScanner.cpp */; };
 		68770C9424E1130A003F9652 /* AppInfoScanner.mm in Sources */ = {isa = PBXBuildFile; fileRef = 68770C9224E1130A003F9652 /* AppInfoScanner.mm */; };
@@ -204,6 +205,8 @@
 		685CE88E24C68933002CC5E8 /* ObjcMethodChainSerializationManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMethodChainSerializationManager.hpp; sourceTree = "<group>"; };
 		6866173924DFF93A00C4FBB3 /* mach-universal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "mach-universal.cpp"; sourceTree = "<group>"; };
 		6866173A24DFF93A00C4FBB3 /* mach-universal.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "mach-universal.hpp"; sourceTree = "<group>"; };
+		6866173D24E51CA300C4FBB3 /* CoreFoundation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CoreFoundation.cpp; sourceTree = "<group>"; };
+		6866173E24E51CA300C4FBB3 /* CoreFoundation.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = CoreFoundation.hpp; sourceTree = "<group>"; };
 		68770C6F24DAD45C003F9652 /* ObjcBlock.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcBlock.cpp; sourceTree = "<group>"; };
 		68770C7024DAD45C003F9652 /* ObjcBlock.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcBlock.hpp; sourceTree = "<group>"; };
 		68770C8F24E1118D003F9652 /* CocoaAppInfoScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CocoaAppInfoScanner.cpp; sourceTree = "<group>"; };
@@ -383,6 +386,7 @@
 		685CE7E224C57079002CC5E8 /* mach-o */ = {
 			isa = PBXGroup;
 			children = (
+				6866173C24E51C8400C4FBB3 /* foundation */,
 				6866173724DFF8E800C4FBB3 /* polyfill */,
 				682962E124CD48F100EF9251 /* structs */,
 				685CE7E324C57079002CC5E8 /* symtab */,
@@ -691,6 +695,15 @@
 			path = polyfill;
 			sourceTree = "<group>";
 		};
+		6866173C24E51C8400C4FBB3 /* foundation */ = {
+			isa = PBXGroup;
+			children = (
+				6866173D24E51CA300C4FBB3 /* CoreFoundation.cpp */,
+				6866173E24E51CA300C4FBB3 /* CoreFoundation.hpp */,
+			);
+			path = foundation;
+			sourceTree = "<group>";
+		};
 		68A028BD24DE7F8000077CE0 /* context */ = {
 			isa = PBXGroup;
 			children = (
@@ -886,6 +899,7 @@
 				685CE81524C57079002CC5E8 /* ObjcRuntime.cpp in Sources */,
 				685CE80F24C57079002CC5E8 /* ARM64ThreadState.cpp in Sources */,
 				685CE81024C57079002CC5E8 /* ARM64Disasembler.cpp in Sources */,
+				6866173F24E51CA300C4FBB3 /* CoreFoundation.cpp in Sources */,
 				685B5B8E24D6711E00C30CFD /* SymbolXREFScanner.cpp in Sources */,
 				68A028C024DE7F9300077CE0 /* ScannerContextManager.cpp in Sources */,
 				685CE85D24C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp in Sources */,
@@ -1145,7 +1159,7 @@
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 6CMYQQFFT8;
+				DEVELOPMENT_TEAM = FY3C8MQXF9;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -1173,7 +1187,7 @@
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 6CMYQQFFT8;
+				DEVELOPMENT_TEAM = FY3C8MQXF9;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				INSTALL_PATH = "";

@@ -50,6 +50,7 @@ THE SOFTWARE.
 namespace StringUtils {
 std::string CC_DLL format(const char* format, ...) CC_FORMAT_PRINTF(1, 2);
 std::vector<std::string> CC_DLL split(std::string s, char sep);
+bool CC_DLL has_prefix(const std::string &str, const std::string &prefix);
 bool CC_DLL has_suffix(const std::string &str, const std::string &suffix);
 std::string CC_DLL path_join(std::string a, std::string b);
 int countNonPrintablecharacters(const char *str, int limit);

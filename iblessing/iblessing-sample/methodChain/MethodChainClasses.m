@@ -8,6 +8,9 @@
 
 #import "MethodChainClasses.h"
 
+typedef void (^BlockWithMixedArgsV1)(NSString *a, BOOL b, id c, IBSRoot *d, BlockSubA *e, BlockSubB *f);
+typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, int *e, Class f, BlockSubA *g);
+
 @implementation IBSRoot
 
 + (void)rootClassMethodCallFromPrimary {
@@ -22,6 +25,10 @@
     
 }
 
++ (void)rootClassMethodCallFromBlockArgs {
+    
+}
+
 - (void)rootInstanceMethodCallFromIvar {
     
 }
@@ -30,7 +37,7 @@
     
 }
 
-+ (void)rootClassMethodCallFromSub {
+- (void)rootInstanceMethodCallFromBlockArgs {
     
 }
 
@@ -49,22 +56,6 @@
 
 + (void)testInstanceCallToRootClassMethodAncestor {
     [[[[IBSRoot alloc] init] class] rootClassMethodCallFromInstanceClass];
-}
-
-- (void)testCallFromSub {
-    void (^sub)(void) = ^ {
-        [IBSRoot rootClassMethodCallFromSub];
-    };
-    sub();
-    
-    [@[@1, @2, @3] enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
-        [IBSRoot rootClassMethodCallFromSub];
-    }];
-    
-    self.ivarBlock = [^{
-        [IBSRoot rootClassMethodCallFromSub];
-    } copy];
-    self.ivarBlock();
 }
 
 - (void)testSelfCall {
@@ -100,6 +91,14 @@
     callback([BlockSubA new]);
 }
 
+- (void)localStackBlockInvoker2:(BlockWithMixedArgsV1)callback {
+    
+}
+
+- (void)localStackBlockInvoker3:(BlockWithMixedArgsV2)callback {
+    
+}
+
 - (void)testSelfCapture {
     
 }
@@ -113,6 +112,31 @@
     }];
 }
 
+- (void)testSystemBlockOnStack {
+    BlockSubA *allocateCapture = [BlockSubA new];
+    [@[@1, @2, @3] enumerateObjectsUsingBlock:^(id  _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        [allocateCapture testAllocateCapture];
+        [self testSelfCapture];
+    }];
+}
+
+- (void)testMixedBlockOnStack {
+//    [self localStackBlockInvoker2:^(NSString *a, BOOL b, id c, IBSRoot *d, BlockSubA *e, BlockSubB *f) {
+//        [[d class] rootClassMethodCallFromBlockArgs];
+//        [d rootInstanceMethodCallFromBlockArgs];
+//        [e testCallFromBlockArg];
+//        [f testCallFromblockArg];
+//        [self testSelfCapture];
+//    }];
+//    
+//    [self localStackBlockInvoker3:^NSString *(int a, BlockSubB *b, BOOL c, BOOL *d, int *e, __unsafe_unretained Class f, BlockSubA *g) {
+//        [b testCallFromblockArg];
+//        [g testCallFromBlockArg];
+//        [self testSelfCapture];
+//        return @"xxx";
+//    }];
+}
+
 @end
 
 @implementation BlockSubA
@@ -122,6 +146,14 @@
 }
 
 - (void)testCallFromBlockArg {
+    
+}
+
+@end
+
+@implementation BlockSubB
+
+- (void)testCallFromblockArg {
     
 }
 

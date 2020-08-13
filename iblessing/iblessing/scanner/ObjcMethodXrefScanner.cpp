@@ -26,6 +26,7 @@
 #include "SymbolXREFScanner.hpp"
 #include "ScannerDispatcher.hpp"
 #include "VirtualMemoryV2.hpp"
+#include "CoreFoundation.hpp"
 #include "ObjcMethodChainSerializationManager.hpp"
 
 #define ClassAsInstanceTrickMask 0x0100000000000000
@@ -106,7 +107,8 @@ public:
 };
 
 static map<uc_engine *, EngineContext *> engineContexts;
-static pthread_mutex_t globalMutex;
+static pthread_mutex_t traceRecordMutex;
+static pthread_mutex_t blockIndexMutex;
 static pthread_mutex_t counterMutex;
 static pthread_mutex_t indexMutex;
 static uint64_t curCount = 0;
@@ -168,51 +170,39 @@ static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
         uint64_t sigAddr = 0;
         if (UC_ERR_OK == uc_mem_read(uc, ctx->blockDescAddr + signatureOffsetInDesc, &sigAddr, 8)) {
             char *signature = vm2->readString(sigAddr, 1000);
-            vector<string> parts;
-            if (signature) {
-                parts = StringUtils::split(signature, '@');
-            }
-            for (int i = 1; i < parts.size(); i++) {
-                string &part = parts[i];
+            vector<string> args = CoreFoundation::argumentsFromSignature(signature);
+            // args[0] is return value
+            for (int i = 1; i < args.size(); i++) {
+                string &arg = args[i];
                 if (i == 1) {
-                    if (part == "?0") {
-                        // common block
-                        block->commonBlock = true;
-                        continue;
-                    } else {
-                        block->commonBlock = false;
-                    }
-                }
-                
-                BlockVariable *blockVar = new BlockVariable();
-                if (part.length() > 2 && part[0] == '"') {
-                    stringstream ss;
-                    ss << part[1];
-                    for (int i = 2; i < part.length(); i++) {
-                        char c = part[i];
-                        if (c == '"') {
-                            break;
+                    block->commonBlock = (arg == "@?");
+                } else if (StringUtils::has_prefix(arg, "@")) {
+                    BlockVariable *blockVar = new BlockVariable();
+                    if (arg.size() > 1) {
+                        string className = arg.substr(1);
+                        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByName(className);
+                        if (classInfo) {
+                            blockVar->type = BlockVariableTypeObjcClass;
+                            blockVar->classInfo = classInfo;
+                        } else {
+                            blockVar->type = BlockVariableTypeUnknown;
                         }
-                        ss << c;
-                    }
-                    string className = ss.str();
-                    ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByName(className);
-                    if (classInfo) {
-                        blockVar->type = BlockVariableTypeObjcClass;
-                        blockVar->classInfo = classInfo;
                     } else {
                         blockVar->type = BlockVariableTypeUnknown;
                     }
+                    block->args.push_back(blockVar);
                 } else {
-                    blockVar->type = BlockVariableTypePrimary;
+                    BlockVariable *blockVar = new BlockVariable();
+                    blockVar->type = BlockVariableTypeUnknown;
+                    block->args.push_back(blockVar);
                 }
-                block->args.push_back(blockVar);
             }
         }
     }
     
-    
+    pthread_mutex_lock(&blockIndexMutex);
     rt->invoker2block[ctx->blockInvokerAddr] = block;
+    pthread_mutex_unlock(&blockIndexMutex);
 //    printf("[*] finish block with invoker addr 0x%llx\n", ctx->blockInvokerAddr);
 }
 
@@ -515,13 +505,13 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             uint64_t x0 = 0, x1 = 0;
             if (uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK &&
                 uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK) {
-                pthread_mutex_lock(&globalMutex);
+                pthread_mutex_lock(&traceRecordMutex);
 #ifdef DebugTrackCall
                 printf("[****] |--- 0x%llx\n", insn->address);
 #endif
                 // error at 0x00000001003b4884
                 trackCall(uc, ctx->currentMethod, x0, x1);
-                pthread_mutex_unlock(&globalMutex);
+                pthread_mutex_unlock(&traceRecordMutex);
             } else {
                 cout << termcolor::yellow;
                 cout << StringUtils::format("\t[+] failed to resolve objc_msgSend at 0x%llx\n", insn->address);
@@ -626,7 +616,7 @@ void* pthread_uc_worker(void *ctx) {
     return nullptr;
 }
 
-void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &methods, uint64_t cursor) {
+void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &methods) {
 #ifdef DebugMethod
     {
         vector<ObjcMethod *> m2;
@@ -656,7 +646,8 @@ void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &method
     pthread_mutexattr_t attr = {0};
     assert(pthread_mutexattr_init(&attr) == 0);
     pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE);
-    assert(pthread_mutex_init(&globalMutex, &attr) == 0);
+    assert(pthread_mutex_init(&traceRecordMutex, &attr) == 0);
+    assert(pthread_mutex_init(&blockIndexMutex, &attr) == 0);
     assert(pthread_mutex_init(&counterMutex, &attr) == 0);
     assert(pthread_mutex_init(&indexMutex, &attr) == 0);
     
@@ -681,7 +672,6 @@ void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &method
     }
     
     printf("\n");
-    storeMethodChains();
 }
 
 uc_engine* createEngine(int identifier) {
@@ -855,6 +845,7 @@ int ObjcMethodXrefScanner::start() {
     });
     
     printf("  [*] Step 3. Create Common ClassInfo for subs and add to analysis list\n");
+    vector<ObjcMethod *> subMethods;
     // create common classInfo for subs
     ObjcClassRuntimeInfo *subClassInfo = new ObjcClassRuntimeInfo();
     subClassInfo->address = SubClassDummyAddress;
@@ -874,7 +865,7 @@ int ObjcMethodXrefScanner::start() {
             subMethod->isClassMethod = true;
             subMethod->imp = sxref.startAddr;
             subMethod->name = StringUtils::format("sub_0x%llx", sxref.startAddr);
-            methods.push_back(subMethod);
+            subMethods.push_back(subMethod);
         }
     }
     delete sxrefScanner;
@@ -921,9 +912,17 @@ int ObjcMethodXrefScanner::start() {
         return a->imp == b->imp;
     }), methods.end());
     
-    printf("  [*] Step 5. track all calls\n");
-    trace_all_methods(engines, methods, 0);
+    subMethods.erase(unique(subMethods.begin(), subMethods.end(), [](ObjcMethod *a, ObjcMethod *b) {
+        return a->imp == b->imp;
+    }), subMethods.end());
     
+    printf("  [*] Step 5. track all objc calls\n");
+    trace_all_methods(engines, methods);
+    
+    printf("  [*] Step 6. track all sub calls\n");
+    trace_all_methods(engines, subMethods);
+    
+    storeMethodChains();
     if (antiWrapperScanner) {
         delete antiWrapperScanner;
     }
@@ -1141,7 +1140,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
 }
 
 static void storeMethodChains() {
-    printf("  [*] Step 6. serialize call chains to file\n");
+    printf("  [*] Step 7. serialize call chains to file\n");
     if (ObjcMethodChainSerializationManager::storeMethodChain(recordPath, sel2chain)) {
         printf("\t[*] saved to %s\n", recordPath.c_str());
     } else {
