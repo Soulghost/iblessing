@@ -216,6 +216,44 @@ static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
 //    printf("[*] finish block with invoker addr 0x%llx\n", ctx->blockInvokerAddr);
 }
 
+static void captureBlockElement(cs_insn *lastInsn, EngineContext *ctx, uint64_t xn) {
+    uc_engine *uc = ctx->engine;
+    cs_arm64 detail = lastInsn->detail->arm64;
+    cs_arm64_op op = detail.operands[1];
+    if (op.type == ARM64_OP_MEM) {
+        arm64_reg base = op.mem.base;
+        int32_t disp = op.mem.disp;
+        uint64_t sp = 0;
+        if (base == ARM64_REG_SP &&
+            UC_ERR_OK == uc_reg_read(ctx->engine, UC_ARM64_REG_SP, &sp)) {
+            uint64_t targetAddr = sp + disp;
+            if (targetAddr == ctx->blockIsaAddr + 0x8) {
+                printf("\t[~] find block flags at 0x%llx, value 0x%llx\n", targetAddr, xn);
+                uc_mem_read(uc, targetAddr, &ctx->blockFlags, 4);
+                ctx->blockValidElementCount++;
+            } else if (targetAddr == ctx->blockIsaAddr + 0xc) {
+                printf("\t[~] find block reserved at 0x%llx, value 0x%llx\n", targetAddr, xn);
+                ctx->blockValidElementCount++;
+            } else if (targetAddr == ctx->blockIsaAddr + 0x10) {
+                printf("\t[~] find block invoker at 0x%llx, value 0x%llx\n", targetAddr, xn);
+                uc_mem_read(uc, targetAddr, &ctx->blockInvokerAddr, 8);
+                ctx->blockValidElementCount++;
+            } else if (targetAddr == ctx->blockIsaAddr + 0x18) {
+                printf("\t[~] find block desc at 0x%llx, value 0x%llx\n", targetAddr, xn);
+                uc_mem_read(uc, targetAddr, &ctx->blockDescAddr, 8);
+                ctx->blockValidElementCount++;
+            } else if (targetAddr >= ctx->blockIsaAddr + 0x20) {
+                printf("\t[~] may find capture var at 0x%llx, value 0x%llx\n", targetAddr, xn);
+                ctx->blockValidElementCount++;
+                // FIXME: trick capture size 0x8
+                if (ctx->blockSize < 0x1000) {
+                    ctx->blockSize += 0x8;
+                }
+            }
+        }
+    }
+}
+
 static void startBlockSession(EngineContext *ctx, uc_engine *uc, cs_insn *insn) {
     if (ctx->isInBlockBuilder) {
         finishBlockSession(ctx, uc);
@@ -326,39 +364,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                 if (rt->blockISAs.find(xn) != rt->blockISAs.end()) {
                     startBlockSession(ctx, uc, ctx->lastInsn);
                 } else if (ctx->isInBlockBuilder) {
-                    cs_arm64_op op = detail.operands[1];
-                    if (op.type == ARM64_OP_MEM) {
-                        arm64_reg base = op.mem.base;
-                        int32_t disp = op.mem.disp;
-                        uint64_t sp = 0;
-                        if (base == ARM64_REG_SP &&
-                            UC_ERR_OK == uc_reg_read(ctx->engine, UC_ARM64_REG_SP, &sp)) {
-                            uint64_t targetAddr = sp + disp;
-                            if (targetAddr == ctx->blockIsaAddr + 0x8) {
-//                                    printf("\t[~] find block flags at 0x%llx, value 0x%llx\n", targetAddr, xn);
-                                uc_mem_read(uc, targetAddr, &ctx->blockFlags, 4);
-                                ctx->blockValidElementCount++;
-                            } else if (targetAddr == ctx->blockIsaAddr + 0xc) {
-//                                    printf("\t[~] find block reserved at 0x%llx, value 0x%llx\n", targetAddr, xn);
-                                ctx->blockValidElementCount++;
-                            } else if (targetAddr == ctx->blockIsaAddr + 0x10) {
-//                                    printf("\t[~] find block invoker at 0x%llx, value 0x%llx\n", targetAddr, xn);
-                                uc_mem_read(uc, targetAddr, &ctx->blockInvokerAddr, 8);
-                                ctx->blockValidElementCount++;
-                            } else if (targetAddr == ctx->blockIsaAddr + 0x18) {
-//                                    printf("\t[~] find block desc at 0x%llx, value 0x%llx\n", targetAddr, xn);
-                                uc_mem_read(uc, targetAddr, &ctx->blockDescAddr, 8);
-                                ctx->blockValidElementCount++;
-                            } else if (targetAddr >= ctx->blockIsaAddr + 0x20) {
-//                                    printf("\t[~] may find capture var at 0x%llx, value 0x%llx\n", targetAddr, xn);
-                                ctx->blockValidElementCount++;
-                                // FIXME: trick capture size 0x8
-                                if (ctx->blockSize < 0x1000) {
-                                    ctx->blockSize += 0x8;
-                                }
-                            }
-                        }
-                    }
+                    captureBlockElement(ctx->lastInsn, ctx, xn);
                 }
             }
         }
