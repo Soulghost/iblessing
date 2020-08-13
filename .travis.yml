@@ -25,7 +25,7 @@ before_deploy:
 deploy:
   provider: releases
   prerelease: true
-  api_key: ${deploy_token}
+  api_key: $deploy_token
   file: cmake-build/iblessing
   skip_cleanup: true
   on:
