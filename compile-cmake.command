@@ -17,7 +17,20 @@ cp submodules/unicorn/libunicorn.a   iblessing/iblessing/vendor/libs/
 
 mkdir -p cmake-build
 cd cmake-build
-cmake --clean-first -Diblessing.PLATFORM=linux ../iblessing 
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    cmake --clean-first -Diblessing.PLATFORM=macos ../iblessing 
+else
+    cmake --clean-first -Diblessing.PLATFORM=linux ../iblessing 
+fi
+
 cmake --build .
+
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    mv iblessing iblessing-darwin
+else
+    mv iblessing iblessing-linux
+fi
+
 cd ..
 echo "[+] iblessing is in cmake-build directory~"
