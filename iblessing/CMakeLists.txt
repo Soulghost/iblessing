@@ -165,6 +165,7 @@ set(iblessing.SOURCE_LIST
     iblessing/generator/ObjcMsgXREFServerGenerator.cpp
     iblessing/generator/ObjcMsgXREFStatisticsGenerator.cpp
     iblessing/generator/ObjcMsgXREFReportGenerator.cpp
+    iblessing/generator/IDASymbolicScriptGenerator.cpp
 
     # serialization
     iblessing/serialization/ObjcMethodChainSerializationManager.cpp

@@ -16,6 +16,7 @@
 #include "ObjcMsgXREFStatisticsGenerator.hpp"
 #include "IDASymbolWrapperNamingScriptGenerator.hpp"
 #include "ObjcMsgXREFReportGenerator.hpp"
+#include "IDASymbolicScriptGenerator.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -44,6 +45,10 @@ GeneratorDispatcher::GeneratorDispatcher() {
     
     registerGenerator("ida-symbol-wrapper-naming", []() {
         return new IDASymbolWrapperNamingScriptGenerator("ida-symbol-wrapper-naming", "generate ida symbol naming and prototype changing script from symbol-wrapper's report");
+    });
+    
+    registerGenerator("ida-symbolic", []() {
+        return new IDASymbolicScriptGenerator("ida-symbolic", "generate ida symbolic script from symbol table file");
     });
 }
 
