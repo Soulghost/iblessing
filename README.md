@@ -7,6 +7,7 @@
            ╚═╝╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝
 
 [![Build Status](https://travis-ci.org/aquynh/capstone.svg?branch=master)](https://travis-ci.org/Soulghost/iblessing)
+[![Releases](https://img.shields.io/github/v/release/Soulghost/iblessing?include_prereleases)](https://github.com/Soulghost/iblessing/releases)
 
 # iblessing
 - `iblessing` is an iOS security exploiting toolkit, it mainly includes **application information collection**, **static analysis** and **dynamic analysis**.
