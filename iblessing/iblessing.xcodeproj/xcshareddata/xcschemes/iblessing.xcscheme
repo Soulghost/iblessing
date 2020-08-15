@@ -65,23 +65,23 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "scan"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "generator"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-i"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "symbol-xref"
-            isEnabled = "NO">
+            argument = "ida-symbolic"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref-json"
@@ -92,7 +92,7 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
+            argument = "/Users/soulghost/Desktop/git/kernel-research/iPhoneX-1331-A1865/jtool2-dump/kernelcache.dec.ARM64.AC70456F-FC1C-38A5-9973-33E39EE34E58"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -109,15 +109,15 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "&apos;delimiter=|;addrIdx=0;nameIdx=1&apos;"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "&apos;symbols=_objc_msgSend&apos;"
-            isEnabled = "NO">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "&apos;unprintable=1&apos;"
-            isEnabled = "NO">
+            argument = "&apos;mode=jtool2&apos;"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;diff=/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug/new1/Chrome_method-xrefs.iblessing.txt&apos;"
