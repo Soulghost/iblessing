@@ -10,18 +10,20 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/setup-node@v2
       with:
         submodules: true
     - name: cmake
-      run: ./compile-cmake.sh
+    - run: ./compile-cmake.sh
+    - run: ./run-test.sh
   
   build-macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@master
+    - uses: actions/setup-node@v2
       with:
         submodules: true
     - name: cmake
-      run: ./compile-cmake.sh
+    - run: ./compile-cmake.sh
+    - run: ./run-test.sh
 
