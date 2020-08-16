@@ -69,6 +69,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "generator"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "test"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -77,11 +81,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "ida-symbolic"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref-json"
@@ -92,7 +96,7 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/soulghost/Desktop/git/kernel-research/iPhoneX-1331-A1865/jtool2-dump/kernelcache.dec.ARM64.AC70456F-FC1C-38A5-9973-33E39EE34E58"
+            argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
