@@ -10,18 +10,18 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2.3.2
+    - uses: actions/checkout@master
       with:
         submodules: true
     - name: cmake
-    - run: ./compile-cmake.sh
+      run: ./compile-cmake.sh && ./run-test.sh
   
   build-macos:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2.3.2
+    - uses: actions/checkout@master
       with:
         submodules: true
     - name: cmake
-    - run: ./compile-cmake.sh
+      run: ./compile-cmake.sh && ./run-test.sh
 
