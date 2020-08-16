@@ -100,6 +100,9 @@ set(iblessing.SOURCE_INCLUDES
 
     # domain
     iblessing/domain
+
+    # tests
+    iblessing/tests
 )
 
 if (iblessing.CSR_ENABLED)
@@ -177,6 +180,11 @@ set(iblessing.SOURCE_LIST
 
     # domain
     iblessing/domain/ObjcMethodChain.cpp
+
+    # test
+    iblessing/tests/Tester.cpp
+    iblessing/tests/TestManager.cpp
+    iblessing/tests/TestObjcMethodXrefs.cpp
 )
 
 if (iblessing.CSR_ENABLED)

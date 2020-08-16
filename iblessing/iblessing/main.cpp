@@ -12,6 +12,7 @@
 #include "termcolor.h"
 #include "ScannerDispatcher.hpp"
 #include "GeneratorDispatcher.hpp"
+#include "TestManager.hpp"
 
 #ifdef IB_CSR_ENABLED
 #include "csrutil.hpp"
@@ -50,13 +51,14 @@ int main(int argc, const char *argv[]) {
     parser.add_argument()
     .names({"-m", "--mode"})
     .description("mode selection:\n\
-                                * scan: use scanner\n\
-                                * generator: use generator");
+                                * scan:      use scanner\n\
+                                * generator: use generator\n\
+                                * test:      test iblessing");
     
     parser.add_argument()
     .names({"-i", "--identifier"})
     .description("choose module by identifier:\n\
-                                * <scanner-id>: use specific scanner\n\
+                                * <scanner-id>:   use specific scanner\n\
                                 * <generator-id>: use specific generator");
     
     parser.add_argument()
@@ -234,6 +236,18 @@ int main(int argc, const char *argv[]) {
         int ret = dispatcher->start(scannerId, options, filePath, outputFilePath);
         delete dispatcher;
         return ret;
+    } else if (mode == "test") {
+        printf("[*] test mode\n");
+        bool success = TestManager::testAll();
+        if (success) {
+            cout << termcolor::green << "[+] All tests passed";
+            cout << termcolor::reset << endl;
+            return 0;
+        } else {
+            cout << termcolor::red << "[-] Error: some tests failed";
+            cout << termcolor::reset << endl;
+            return 1;
+        }
     } else {
         cout << termcolor::red;
         cout << "[-] error: unresolved mode: " << mode;

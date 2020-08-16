@@ -62,6 +62,9 @@
 		68A028C324DE80AB00077CE0 /* ScannerContext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028C124DE80AB00077CE0 /* ScannerContext.cpp */; };
 		68A028CB24DE897F00077CE0 /* ScannerDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028C924DE897F00077CE0 /* ScannerDispatcher.cpp */; };
 		68A028D624DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028D424DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp */; };
+		68BE8A8724E904AF00A534DB /* TestManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8524E904AF00A534DB /* TestManager.cpp */; };
+		68BE8A8A24E9052200A534DB /* Tester.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8824E9052200A534DB /* Tester.cpp */; };
+		68BE8A8D24E9056900A534DB /* TestObjcMethodXrefs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8B24E9056900A534DB /* TestObjcMethodXrefs.cpp */; };
 		68C362FA24C9C9D100441950 /* libSystem.B.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 68C362F924C9C9D000441950 /* libSystem.B.tbd */; };
 		68C3630024C9CA7200441950 /* csrutil.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68C362FE24C9CA7200441950 /* csrutil.cpp */; };
 		68D755D724C714E00057E092 /* libunicorn.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D755D624C714E00057E092 /* libunicorn.a */; };
@@ -227,6 +230,13 @@
 		68A028CA24DE897F00077CE0 /* ScannerDispatcher.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScannerDispatcher.hpp; sourceTree = "<group>"; };
 		68A028D424DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScannerDisassemblyDriver.cpp; sourceTree = "<group>"; };
 		68A028D524DE8F5400077CE0 /* ScannerDisassemblyDriver.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScannerDisassemblyDriver.hpp; sourceTree = "<group>"; };
+		68BE8A8524E904AF00A534DB /* TestManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TestManager.cpp; sourceTree = "<group>"; };
+		68BE8A8624E904AF00A534DB /* TestManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestManager.hpp; sourceTree = "<group>"; };
+		68BE8A8824E9052200A534DB /* Tester.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Tester.cpp; sourceTree = "<group>"; };
+		68BE8A8924E9052200A534DB /* Tester.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = Tester.hpp; sourceTree = "<group>"; };
+		68BE8A8B24E9056900A534DB /* TestObjcMethodXrefs.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TestObjcMethodXrefs.cpp; sourceTree = "<group>"; };
+		68BE8A8C24E9056900A534DB /* TestObjcMethodXrefs.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestObjcMethodXrefs.hpp; sourceTree = "<group>"; };
+		68BE8A9124E91B4A00A534DB /* iblessing-sample.benchmark */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.executable"; path = "iblessing-sample.benchmark"; sourceTree = "<group>"; };
 		68C362F924C9C9D000441950 /* libSystem.B.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem.B.tbd; path = usr/lib/libSystem.B.tbd; sourceTree = SDKROOT; };
 		68C362FD24C9CA4500441950 /* csr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = csr.h; sourceTree = "<group>"; };
 		68C362FE24C9CA7200441950 /* csrutil.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = csrutil.cpp; sourceTree = "<group>"; };
@@ -333,6 +343,7 @@
 		685CE7D124C55309002CC5E8 /* iblessing */ = {
 			isa = PBXGroup;
 			children = (
+				68BE8A8124E8F15A00A534DB /* tests */,
 				6800875E24CAD5D100853E04 /* iblessing.entitlements */,
 				68C362FB24C9CA2E00441950 /* platform */,
 				685CE88C24C68904002CC5E8 /* serialization */,
@@ -746,6 +757,28 @@
 			path = driver;
 			sourceTree = "<group>";
 		};
+		68BE8A8124E8F15A00A534DB /* tests */ = {
+			isa = PBXGroup;
+			children = (
+				68BE8A8E24E91AD900A534DB /* benchmark */,
+				68BE8A8624E904AF00A534DB /* TestManager.hpp */,
+				68BE8A8524E904AF00A534DB /* TestManager.cpp */,
+				68BE8A8924E9052200A534DB /* Tester.hpp */,
+				68BE8A8824E9052200A534DB /* Tester.cpp */,
+				68BE8A8C24E9056900A534DB /* TestObjcMethodXrefs.hpp */,
+				68BE8A8B24E9056900A534DB /* TestObjcMethodXrefs.cpp */,
+			);
+			path = tests;
+			sourceTree = "<group>";
+		};
+		68BE8A8E24E91AD900A534DB /* benchmark */ = {
+			isa = PBXGroup;
+			children = (
+				68BE8A9124E91B4A00A534DB /* iblessing-sample.benchmark */,
+			);
+			path = benchmark;
+			sourceTree = "<group>";
+		};
 		68C362FB24C9CA2E00441950 /* platform */ = {
 			isa = PBXGroup;
 			children = (
@@ -928,6 +961,7 @@
 				685CE80D24C57079002CC5E8 /* VirtualMemoryV2.cpp in Sources */,
 				685CE81424C57079002CC5E8 /* ObjcMethod.cpp in Sources */,
 				68A028C324DE80AB00077CE0 /* ScannerContext.cpp in Sources */,
+				68BE8A8D24E9056900A534DB /* TestObjcMethodXrefs.cpp in Sources */,
 				685CE80C24C57079002CC5E8 /* VirtualMemory.cpp in Sources */,
 				6829633524D2838500EF9251 /* IDASymbolWrapperNamingScriptGenerator.cpp in Sources */,
 				685CE80B24C57079002CC5E8 /* SymbolTable.cpp in Sources */,
@@ -935,6 +969,8 @@
 				6829631D24D0460500EF9251 /* FunctionPrototype.cpp in Sources */,
 				685CE81124C57079002CC5E8 /* DyldSimulator.cpp in Sources */,
 				68A028CB24DE897F00077CE0 /* ScannerDispatcher.cpp in Sources */,
+				68BE8A8724E904AF00A534DB /* TestManager.cpp in Sources */,
+				68BE8A8A24E9052200A534DB /* Tester.cpp in Sources */,
 				685CE85C24C57360002CC5E8 /* GeneratorDispatcher.cpp in Sources */,
 				68770C9424E1130A003F9652 /* AppInfoScanner.mm in Sources */,
 				685CE85B24C57360002CC5E8 /* Generator.cpp in Sources */,
