@@ -52,6 +52,7 @@
 		685CE85C24C57360002CC5E8 /* GeneratorDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE85724C57360002CC5E8 /* GeneratorDispatcher.cpp */; };
 		685CE85D24C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE85824C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp */; };
 		685CE88F24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE88D24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp */; };
+		6861982A24E9645D003AB00A /* ObjcUnserializationScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6861982824E9645D003AB00A /* ObjcUnserializationScanner.cpp */; };
 		6866173B24DFF93A00C4FBB3 /* mach-universal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6866173924DFF93A00C4FBB3 /* mach-universal.cpp */; };
 		6866173F24E51CA300C4FBB3 /* CoreFoundation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6866173D24E51CA300C4FBB3 /* CoreFoundation.cpp */; };
 		68770C7124DAD45C003F9652 /* ObjcBlock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68770C6F24DAD45C003F9652 /* ObjcBlock.cpp */; };
@@ -209,6 +210,8 @@
 		685CE88824C57390002CC5E8 /* stdint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = stdint.h; sourceTree = "<group>"; };
 		685CE88D24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMethodChainSerializationManager.cpp; sourceTree = "<group>"; };
 		685CE88E24C68933002CC5E8 /* ObjcMethodChainSerializationManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMethodChainSerializationManager.hpp; sourceTree = "<group>"; };
+		6861982824E9645D003AB00A /* ObjcUnserializationScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcUnserializationScanner.cpp; sourceTree = "<group>"; };
+		6861982924E9645D003AB00A /* ObjcUnserializationScanner.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcUnserializationScanner.hpp; sourceTree = "<group>"; };
 		6866173924DFF93A00C4FBB3 /* mach-universal.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "mach-universal.cpp"; sourceTree = "<group>"; };
 		6866173A24DFF93A00C4FBB3 /* mach-universal.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "mach-universal.hpp"; sourceTree = "<group>"; };
 		6866173D24E51CA300C4FBB3 /* CoreFoundation.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = CoreFoundation.cpp; sourceTree = "<group>"; };
@@ -560,6 +563,8 @@
 				68770C8F24E1118D003F9652 /* CocoaAppInfoScanner.cpp */,
 				68770C9324E1130A003F9652 /* AppInfoScanner.hpp */,
 				68770C9224E1130A003F9652 /* AppInfoScanner.mm */,
+				6861982924E9645D003AB00A /* ObjcUnserializationScanner.hpp */,
+				6861982824E9645D003AB00A /* ObjcUnserializationScanner.cpp */,
 			);
 			path = scanner;
 			sourceTree = "<group>";
@@ -950,6 +955,7 @@
 				68770C9124E1118D003F9652 /* CocoaAppInfoScanner.cpp in Sources */,
 				685CE85324C57309002CC5E8 /* ObjcMethodChain.cpp in Sources */,
 				685CE84824C572A0002CC5E8 /* Scanner.cpp in Sources */,
+				6861982A24E9645D003AB00A /* ObjcUnserializationScanner.cpp in Sources */,
 				685CE7DB24C56E8B002CC5E8 /* main.cpp in Sources */,
 				68770C9C24E17212003F9652 /* ObjcMsgXREFReportGenerator.cpp in Sources */,
 				685CE84F24C572D4002CC5E8 /* AntiWrapper.cpp in Sources */,
