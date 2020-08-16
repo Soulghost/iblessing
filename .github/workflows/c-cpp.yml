@@ -14,7 +14,7 @@ jobs:
       with:
         submodules: true
     - name: cmake
-      run: ./compile-cmake.sh && ./run-test.sh
+      run: ./compile-cmake.sh
   
   build-macos:
     runs-on: macos-latest
