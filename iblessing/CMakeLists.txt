@@ -159,6 +159,7 @@ set(iblessing.SOURCE_LIST
     iblessing/scanner/SymbolXREFScanner.cpp
     iblessing/scanner/SymbolWrapperScanner.cpp
     iblessing/scanner/PredicateScanner.cpp
+    iblessing/scanner/ObjcUnserializationScanner.cpp
 
     # generator
     iblessing/generator/Generator.cpp
