@@ -163,7 +163,7 @@ int ObjcUnserializationScanner::start() {
     xrefPrinter("NSKeyedUnarchiver", unarchiverXrefs);
     xrefPrinter("UIPasteboard", pasteboardXrefs);
     
-    printf("  [*] Step 5. find insecurity unarchive exploits\n");
+    printf("  [*] Step 5. find insecure unarchive exploits\n");
     bool findAttackSurface = false;
     for (uint64_t xref : unarchiverXrefs) {
         Symbol *symbol = symtab->getSymbolNearByAddress(xref);
@@ -243,11 +243,11 @@ int ObjcUnserializationScanner::start() {
                 cout << "\t[+] NSKeyedUnarchiver ref ";
                 cout << termcolor::green << symbol->name << termcolor::reset;
                 cout << StringUtils::format(" at 0x%llx ", xref);
-                cout << termcolor::yellow << "may have insecurity unserialization risks";
+                cout << termcolor::yellow << "may have insecure unserialization risks";
                 cout << termcolor::reset << endl;
             } else {
                 printf("\t[+] NSKeyedUnarchiver ref at 0x%llx, ", xref);
-                cout << termcolor::yellow << "may have insecurity unserialization risks";
+                cout << termcolor::yellow << "may have insecure unserialization risks";
                 cout << termcolor::reset << endl;
             }
         }

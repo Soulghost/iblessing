@@ -117,7 +117,7 @@ int ObjcClassXrefScanner::start() {
         }
         
         if (!success) {
-#if 1
+#if 0
             cout << "\t[-]" << termcolor::yellow;
             cout << StringUtils::format(" an error occurred when disassemble at address 0x%llx", insn->address);
             cout << termcolor::reset << endl;

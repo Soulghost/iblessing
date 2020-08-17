@@ -26,6 +26,7 @@
 #include "ObjcClassXrefScanner.hpp"
 #include "SymbolWrapperScanner.hpp"
 #include "SymbolXREFScanner.hpp"
+#include "ObjcUnserializationScanner.hpp"
 
 #ifdef IB_COCOA_FOUNDATION_ENABLED
 #include "AppInfoScanner.hpp"
@@ -64,6 +65,10 @@ ScannerDispatcher::ScannerDispatcher() {
     
     this->registerScanner("symbol-xref", []() {
         return new SymbolXREFScanner("symbol-xref", "symbol xref scanner");
+    });
+    
+    this->registerScanner("objc-insecure-unserialization", []() {
+        return new ObjcUnserializationScanner("objc-insecure-unserialization", "objc insecure unserialization scanner");
     });
 }
 
