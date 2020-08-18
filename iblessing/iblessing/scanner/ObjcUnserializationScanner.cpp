@@ -14,6 +14,7 @@
 #include "ARM64Runtime.hpp"
 #include "ARM64ThreadState.hpp"
 #include "VirtualMemory.hpp"
+#include "VirtualMemoryV2.hpp"
 #include "SymbolTable.hpp"
 #include "StringUtils.h"
 #include <set>
@@ -165,15 +166,22 @@ int ObjcUnserializationScanner::start() {
     
     printf("  [*] Step 5. find insecure unarchive exploits\n");
     bool findAttackSurface = false;
+    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     for (uint64_t xref : unarchiverXrefs) {
         Symbol *symbol = symtab->getSymbolNearByAddress(xref);
+#if 0
         if (!symbol) {
+            printf("no symbol for xref 0x%llx\n", xref);
             continue;
+        } else {
+            printf("find symbol %s for xref 0x%llx\n", symbol->name.c_str(), xref);
         }
+#endif
         ARM64Disassembler *disasm = new ARM64Disassembler();
         // search at predicate_ref +-
-        uint64_t searchRange = 0x4 * 30;
-        uint64_t lower = std::max(symbol->info->n_value, xref - searchRange);
+        uint64_t searchRange = sizeof(uint32_t) * 30;
+        uint64_t symbolAddr = symbol->info->n_value;
+        uint64_t lower = std::max(symbolAddr, xref - searchRange);
         uint64_t upper = xref + searchRange;
         uint8_t *codeData = vm->mappedFile + lower - vm->vmaddr_base;
         std::string last_mnemonic = "";
@@ -188,8 +196,8 @@ int ObjcUnserializationScanner::start() {
                 return;
             }
             
-            // FIXME: return by branch to objc_release, autorelease, etc.
-            if (strcmp(insn->mnemonic, "ret") == 0) {
+            // detect return
+            if (ARM64Runtime::isRET(insn)) {
                 *stop = true;
                 return;
             }
@@ -219,8 +227,8 @@ int ObjcUnserializationScanner::start() {
                 if (success) {
                     ARM64RegisterX *dst = dynamic_cast<ARM64RegisterX *>(state->getRegisterFromOprand(insn->detail->arm64.operands[0]));
                     if (dst && dst->available) {
-                        char *maybeSEL = vm->readAsString(dst->getValue(), 0);
-                        if (vm->isValidAddress((uint64_t)maybeSEL)) {
+                        char *maybeSEL = vm2->readString(dst->getValue(), 1000);
+                        if (maybeSEL) {
                             if (strcmp("unarchiveObjectWithData:", maybeSEL) == 0 ||
                                 strcmp("unarchiveTopLevelObjectWithData:error:", maybeSEL) == 0 ||
                                 strcmp("unarchiveObjectWithFile:", maybeSEL) == 0) {
