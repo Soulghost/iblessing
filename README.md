@@ -37,9 +37,6 @@
 - [ ] Cross-platform
 
 # Support 
-***unicorn may crash (segment fault or bus error) on some computers, I am trying to solve this problem.***
-***If you encounter any problems, you can contact me, thank you***
-
 In case you need support regarding iblessing or anything associated with it, you can:
 - create an issue and provide necessary information
 - contact [Sou1gh0st](https://twitter.com/Sou1gh0st) on Twitter 
