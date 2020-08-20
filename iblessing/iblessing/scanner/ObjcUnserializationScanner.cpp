@@ -133,10 +133,17 @@ int ObjcUnserializationScanner::start() {
             }
         }
         last_mnemonic = insn->mnemonic;
-#if 1
+#ifndef XcodeDebug
         float progress = 100.0 * (insn->address - startAddr) / addrRange;
         fprintf(stdout, "\r\t[*] %c 0x%llx/0x%llx (%.2f%%)", progressChars[progressCur], insn->address, endAddr, progress);
         fflush(stdout);
+        progressCur = (++progressCur) % sizeof(progressChars);
+#else
+        float progress = 100.0 * (insn->address - startAddr) / addrRange;
+        if (startAddr % 10000 == 0) {
+            fprintf(stdout, "\r\t[*] %c 0x%llx/0x%llx (%.2f%%)", progressChars[progressCur], insn->address, endAddr, progress);
+            fflush(stdout);
+        }
         progressCur = (++progressCur) % sizeof(progressChars);
 #endif
     });
@@ -169,14 +176,9 @@ int ObjcUnserializationScanner::start() {
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     for (uint64_t xref : unarchiverXrefs) {
         Symbol *symbol = symtab->getSymbolNearByAddress(xref);
-#if 0
-        if (!symbol) {
-            printf("no symbol for xref 0x%llx\n", xref);
+        if (!symbol || !symbol->info) {
             continue;
-        } else {
-            printf("find symbol %s for xref 0x%llx\n", symbol->name.c_str(), xref);
         }
-#endif
         ARM64Disassembler *disasm = new ARM64Disassembler();
         // search at predicate_ref +-
         uint64_t searchRange = sizeof(uint32_t) * 30;
