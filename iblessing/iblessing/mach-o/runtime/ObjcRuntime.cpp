@@ -28,10 +28,14 @@ ObjcRuntime* ObjcRuntime::getInstance() {
     return ObjcRuntime::_instance;
 }
 
-ObjcClassRuntimeInfo* ObjcRuntime::getClassInfoByAddress(uint64_t address) {
+ObjcClassRuntimeInfo* ObjcRuntime::getClassInfoByAddress(uint64_t address, bool needRealize) {
     // check address
     if (address2RuntimeInfo.find(address) != address2RuntimeInfo.end()) {
         return address2RuntimeInfo[address];
+    }
+    
+    if (!needRealize) {
+        return nullptr;
     }
     
     ObjcClassRuntimeInfo *info = ObjcClassRuntimeInfo::realizeFromAddress(address);

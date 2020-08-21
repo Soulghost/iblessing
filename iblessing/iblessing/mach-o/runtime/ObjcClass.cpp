@@ -44,6 +44,7 @@ if (!memOK) { \
 
 ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address) {
     // FIXME: external class realize
+    // FIXME: unsafe when address is invalid
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     ObjcClassRuntimeInfo *info = new ObjcClassRuntimeInfo();
     info->address = address;
