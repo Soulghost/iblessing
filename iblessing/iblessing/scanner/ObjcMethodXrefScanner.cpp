@@ -437,7 +437,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                 bool success = false;
                 uint64_t classData = vm2->read64(x0, &success);
                 if (success && classData) {
-                    ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(x0);
+                    ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(x0, false);
                     if (classInfo) {
                         uint64_t encodedAddr = classInfo->address | HeapInstanceTrickMask;
                         pthread_mutex_lock(&indexMutex);
