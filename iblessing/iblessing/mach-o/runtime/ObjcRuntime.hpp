@@ -33,7 +33,7 @@ public:
     std::unordered_map<uint64_t, ObjcBlock *> invoker2block;
     
     static ObjcRuntime* getInstance();
-    ObjcClassRuntimeInfo* getClassInfoByAddress(uint64_t address);
+    ObjcClassRuntimeInfo* getClassInfoByAddress(uint64_t address, bool needRealize = true);
     ObjcClassRuntimeInfo* evalReturnForIvarGetter(ObjcClassRuntimeInfo *targetClass, std::string getterSEL);
     void loadClassList(uint64_t vmaddr, uint64_t size);
     uint64_t getClassAddrByName(std::string className);

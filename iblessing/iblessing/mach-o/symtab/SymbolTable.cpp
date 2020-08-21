@@ -182,6 +182,15 @@ Symbol* SymbolTable::getSymbolByName(std::string name) {
 }
 
 void SymbolTable::insertSymbol(Symbol *symbol) {
-    symbolMap.insert(symbol->info->n_value, symbol);
-    name2symbol[symbol->name].pushBack(symbol);
+    if (symbol == nullptr) {
+        return;
+    }
+    
+    if (symbol->info != nullptr && symbol->info->n_value != 0) {
+        symbolMap.insert(symbol->info->n_value, symbol);
+    }
+    
+    if (symbol->name.length() > 0) {
+        name2symbol[symbol->name].pushBack(symbol);
+    }
 }
