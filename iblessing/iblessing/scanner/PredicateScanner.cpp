@@ -14,6 +14,7 @@
 #include "ARM64Runtime.hpp"
 #include "ARM64ThreadState.hpp"
 #include "VirtualMemory.hpp"
+#include "VirtualMemoryV2.hpp"
 #include "SymbolTable.hpp"
 #include "StringUtils.h"
 #include <set>
@@ -151,9 +152,10 @@ int PredicateScanner::start() {
     
     printf("  [*] Step 5. find sql injection exploits\n");
     bool findAttackSurface = false;
+    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     for (uint64_t predicate_ref : predicate_refs) {
         Symbol *symbol = symtab->getSymbolNearByAddress(predicate_ref);
-        if (!symbol) {
+        if (!symbol || !symbol->info) {
             continue;
         }
         ARM64Disassembler *disasm = new ARM64Disassembler();
@@ -205,8 +207,8 @@ int PredicateScanner::start() {
                 if (success) {
                     ARM64RegisterX *dst = dynamic_cast<ARM64RegisterX *>(state->getRegisterFromOprand(insn->detail->arm64.operands[0]));
                     if (dst && dst->available) {
-                        char *maybeSEL = vm->readAsString(dst->getValue(), 0);
-                        if (vm->isValidAddress((uint64_t)maybeSEL)) {
+                        char *maybeSEL = vm2->readString(dst->getValue(), 1000);
+                        if (maybeSEL) {
                             if (strcmp("stringWithFormat:", maybeSEL) == 0) {
                                 *stop = true;
                                 inDanger = true;
