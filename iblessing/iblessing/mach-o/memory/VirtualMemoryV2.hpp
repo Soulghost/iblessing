@@ -12,6 +12,7 @@
 #include "Foundation.hpp"
 #include "mach-universal.hpp"
 #include <unicorn/unicorn.h>
+#include <vector>
 
 NS_IB_BEGIN
 
