@@ -113,15 +113,10 @@ void SymbolTable::buildDynamicSymbolTable(std::vector<struct ib_section_64 *> se
                 cout << termcolor::red;
                 cout << "Error: symbol index out of bound, check if buildSymbolTable has been executed";
                 cout << termcolor::reset << endl;
-//                exit(1);
                 continue;
             }
             
             lazySymbol->name = symbolTable.at(symIdx).first;
-            if (lazySymbol->name == "_objc_opt_class") {
-                
-            }
-            
             lazySymbol->info = symbolTable.at(symIdx).second;
             symbolMap.insert(pointerAddr, lazySymbol);
             name2symbol[lazySymbol->name].pushBack(lazySymbol);

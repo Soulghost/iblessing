@@ -7,7 +7,7 @@
 //
 
 #include "ObjcRuntime.hpp"
-#include "VirtualMemory.hpp"
+#include "VirtualMemoryV2.hpp"
 #include "SymbolTable.hpp"
 #include "termcolor.h"
 #include "StringUtils.h"
@@ -55,7 +55,7 @@ bool ObjcRuntime::isValidClassInfo(ObjcClassRuntimeInfo *info) {
 }
 
 void ObjcRuntime::loadClassList(uint64_t vmaddr, uint64_t size) {
-    VirtualMemory *vm = VirtualMemory::progressDefault();
+    VirtualMemoryV2 *vm = VirtualMemoryV2::progressDefault();
     uint64_t *classAddrs = (uint64_t *)vm->readBySize(vmaddr, size);
     uint64_t count = size / sizeof(void *);
     classList.clear();

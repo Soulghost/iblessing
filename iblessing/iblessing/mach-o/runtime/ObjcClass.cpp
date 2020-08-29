@@ -7,7 +7,6 @@
 //
 
 #include "ObjcClass.hpp"
-#include "VirtualMemory.hpp"
 #include "SymbolTable.hpp"
 #include "termcolor.h"
 #include "StringUtils.h"
