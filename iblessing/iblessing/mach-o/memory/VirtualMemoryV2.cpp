@@ -10,7 +10,6 @@
 #include "VirtualMemory.hpp"
 #include "termcolor.h"
 #include "StringUtils.h"
-#include <vector>
 
 using namespace std;
 using namespace iblessing;
