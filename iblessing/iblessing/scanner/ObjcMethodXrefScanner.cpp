@@ -8,7 +8,6 @@
 
 #include "ObjcMethodXrefScanner.hpp"
 #include "ObjcRuntime.hpp"
-#include "VirtualMemory.hpp"
 #include "termcolor.h"
 #include "ARM64Runtime.hpp"
 #include "SymbolTable.hpp"
@@ -667,7 +666,6 @@ void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &method
 }
 
 uc_engine* createEngine(int identifier) {
-    VirtualMemory *vm = VirtualMemory::progressDefault();
     uc_engine *uc;
     uc_context *ctx;
     uc_err err = uc_open(UC_ARCH_ARM64, UC_MODE_ARM, &uc);
@@ -681,16 +679,7 @@ uc_engine* createEngine(int identifier) {
     uc_hook_add(uc, &mem_hook, UC_HOOK_MEM_VALID, (void *)mem_hook_callback, NULL, 1, 0);
     uc_hook_add(uc, &memexp_hook, UC_HOOK_MEM_INVALID, (void *)mem_exception_hook_callback, NULL, 1, 0);
     
-    // mapping 12GB memory region, first 4GB is PAGEZERO
-    // ALL       0x000000000 ~ 0x300000000
-    // PAGE_ZERO 0x000000000 ~ 0x100000000
-    // HEAP      0x100000000 ~ 0x300000000
-    // STACK     ?           ~ 0x300000000
-    uint64_t unicorn_vm_size = 12L * 1024 * 1024 * 1024;
-    uint64_t unicorn_vm_start = 0;
-    assert(uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size, UC_PROT_ALL) == UC_ERR_OK);
-    // FIXME: failed condition
-    assert(uc_mem_write(uc, vm->vmaddr_base, vm->mappedFile, vm->mappedSize) == UC_ERR_OK);
+    VirtualMemoryV2::progressDefault()->mappingMachOToEngine(uc, nullptr);
     
     // setup default thread state
     assert(uc_context_alloc(uc, &ctx) == UC_ERR_OK);
@@ -733,7 +722,6 @@ int ObjcMethodXrefScanner::start() {
     printf("  [*] Step 1. realize all app classes\n");
     ObjcRuntime *rt = ObjcRuntime::getInstance();
     SymbolTable *symtab = SymbolTable::getInstance();
-    VirtualMemory *vm = VirtualMemory::progressDefault();
     unordered_map<string, uint64_t> &classList = rt->classList;
     uint64_t count = 0, total = classList.size();
 #if TinyTest
@@ -812,11 +800,12 @@ int ObjcMethodXrefScanner::start() {
     }
     
     printf("    [*] Dispatching Disassembly Driver\n");
-    struct ib_section_64 *textSect = vm->textSect;
+    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+    struct ib_section_64 *textSect = vm2->getTextSect();
     uint64_t startAddr = textSect->addr;
     uint64_t endAddr = textSect->addr + textSect->size;
     uint64_t addrRange = endAddr - startAddr;
-    uint8_t *codeData = vm->mappedFile + textSect->offset;
+    uint8_t *codeData = vm2->getMappedFile() + textSect->offset;
     string last_mnemonic = "";
     char progressChars[] = {'\\', '|', '/', '-'};
     uint8_t progressCur = 0;
@@ -863,7 +852,7 @@ int ObjcMethodXrefScanner::start() {
     delete sxrefScanner;
     
     printf("  [*] Step 4. dyld load non-lazy symbols\n");
-    DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
+    DyldSimulator::eachBind(vm2->getMappedFile(), vm2->getSegmentHeaders(), vm2->getDyldInfo(), [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
         uint64_t symbolAddr = addr + addend;
         
         // load non-lazy symbols
@@ -896,7 +885,6 @@ int ObjcMethodXrefScanner::start() {
         nl->n_value = symbolAddr;
         sym->info = nl;
         symtab->insertSymbol(sym);
-//        vm->writeBySize(new uint64_t(symbolAddr), symbolAddr, 8, MemoryUnit::MemoryType::Common);
     });
     
     // remove dupliate elements
