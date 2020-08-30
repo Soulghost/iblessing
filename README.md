@@ -28,13 +28,15 @@
     - [x] objc_msgSend sub functions analysis
     - [x] objc block to objc_msgSend xrefs in args and capture list
     - [x] report format including json, etc.
-    
+    - [ ] following branches and calls
+    - [ ] SimProcedures for extern symbols
+
+- [x] Cross-platform
+- [x] Tests
 - [ ] Diagnostic logs
-- [ ] Tests
 - [ ] More flexible scanner infrastructure for new scanner plugins
 - [ ] Swift class and method parsing
 - [ ] More scanners and generators
-- [ ] Cross-platform
 
 # Support 
 In case you need support regarding iblessing or anything associated with it, you can:
