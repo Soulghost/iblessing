@@ -157,7 +157,7 @@ A generator is a component that performs secondary processing on the report gene
 
 ## Basic Usage
 ### Scan for AppInfos
-⚠️ Because some of the dependence on Cocoa has not been lifted (such as bplist parser), it is not currently available on Linux.
+⚠️ **Because some of the dependence on Cocoa has not been lifted (such as bplist parser), it is not currently available on Linux.**
 ```
 > iblessing -m scan -i app-info -f <path-to-app-bundle>
 ```
