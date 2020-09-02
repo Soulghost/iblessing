@@ -40,7 +40,7 @@ int ObjcMsgXREFStatisticsGenerator::start() {
         diffChains = loadMethodChains(diffPath);
         if (diffChains.empty()) {
             cout << termcolor::red;
-            cout << StringUtils::format("  [!] failed to parse file %s to diff chains\n", inputPath.c_str());
+            cout << StringUtils::format("  [!] failed to parse file %s to diff chains\n", diffPath.c_str());
             cout << termcolor::reset << endl;
             return 1;
         }
