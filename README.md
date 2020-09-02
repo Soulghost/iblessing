@@ -80,7 +80,7 @@ cd iblessing
 ## Shortcuts
 - [Basic Concepts](https://github.com/Soulghost/iblessing#basic-concepts)
 - Scanners
-  - [Scan for AppInfos](https://github.com/Soulghost/iblessing#scan-for-appinfos)
+  - [Scan for AppInfos](https://github.com/Soulghost/iblessing#scan-for-appinfos) ⚠️ Not currently available on Linux
   - [Scan for Class XREFs](https://github.com/Soulghost/iblessing#scan-for-class-xrefs)
   - [Scan for All objc_msgSend XREFs](https://github.com/Soulghost/iblessing#scan-for-all-objc_msgsend-xrefs)
   - :new: [Scan for Simple Symbol Wrappers](https://github.com/Soulghost/iblessing/blob/features/anti_wrapper/README.md#scan-for-symbol-wrappers)
@@ -157,6 +157,7 @@ A generator is a component that performs secondary processing on the report gene
 
 ## Basic Usage
 ### Scan for AppInfos
+⚠️ Because some of the dependence on Cocoa has not been lifted (such as bplist parser), it is not currently available on Linux.
 ```
 > iblessing -m scan -i app-info -f <path-to-app-bundle>
 ```
