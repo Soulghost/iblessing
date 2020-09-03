@@ -97,3 +97,36 @@ ObjcClassRuntimeInfo* ObjcRuntime::evalReturnForIvarGetter(ObjcClassRuntimeInfo 
     }
     return nullptr;
 }
+
+bool ObjcRuntime::isExistMethod(string methodPrefix, string classExpr, string detectedSEL) {
+    ObjcClassRuntimeInfo *classInfo = getClassInfoByName(classExpr);
+    if (!classInfo) {
+        // try external class
+        if (name2ExternalClassRuntimeInfo.find(classExpr) != name2ExternalClassRuntimeInfo.end()) {
+            return true;
+        }
+        return false;
+    }
+    
+    ObjcMethod *method = classInfo->getMethodBySEL(detectedSEL);
+    if (!method) {
+        return false;
+    }
+    
+    string validMethodPrefix = method->isClassMethod ? "+" : "-";
+    return validMethodPrefix == methodPrefix;
+}
+
+ObjcMethod* ObjcRuntime::inferNearestMethod(string methodPrefix, string classExpr, string detectedSEL) {
+    ObjcClassRuntimeInfo *classInfo = getClassInfoByName(classExpr);
+    if (!classInfo || classInfo->isExternal) {
+        return nullptr;
+    }
+    
+    ObjcMethod *method = classInfo->getMethodBySEL(detectedSEL);
+    if (!method || !method->classInfo) {
+        return nullptr;
+    }
+    
+    return method;
+}

@@ -872,6 +872,7 @@ int ObjcMethodXrefScanner::start() {
                 externalClassInfo->className = symbolName;
             }
             rt->externalClassRuntimeInfo[symbolAddr] = externalClassInfo;
+            rt->name2ExternalClassRuntimeInfo[externalClassInfo->className] = externalClassInfo;
             rt->runtimeInfo2address[externalClassInfo] = symbolAddr;
         } else if (strcmp(symbolName, "__NSConcreteGlobalBlock") == 0 ||
                    strcmp(symbolName, "__NSConcreteStackBlock") == 0) {
@@ -1037,7 +1038,18 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
         }
     }
     
-    // indexing
+    // validate class & sel or find similar one
+    if (!rt->isExistMethod(methodPrefix, classExpr, detectedSEL)) {
+        // try to infer one
+        ObjcMethod *inferredMethod = rt->inferNearestMethod(methodPrefix, classExpr, detectedSEL);
+        if (inferredMethod) {
+            methodPrefix = inferredMethod->isClassMethod ? "+" : "-";
+            classExpr = inferredMethod->classInfo->className;
+            detectedSEL = inferredMethod->name.c_str();
+        } else {
+//            printf("    [-] Warn: skip %s[%s %s]\n", methodPrefix, classExpr.c_str(), detectedSEL);
+        }
+    }
     
 #if 0
     // 1. [methods] <-> method <-> [methods]
