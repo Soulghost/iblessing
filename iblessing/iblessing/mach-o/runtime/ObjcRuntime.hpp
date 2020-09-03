@@ -24,6 +24,7 @@ public:
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> address2RuntimeInfo;
     std::unordered_map<ObjcClassRuntimeInfo *, uint64_t> runtimeInfo2address;
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> externalClassRuntimeInfo;
+    std::unordered_map<std::string, ObjcClassRuntimeInfo *> name2ExternalClassRuntimeInfo;
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> ivarInstanceTrickAddress2RuntimeInfo;
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> heapInstanceTrickAddress2RuntimeInfo;
     std::unordered_map<std::string, uint64_t> classList;
@@ -40,6 +41,8 @@ public:
     ObjcClassRuntimeInfo* getClassInfoByName(std::string className);
     bool isClassObjectAtAddress(uint64_t address);
     bool isValidClassInfo(ObjcClassRuntimeInfo *info);
+    bool isExistMethod(std::string methodPrefix, std::string classExpr, std::string detectedSEL);
+    ObjcMethod* inferNearestMethod(std::string methodPrefix, std::string classExpr, std::string detectedSEL);
     
 private:
     ObjcRuntime();

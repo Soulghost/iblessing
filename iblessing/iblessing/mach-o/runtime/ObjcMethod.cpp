@@ -19,5 +19,6 @@ ObjcMethod* ObjcMethod::createDummy(std::string name) {
     ObjcMethod *m = new ObjcMethod();
     m->name = name;
     m->isDummy = true;
+    m->classInfo = nullptr;
     return m;
 }
