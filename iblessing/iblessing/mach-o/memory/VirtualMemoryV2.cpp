@@ -59,8 +59,9 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
         return 1;
     }
     
+    VirtualMemory *vm = VirtualMemory::progressDefault();
     if (!mappedFile) {
-        mappedFile = VirtualMemory::progressDefault()->mappedFile;
+        mappedFile = vm->mappedFile;
         if (!mappedFile) {
             cout << termcolor::red << "[-] VirtualMemoryV2 - Error: cannot get mappedFile from VirtualMemory ";
             cout << termcolor::reset << endl;
@@ -68,11 +69,11 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
         }
     }
     
-    // mach-o mapping start from 0x100000000
-    // heap using 0x100000000 ~ 0x2ffffffff
-    // stack using 0x2ffffffff ~ .
-    uint64_t unicorn_vm_size = 8UL * 1024 * 1024 * 1024;
-    uint64_t unicorn_vm_start = 0x100000000;
+    // mach-o mapping start from 0x100000000 (app), 0x0 (dylib)
+    // heap using vm_base ~ vmbase + 12G
+    // stack using vmbase + 12G ~ .
+    uint64_t unicorn_vm_size = 12UL * 1024 * 1024 * 1024;
+    uint64_t unicorn_vm_start = vm->vmaddr_base;
     uc_err err = uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size, UC_PROT_ALL);
     if (err != UC_ERR_OK) {
         cout << termcolor::red << "[-] VirtualMemoryV2 - Error: unicorn error: " << uc_strerror(err);
@@ -81,7 +82,6 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
     }
     
     // first of all, mapping the whole file
-    VirtualMemory *vm = VirtualMemory::progressDefault();
     err = uc_mem_write(uc, vm->vmaddr_base, mappedFile, vm->mappedSize);
     if (err != UC_ERR_OK) {
         cout << termcolor::red << "[-] VirtualMemoryV2 - Error: cannot map mach-o file: " << uc_strerror(err);
@@ -156,6 +156,14 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
                         sect += 1;
                     }
                 }
+                break;
+            }
+            case IB_LC_SYMTAB: {
+                struct ib_symtab_command *symtab_cmd = (struct ib_symtab_command *)lc;
+                symoff = symtab_cmd->symoff;
+                symsize = symtab_cmd->nsyms * sizeof(ib_nlist_64);
+                stroff = symtab_cmd->stroff;
+                strsize = symtab_cmd->strsize;
                 break;
             }
             default:
