@@ -54,8 +54,24 @@ static SymbolWrapperScanner *antiWrapperScanner;
 static uc_hook insn_hook, mem_hook, memexp_hook;
 
 static map<string, MethodChain *> sel2chain;
+static set<string> trackSymbolBlacklist = {
+    "_objc_copyWeak", "_objc_moveWeak", "_objc_initWeak",
+    "_objc_loadWeak", "_objc_loadWeakRetained", "_objc_storeWeak",
+    "_objc_storeStrong", "_objc_autorelease",
+    "_objc_autoreleaseReturnValue", "_objc_retain", "_objc_release",
+    "_objc_retainAutorelease",
+    "_objc_retainAutoreleasedReturnValue", "_objc_retainAutoreleaseReturnValue",
+    "_objc_destroyWeak", "_objc_retainBlock",
+    "_objc_unsafeClaimAutoreleasedReturnValue", "_objc_releaseAndReturn",
+    "_objc_msgSend", "_objc_msgSendSuper", "_objc_msgSendSuper2",
+    "_objc_exception_throw",
+    "_objc_setProperty_nonatomic_copy",
+    "_objc_autoreleasePoolPush", "_objc_enumerationMutation"
+};
 
 static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uint64_t x1);
+static void trackSymbolCall(uc_engine *uc, ObjcMethod *currentMethod, Symbol *symbol);
+static bool shouldTrackSymbols = true;
 static void storeMethodChains();
 
 static bool isValidClassInfo(ObjcClassRuntimeInfo *info) {
@@ -479,6 +495,8 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             }
             pthread_mutex_unlock(&indexMutex);
         }
+        
+        // FIXME: _objc_msgSendSuper, etc. detect
         if (symbol && strcmp(symbol->name.c_str(), "_objc_msgSend") == 0) {
             isMsgSendOrWrapper = true;
         } else {
@@ -518,7 +536,13 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                 cout << StringUtils::format("\t[+] failed to resolve objc_msgSend at 0x%llx\n", insn->address);
                 cout << termcolor::reset << endl;
             }
+        } else if (symbol &&
+                   trackSymbolBlacklist.find(symbol->name) == trackSymbolBlacklist.end()) {
+            pthread_mutex_lock(&traceRecordMutex);
+            trackSymbolCall(uc, ctx->currentMethod, symbol);
+            pthread_mutex_unlock(&traceRecordMutex);
         }
+        
         // jump to next ins
         pc = address + size;
         assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
@@ -719,6 +743,17 @@ int ObjcMethodXrefScanner::start() {
         engines.push_back(createEngine(i));
     }
     
+    bool shouldAntiWrapper = false;
+    if (options.find("antiWrapper") != options.end()) {
+        shouldAntiWrapper = atoi(options["antiWrapper"].c_str()) != 0;
+    }
+    
+    if (options.find("trackSymbols") != options.end()) {
+        shouldTrackSymbols = atoi(options["trackSymbols"].c_str()) != 0;
+    }
+    
+    printf("  [*] Status: Track C Symbols: %d, Anti Wrapper: %d\n", shouldTrackSymbols, shouldAntiWrapper);
+    
     printf("  [*] Step 1. realize all app classes\n");
     ObjcRuntime *rt = ObjcRuntime::getInstance();
     SymbolTable *symtab = SymbolTable::getInstance();
@@ -769,7 +804,7 @@ int ObjcMethodXrefScanner::start() {
     
     printf("  [*] Step 2. Start sub-scanners\n");
     ScannerDisassemblyDriver *sharedDriver = new ScannerDisassemblyDriver();
-    if (options.find("antiWrapper") != options.end()) {
+    if (shouldAntiWrapper) {
         ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
         options["symbols"] = "_objc_msgSend";
         Scanner *s = dispatcher->prepareForScanner("symbol-wrapper", options, inputPath, outputPath, sharedDriver);
@@ -1138,6 +1173,57 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
 #if ShowFullLog
     printf("[+] find trace %s (0x%llx) -> %s (0x%llx)\n", currentMethodExpr.c_str(), currentChain->impAddr, followingMethodExpr.c_str(), followingChain->impAddr);
 #endif
+}
+
+static void trackSymbolCall(uc_engine *uc, ObjcMethod *currentMethod, Symbol *symbol) {
+    if (!shouldTrackSymbols) {
+        return;
+    }
+    
+    string methodPrefix = "+";
+    string className = "iblessing_ImportSymbol";
+    string detectedSEL = symbol->name.c_str();
+    
+    string currentMethodExpr = StringUtils::format("%s[%s %s]",
+                                                   currentMethod->isClassMethod ? "+" : "-",
+                                                   currentMethod->classInfo->className.c_str(),
+                                                   currentMethod->name.c_str()
+                                                   );
+    string followingMethodExpr = StringUtils::format("%s[%s %s]",
+                                                     methodPrefix.c_str(),
+                                                     className.c_str(),
+                                                     detectedSEL.c_str()
+                                                     );
+    
+    // add current method to chain if needed
+    // FIXME: a sub call can only be root chain (currentMethod) now
+    if (sel2chain.find(currentMethodExpr) == sel2chain.end()) {
+        MethodChain *chain = new MethodChain();
+        chain->impAddr = currentMethod->imp;
+        chain->prefix = currentMethod->isClassMethod ? "+" : "-";
+        chain->className = currentMethod->classInfo->className;
+        chain->methodName = currentMethod->name;
+        sel2chain[currentMethodExpr] = chain;
+    }
+    
+    // add following method to chain if needed
+    if (sel2chain.find(followingMethodExpr) == sel2chain.end()) {
+        MethodChain *chain = new MethodChain();
+        chain->prefix = methodPrefix;
+        chain->impAddr = symbol->info->n_value;
+        chain->className = className;
+        chain->methodName = detectedSEL;
+        sel2chain[followingMethodExpr] = chain;
+    }
+    
+    // caller pc (xref pc)
+    uint64_t pc = 0;
+    uc_reg_read(uc, UC_ARM64_REG_PC, &pc);
+    
+    MethodChain *currentChain = sel2chain[currentMethodExpr];
+    MethodChain *followingChain = sel2chain[followingMethodExpr];
+    currentChain->nextMethods.insert({followingChain, pc});
+    followingChain->prevMethods.insert({currentChain, pc});
 }
 
 static void storeMethodChains() {
