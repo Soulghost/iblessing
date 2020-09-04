@@ -118,6 +118,7 @@ void SymbolTable::buildDynamicSymbolTable(std::vector<struct ib_section_64 *> se
             
             lazySymbol->name = symbolTable.at(symIdx).first;
             lazySymbol->info = symbolTable.at(symIdx).second;
+            lazySymbol->info->n_value = pointerAddr;
             symbolMap.insert(pointerAddr, lazySymbol);
             name2symbol[lazySymbol->name].pushBack(lazySymbol);
         } else {
