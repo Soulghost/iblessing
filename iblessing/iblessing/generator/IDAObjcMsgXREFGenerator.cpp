@@ -37,11 +37,19 @@ int IDAObjMsgXREFGenerator::start() {
     ss << "def add_objc_xrefs():";
     for (auto it = sel2chain.begin(); it != sel2chain.end(); it++) {
         MethodChain *current = it->second;
-        if (current->impAddr == 0) {
+        
+        // ignore import symbol since IDA can build them
+        if (current->impAddr == 0 ||
+            current->className == "iblessing_ImportSymbol") {
             continue;
         }
+        
         for (auto it = current->prevMethods.begin(); it != current->prevMethods.end(); it++) {
             MethodChain *prev = it->first;
+            if (prev->className == "iblessing_ImportSymbol") {
+                continue;
+            }
+            
             uint64_t callerAddr = it->second;
             if (callerAddr == 0) {
                 callerAddr = prev->impAddr;

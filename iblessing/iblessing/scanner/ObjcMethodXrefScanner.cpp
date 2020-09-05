@@ -69,7 +69,7 @@ static set<string> trackSymbolBlacklist = {
     "_objc_autoreleasePoolPush", "_objc_enumerationMutation"
 };
 
-static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uint64_t x1);
+static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uint64_t x1, int sendSuperType);
 static void trackSymbolCall(uc_engine *uc, ObjcMethod *currentMethod, Symbol *symbol);
 static bool shouldTrackSymbols = true;
 static void storeMethodChains();
@@ -497,8 +497,34 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         }
         
         // FIXME: _objc_msgSendSuper, etc. detect
-        if (symbol && strcmp(symbol->name.c_str(), "_objc_msgSend") == 0) {
+        int sendSuperType = 0;
+        typedef enum {
+            ObjcMessageTypePlain = 0,
+            
+            // void objc_msgSend_stret(void *st_addr, id self, SEL _cmd, ...);
+            // void objc_msgSendSuper_stret(void *st_addr, struct objc_super *super, SEL _cmd, ...);
+            ObjcMessageTypeStret,
+            
+            // double objc_msgSend_fpret(id self, SEL _cmd, ...);
+            ObjcMessageTypeFpret,
+        } ObjcMessageType;
+        
+        ObjcMessageType msgType = ObjcMessageTypePlain;
+        if (symbol && strncmp(symbol->name.c_str(), "_objc_msgSend", strlen("_objc_msgSend")) == 0) {
             isMsgSendOrWrapper = true;
+            if (strncmp(symbol->name.c_str(), "_objc_msgSendSuper", strlen("_objc_msgSendSuper")) == 0) {
+                if (strncmp(symbol->name.c_str(), "_objc_msgSendSuper2", strlen("_objc_msgSendSuper2")) == 0) {
+                    sendSuperType = 2;
+                } else {
+                    sendSuperType = 1;
+                }
+            }
+            
+            if (StringUtils::has_suffix(symbol->name, "_fpret")) {
+                msgType = ObjcMessageTypeFpret;
+            } else if (StringUtils::has_suffix(symbol->name, "_stret")) {
+                msgType = ObjcMessageTypeStret;
+            }
         } else {
             if (antiWrapperScanner && antiWrapperScanner->antiWrapper.isWrappedCall(pc)) {
                 AntiWrapperArgs args;
@@ -522,14 +548,26 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         
         if (isMsgSendOrWrapper) {
             uint64_t x0 = 0, x1 = 0;
-            if (uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK &&
-                uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK) {
+            uc_arm64_reg source0, source1;
+            switch (msgType) {
+                case ObjcMessageTypePlain:
+                case ObjcMessageTypeFpret:
+                    source0 = UC_ARM64_REG_X0;
+                    source1 = UC_ARM64_REG_X1;
+                    break;
+                case ObjcMessageTypeStret:
+                    source0 = UC_ARM64_REG_X1;
+                    source1 = UC_ARM64_REG_X2;
+            }
+            
+            if (uc_reg_read(uc, source0, &x0) == UC_ERR_OK &&
+                uc_reg_read(uc, source1, &x1) == UC_ERR_OK) {
                 pthread_mutex_lock(&traceRecordMutex);
 #ifdef DebugTrackCall
                 printf("[****] |--- 0x%llx\n", insn->address);
 #endif
                 // error at 0x00000001003b4884
-                trackCall(uc, ctx->currentMethod, x0, x1);
+                trackCall(uc, ctx->currentMethod, x0, x1, sendSuperType);
                 pthread_mutex_unlock(&traceRecordMutex);
             } else {
                 cout << termcolor::yellow;
@@ -955,7 +993,7 @@ int ObjcMethodXrefScanner::start() {
     return 0;
 }
 
-static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uint64_t x1) {
+static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uint64_t x1, int sendSuperType) {
     ObjcRuntime *rt = ObjcRuntime::getInstance();
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     
@@ -980,6 +1018,32 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     if (detectedSEL == NULL) {
         // FIXME: some bug
         return;
+    }
+    
+    // fixup x0 for super call
+    uint64_t receiverAddr = 0, currentOrSuperClassAddr = 0;
+    if (sendSuperType > 0) {
+#if 0
+        struct objc_super {
+            /// Specifies an instance of a class.
+            __unsafe_unretained _Nonnull id receiver;
+            __unsafe_unretained _Nonnull Class super_class;
+            /* super_class is the first class to search */
+        };
+        
+        struct objc_super2 {
+            id receiver;
+            Class current_class;
+        };
+#endif
+        uc_mem_read(uc, x0, &receiverAddr, 8);
+        uc_mem_read(uc, x0 + 8, &currentOrSuperClassAddr, 8);
+        if (receiverAddr != 0) {
+            x0 = receiverAddr;
+        } else {
+            // bad super strcut
+            sendSuperType = 0;
+        }
     }
     
     if (x0) {
@@ -1027,8 +1091,23 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     }
     
     // detected classInfo validation
-    if (!isValidClassInfo(detectedClassInfo)) {
+    if (detectedClassInfo && !isValidClassInfo(detectedClassInfo)) {
         detectedClassInfo = nullptr;
+    }
+    
+    if (sendSuperType > 0 && detectedClassInfo) {
+        // sanity check
+        ObjcClassRuntimeInfo *superInfo = detectedClassInfo->superClassInfo;
+        if (superInfo) {
+            if (sendSuperType == 1) {
+                uint64_t superClassAddr = currentOrSuperClassAddr;
+                if (superInfo->address == superClassAddr) {
+                    detectedClassInfo = superInfo;
+                }
+            } else {
+                detectedClassInfo = superInfo;
+            }
+        }
     }
     
     // deprecated, replaced by objc_opt_class

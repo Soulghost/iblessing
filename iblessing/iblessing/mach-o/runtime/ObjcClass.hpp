@@ -22,6 +22,7 @@ public:
     ObjcClassRuntimeInfo() {
         isExternal = false;
         isSub = false;
+        superClassInfo = nullptr;
     }
     
     bool isExternal;
