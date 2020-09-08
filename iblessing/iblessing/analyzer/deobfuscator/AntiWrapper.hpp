@@ -13,6 +13,7 @@
 #include <capstone/capstone.h>
 #include "StringUtils.h"
 #include <map>
+#include <vector>
 #include <cassert>
 
 NS_IB_BEGIN;
@@ -33,6 +34,12 @@ struct AntiWrapperRegLink {
         active = false;
         current = ARM64_REG_INVALID;
         from = nullptr;
+    }
+    
+    AntiWrapperRegLink(const AntiWrapperRegLink &f) {
+        active = f.active;
+        current = f.current;
+        from = f.from;
     }
     
     AntiWrapperRegLink getRootSource() {
@@ -56,25 +63,31 @@ struct AntiWrapperRegLink {
 };
 
 struct AntiWrapperRegLinkGraph {
-    AntiWrapperRegLink x[31];
+    std::vector<AntiWrapperRegLink *> x{31, nullptr};
     
     AntiWrapperRegLinkGraph() {
         for (int i = 0; i <= 28; i++) {
-            this->x[i].current = static_cast<arm64_reg>((int)ARM64_REG_X0 + i);
+            this->x[i] = new AntiWrapperRegLink();
+            this->x[i]->current = static_cast<arm64_reg>((int)ARM64_REG_X0 + i);
         }
         for (int i = 29; i <= 30; i++) {
-            this->x[i].current = static_cast<arm64_reg>((int)ARM64_REG_X29 + i - 29);
+            this->x[i] = new AntiWrapperRegLink();
+            this->x[i]->current = static_cast<arm64_reg>((int)ARM64_REG_X29 + i - 29);
         }
+    }
+    
+    ~AntiWrapperRegLinkGraph() {
+
     }
     
     AntiWrapperRegLink* linkFromOp(cs_arm64_op op) {
         AntiWrapperRegLink *link = nullptr;
         if (op.reg >= ARM64_REG_X0 && op.reg <= ARM64_REG_X28) {
-            link = &x[op.reg - ARM64_REG_X0];
+            link = x[op.reg - ARM64_REG_X0];
             link->current = op.reg;
         }
         if (op.reg >= ARM64_REG_X29 && op.reg <= ARM64_REG_X30) {
-            link = &x[29 + op.reg - ARM64_REG_X29];
+            link = x[29 + op.reg - ARM64_REG_X29];
             link->current = op.reg;
         }
         return link;

@@ -36,7 +36,7 @@ bool SymbolWrapperSerializationManager::createReportFromAntiWrapper(std::string 
             int i = 0;
             for (i = 0; i < proto.nArgs; i++) {
                 // find real src
-                AntiWrapperRegLink sourceLink = wrapper.regLinkGraph.x[i].getRootSource();
+                AntiWrapperRegLink sourceLink = wrapper.regLinkGraph.x[i]->getRootSource();
                 if (i > 0) {
                     ss << ", ";
                 }
@@ -46,9 +46,9 @@ bool SymbolWrapperSerializationManager::createReportFromAntiWrapper(std::string 
             // if function is variadic, check follow-up reg transforms
             if (proto.variadic) {
                 for (; i <= 7; i++) {
-                    AntiWrapperRegLink current = wrapper.regLinkGraph.x[i];
-                    if (current.active) {
-                        ss << ", " << StringUtils::format("%s@<%s>", "uint64_t", current.getRootSource().getIDAExpr().c_str());
+                    AntiWrapperRegLink *current = wrapper.regLinkGraph.x[i];
+                    if (current->active) {
+                        ss << ", " << StringUtils::format("%s@<%s>", "uint64_t", current->getRootSource().getIDAExpr().c_str());
                     } else {
                         break;
                     }
