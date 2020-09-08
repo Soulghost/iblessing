@@ -237,14 +237,14 @@ int SymbolWrapperScanner::start() {
                     *stop = true;
 #endif
                 }
-                
-                // it is return anyway
-                funcStartCursor = insn->address + 4;
-                hasMemLoader = false;
-                {
-                    AntiWrapperRegLinkGraph graph;
-                    currentGraph = graph;
-                }
+            }
+            
+            // it is return anyway
+            funcStartCursor = insn->address + 4;
+            hasMemLoader = false;
+            {
+                AntiWrapperRegLinkGraph graph;
+                currentGraph = graph;
             }
         }
         
