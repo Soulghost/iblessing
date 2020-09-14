@@ -83,12 +83,12 @@ cd iblessing
   - [Scan for AppInfos](https://github.com/Soulghost/iblessing#scan-for-appinfos) ⚠️ Not currently available on Linux
   - [Scan for Class XREFs](https://github.com/Soulghost/iblessing#scan-for-class-xrefs)
   - [Scan for All objc_msgSend XREFs](https://github.com/Soulghost/iblessing#scan-for-all-objc_msgsend-xrefs)
-  - :new: [Scan for Simple Symbol Wrappers](https://github.com/Soulghost/iblessing/blob/features/anti_wrapper/README.md#scan-for-symbol-wrappers)
+  - [Scan for Simple Symbol Wrappers](https://github.com/Soulghost/iblessing/blob/features/anti_wrapper/README.md#scan-for-symbol-wrappers)
  
 - Generators
   - [Generate objc_msgSend Xrefs Query Server](https://github.com/Soulghost/iblessing#generate-objc_msgsend-xrefs-query-server)
   - [Generate IDA Scripts for objc_msgSend xrefs](https://github.com/Soulghost/iblessing#generate-ida-scripts-for-objc_msgsend-xrefs)
-  - :new: [Generate IDA Scripts for objc function wrapper rename and prototype modification](https://github.com/Soulghost/iblessing/blob/features/anti_wrapper/README.md#genereate-ida-script-for-objc-runtime-function-rename-and-prototype-modification)
+  - [Generate IDA Scripts for objc function wrapper rename and prototype modification](https://github.com/Soulghost/iblessing/blob/features/anti_wrapper/README.md#genereate-ida-script-for-objc-runtime-function-rename-and-prototype-modification)
 
 ***If there are any errors, you can manully compile capstone and unicorn, then drag libcapstone.a and libunicorn.a to the Xcode project's vendor/libs.***
 
