@@ -38,7 +38,7 @@
 #define ExternalClassDummyAddress 0xfacefacefaceface
 
 //#define UsingSet
-//#define DebugMethod "currentCameraPositionSubject"
+//#define DebugMethod "mlist"
 //#define DebugTrackCall
 //#define DebugClass  "AFCXbsManager"
 //#define ThreadCount 8
@@ -51,7 +51,7 @@ using namespace iblessing;
 
 static string recordPath;
 static SymbolWrapperScanner *antiWrapperScanner;
-static uc_hook insn_hook, mem_hook, memexp_hook;
+static uc_hook insn_hook, memexp_hook;
 
 static map<string, MethodChain *> sel2chain;
 static set<string> trackSymbolBlacklist = {
@@ -110,6 +110,10 @@ public:
     uint64_t blockDescAddr;
     uint64_t blockSize;
     
+    // gc
+    vector<pair<uint64_t, uint64_t>> tmpMappedRegions;
+    vector<void *> tmpAllocateRegions;
+    
     // FIXME: trick for uc reg and capstone reg types
     cs_insn *lastInsn;
     
@@ -118,6 +122,18 @@ public:
             free_insn(lastInsn);
         }
         lastInsn = copy_insn(insn);
+    }
+    
+    void gc() {
+        for (pair<uint64_t, uint64_t> &tr : tmpMappedRegions) {
+            uc_mem_unmap(engine, tr.first, tr.second);
+        }
+        for (void *tr : tmpAllocateRegions) {
+            free(tr);
+        }
+        
+        tmpMappedRegions.clear();
+        tmpAllocateRegions.clear();
     }
 };
 
@@ -331,6 +347,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         cs_free(insn, count);
         finishBlockSession(ctx, uc);
         uc_emu_stop(uc);
+        ctx->gc();
         return;
     }
     
@@ -593,11 +610,37 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     ctx->lastPc = address;
 }
 
-static void mem_hook_callback(uc_engine *uc, uc_mem_type type, uint64_t address, int size, int64_t value, void *user_data) {
-}
+//static void mem_hook_callback(uc_engine *uc, uc_mem_type type, uint64_t address, int size, int64_t value, void *user_data) {
+//}
 
 static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_t address, int size, int64_t value, void *user_data) {
 //    printf("[----------------] mem error %d 0x%llx %d !!!\n", type, address, size);
+/**
+ In the event of a UC_MEM_READ_UNMAPPED or UC_MEM_WRITE_UNMAPPED callback,
+ the memory should be uc_mem_map()-ed with the correct permissions, and the
+ instruction will then read or write to the address as it was supposed to.
+ 
+ In the event of a UC_MEM_FETCH_UNMAPPED callback, the memory can be mapped
+ in as executable, in which case execution will resume from the fetched address.
+ The instruction pointer may be written to in order to change where execution resumes,
+ but the fetch must succeed if execution is to resume.
+ */
+    if (type == UC_MEM_READ_UNMAPPED || type == UC_MEM_WRITE_UNMAPPED) {
+#define UC_PAGE_SIZE 0x1000
+        uint64_t page_begin = address & ~(UC_PAGE_SIZE - 1);
+        uc_mem_map(uc, page_begin, UC_PAGE_SIZE, UC_PROT_READ | UC_PROT_WRITE);
+        
+        // FIXME: fill zero
+        void *dummy_bytes = calloc(1, size);
+        uc_mem_write(uc, address, dummy_bytes, size);
+        
+        // record to gc
+        EngineContext *ctx = engineContexts[uc];
+        ctx->tmpMappedRegions.push_back({page_begin, UC_PAGE_SIZE});
+        ctx->tmpAllocateRegions.push_back(dummy_bytes);
+    } else if (type == UC_MEM_FETCH_UNMAPPED) {
+//        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
+    }
     return true;
 }
 
@@ -662,6 +705,7 @@ void* pthread_uc_worker(void *ctx) {
 //            assert(0);
         }
         uc_emu_stop(context->engine);
+        context->gc();
         
         pthread_mutex_lock(&counterMutex);
         curCount += 1;
@@ -691,6 +735,10 @@ void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &method
         methods = m2;
     }
 #endif
+    
+    if (methods.size() == 0) {
+        return;
+    }
     
     // split methods by engines
     uint64_t groupCount = engines.size();
@@ -738,7 +786,7 @@ uc_engine* createEngine(int identifier) {
     
     // add hooks
     uc_hook_add(uc, &insn_hook, UC_HOOK_CODE, (void *)insn_hook_callback, NULL, 1, 0);
-    uc_hook_add(uc, &mem_hook, UC_HOOK_MEM_VALID, (void *)mem_hook_callback, NULL, 1, 0);
+//    uc_hook_add(uc, &mem_hook, UC_HOOK_MEM_VALID, (void *)mem_hook_callback, NULL, 1, 0);
     uc_hook_add(uc, &memexp_hook, UC_HOOK_MEM_INVALID, (void *)mem_exception_hook_callback, NULL, 1, 0);
     
     VirtualMemoryV2::progressDefault()->mappingMachOToEngine(uc, nullptr);
