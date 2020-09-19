@@ -87,6 +87,7 @@ set(iblessing.SOURCE_INCLUDES
     iblessing/scanner/context
     iblessing/scanner/dispatcher
     iblessing/scanner/driver
+    iblessing/scanner/assistance/state
 
     # generator
     iblessing/generator
@@ -160,6 +161,8 @@ set(iblessing.SOURCE_LIST
     iblessing/scanner/SymbolWrapperScanner.cpp
     iblessing/scanner/PredicateScanner.cpp
     iblessing/scanner/ObjcUnserializationScanner.cpp
+    iblessing/scanner/assistance/state/ProgramState.cpp
+    iblessing/scanner/assistance/state/ProgramStateManager.cpp
 
     # generator
     iblessing/generator/Generator.cpp
