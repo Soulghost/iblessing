@@ -14,6 +14,7 @@
 #include "ARM64ThreadState.hpp"
 #include "StringUtils.h"
 #include <set>
+#include <algorithm>
 #include <sstream>
 #include <fstream>
 #include <string>
@@ -143,6 +144,7 @@ static pthread_mutex_t counterMutex;
 static pthread_mutex_t indexMutex;
 static uint64_t curCount = 0;
 static uint64_t totalCount = 0;
+static set<uint64_t> functionAddrs;
 
 static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
     if (!ctx->isInBlockBuilder) {
@@ -699,7 +701,18 @@ void* pthread_uc_worker(void *ctx) {
 #ifdef DebugTrackCall
         printf("\n[****] start ana method %s %s, set classInfo at %p\n", m->classInfo->className.c_str(), m->name.c_str(), m->classInfo);
 #endif
-        uc_err err = uc_emu_start(context->engine, m->imp, 0, 0, 0);
+        
+        uint64_t startAddr = m->imp;
+        auto endAddrIt = std::upper_bound(functionAddrs.begin(), functionAddrs.end(), startAddr);
+        uint64_t endAddr = 0;
+        if (endAddrIt != functionAddrs.end()) {
+            endAddr = *endAddrIt;
+            if (endAddr == startAddr) {
+                endAddr = 0;
+            }
+        }
+        
+        uc_err err = uc_emu_start(context->engine, m->imp, endAddr, 0, 0);
         if (err != UC_ERR_OK) {
 //            printf("\t[*] uc error %s\n", uc_strerror(err));
 //            assert(0);
@@ -886,7 +899,7 @@ int ObjcMethodXrefScanner::start() {
     }
     printf("\n");
     printf("\t[+] get %lu methods to analyze\n", methods.size());
-    
+    functionAddrs = impAddrs;
     
     printf("  [*] Step 2. Start sub-scanners\n");
     ScannerDisassemblyDriver *sharedDriver = new ScannerDisassemblyDriver();
@@ -968,6 +981,9 @@ int ObjcMethodXrefScanner::start() {
             subMethod->imp = sxref.startAddr;
             subMethod->name = StringUtils::format("sub_0x%llx", sxref.startAddr);
             subMethods.push_back(subMethod);
+            
+            // record function addr
+            functionAddrs.insert(sxref.startAddr);
         }
     }
     delete sxrefScanner;
@@ -1007,6 +1023,9 @@ int ObjcMethodXrefScanner::start() {
         nl->n_value = symbolAddr;
         sym->info = nl;
         symtab->insertSymbol(sym);
+        
+        // record symbol addr
+        functionAddrs.insert(symbolAddr);
     });
     
     // remove dupliate elements
