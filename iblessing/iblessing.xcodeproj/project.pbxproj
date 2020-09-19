@@ -59,6 +59,8 @@
 		68770C9124E1118D003F9652 /* CocoaAppInfoScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68770C8F24E1118D003F9652 /* CocoaAppInfoScanner.cpp */; };
 		68770C9424E1130A003F9652 /* AppInfoScanner.mm in Sources */ = {isa = PBXBuildFile; fileRef = 68770C9224E1130A003F9652 /* AppInfoScanner.mm */; };
 		68770C9C24E17212003F9652 /* ObjcMsgXREFReportGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68770C9A24E17212003F9652 /* ObjcMsgXREFReportGenerator.cpp */; };
+		6877B7832514913000227CFF /* ProgramState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6877B7812514913000227CFF /* ProgramState.cpp */; };
+		6877B786251492C500227CFF /* ProgramStateManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6877B784251492C500227CFF /* ProgramStateManager.cpp */; };
 		68A028C024DE7F9300077CE0 /* ScannerContextManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028BE24DE7F9300077CE0 /* ScannerContextManager.cpp */; };
 		68A028C324DE80AB00077CE0 /* ScannerContext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028C124DE80AB00077CE0 /* ScannerContext.cpp */; };
 		68A028CB24DE897F00077CE0 /* ScannerDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028C924DE897F00077CE0 /* ScannerDispatcher.cpp */; };
@@ -225,6 +227,10 @@
 		68770C9324E1130A003F9652 /* AppInfoScanner.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AppInfoScanner.hpp; sourceTree = "<group>"; };
 		68770C9A24E17212003F9652 /* ObjcMsgXREFReportGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMsgXREFReportGenerator.cpp; sourceTree = "<group>"; };
 		68770C9B24E17212003F9652 /* ObjcMsgXREFReportGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMsgXREFReportGenerator.hpp; sourceTree = "<group>"; };
+		6877B7812514913000227CFF /* ProgramState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProgramState.cpp; sourceTree = "<group>"; };
+		6877B7822514913000227CFF /* ProgramState.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramState.hpp; sourceTree = "<group>"; };
+		6877B784251492C500227CFF /* ProgramStateManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProgramStateManager.cpp; sourceTree = "<group>"; };
+		6877B785251492C500227CFF /* ProgramStateManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramStateManager.hpp; sourceTree = "<group>"; };
 		68A028BE24DE7F9300077CE0 /* ScannerContextManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScannerContextManager.cpp; sourceTree = "<group>"; };
 		68A028BF24DE7F9300077CE0 /* ScannerContextManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScannerContextManager.hpp; sourceTree = "<group>"; };
 		68A028C124DE80AB00077CE0 /* ScannerContext.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScannerContext.cpp; sourceTree = "<group>"; };
@@ -547,6 +553,7 @@
 		685CE83524C572A0002CC5E8 /* scanner */ = {
 			isa = PBXGroup;
 			children = (
+				6877B77D251454C900227CFF /* assistance */,
 				68A028D324DE8F3600077CE0 /* driver */,
 				68A028C824DE894B00077CE0 /* dispatcher */,
 				68A028C424DE821F00077CE0 /* common */,
@@ -727,6 +734,25 @@
 				6866173E24E51CA300C4FBB3 /* CoreFoundation.hpp */,
 			);
 			path = foundation;
+			sourceTree = "<group>";
+		};
+		6877B77D251454C900227CFF /* assistance */ = {
+			isa = PBXGroup;
+			children = (
+				6877B77E251454F700227CFF /* state */,
+			);
+			path = assistance;
+			sourceTree = "<group>";
+		};
+		6877B77E251454F700227CFF /* state */ = {
+			isa = PBXGroup;
+			children = (
+				6877B7822514913000227CFF /* ProgramState.hpp */,
+				6877B7812514913000227CFF /* ProgramState.cpp */,
+				6877B785251492C500227CFF /* ProgramStateManager.hpp */,
+				6877B784251492C500227CFF /* ProgramStateManager.cpp */,
+			);
+			path = state;
 			sourceTree = "<group>";
 		};
 		68A028BD24DE7F8000077CE0 /* context */ = {
@@ -989,8 +1015,10 @@
 				6829631D24D0460500EF9251 /* FunctionPrototype.cpp in Sources */,
 				685CE81124C57079002CC5E8 /* DyldSimulator.cpp in Sources */,
 				68A028CB24DE897F00077CE0 /* ScannerDispatcher.cpp in Sources */,
+				6877B786251492C500227CFF /* ProgramStateManager.cpp in Sources */,
 				68BE8A8724E904AF00A534DB /* TestManager.cpp in Sources */,
 				68BE8A8A24E9052200A534DB /* Tester.cpp in Sources */,
+				6877B7832514913000227CFF /* ProgramState.cpp in Sources */,
 				685CE85C24C57360002CC5E8 /* GeneratorDispatcher.cpp in Sources */,
 				68770C9424E1130A003F9652 /* AppInfoScanner.mm in Sources */,
 				685CE85B24C57360002CC5E8 /* Generator.cpp in Sources */,

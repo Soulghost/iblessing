@@ -15,6 +15,11 @@
 + (void)rootClassMethodCallFromReflection;
 - (void)rootInstanceMethodCallFromAllocate;
 - (void)rootInstanceMethodCallFromIvar;
+- (void)rootInstanceMethodFromBranchTrue;
+- (void)rootInstanceMethodFromBranchFalse;
+- (void)rootInstanceMethodFromSwitchTableA;
+- (void)rootInstanceMethodFromSwitchTableB;
+- (void)rootInstanceMethodFromSwitchTableC;
 
 @end
 
@@ -51,5 +56,13 @@
 @interface BlockSubB : NSObject
 
 - (void)testCallFromblockArg;
+
+@end
+
+@interface BranchCall : NSObject
+
+@end
+
+@interface TrapObject : NSObject
 
 @end

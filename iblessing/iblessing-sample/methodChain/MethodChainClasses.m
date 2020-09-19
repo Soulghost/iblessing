@@ -41,6 +41,26 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
     
 }
 
+- (void)rootInstanceMethodFromBranchTrue {
+    
+}
+
+- (void)rootInstanceMethodFromBranchFalse {
+    
+}
+
+- (void)rootInstanceMethodFromSwitchTableA {
+    
+}
+
+- (void)rootInstanceMethodFromSwitchTableB {
+    
+}
+
+- (void)rootInstanceMethodFromSwitchTableC {
+    
+}
+
 @end
 
 
@@ -156,5 +176,39 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
 - (void)testCallFromblockArg {
     
 }
+
+@end
+
+@implementation BranchCall
+
+- (void)simpleBranchCallWithoutLoop {
+    uint32_t rand = arc4random_uniform(1000);
+    IBSRoot *root = [[IBSRoot alloc] init];
+    if (rand < 500) {
+        TrapObject *trap = [[TrapObject alloc] init];
+        [root rootInstanceMethodFromBranchTrue];
+        root = trap;
+    } else {
+        [root rootInstanceMethodFromBranchFalse];
+    }
+}
+
+//- (void)simpleBranchCallWithLoop {
+//    uint32_t rand = arc4random_uniform(1000);
+//    IBSRoot *root = [[IBSRoot alloc] init];
+//    while (arc4random_uniform(10000) < 5000) {
+//        if (rand < 500) {
+//            TrapObject *trap = [[TrapObject alloc] init];
+//            [root rootInstanceMethodFromBranchTrue];
+//        } else {
+//            TrapObject *trap = [[TrapObject alloc] init];
+//            [root rootInstanceMethodFromBranchFalse];
+//        }
+//    }
+//}
+
+@end
+
+@implementation TrapObject
 
 @end
