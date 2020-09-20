@@ -188,6 +188,12 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
         TrapObject *trap = [[TrapObject alloc] init];
         [root rootInstanceMethodFromBranchTrue];
         root = trap;
+        if (rand < 200) {
+            printf("this tap\n");
+            if (rand < 100) {
+                printf("that tap\n");
+            }
+        }
     } else {
         [root rootInstanceMethodFromBranchFalse];
     }

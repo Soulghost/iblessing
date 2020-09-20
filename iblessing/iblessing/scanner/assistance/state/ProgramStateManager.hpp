@@ -10,11 +10,21 @@
 #define ProgramStateManager_hpp
 
 #include "ProgramState.hpp"
+#include <queue>
+#include <set>
+#include <memory>
 
 NS_IB_BEGIN
 
 class ProgramStateManager {
+public:
+    bool enqueueState(std::shared_ptr<ProgramState> &state);
+    std::shared_ptr<ProgramState> popState();
+    bool isEmpty();
     
+private:
+    std::queue<std::shared_ptr<ProgramState>> stateQueue;
+    std::set<uint64_t> visitedPc;
 };
 
 NS_IB_END
