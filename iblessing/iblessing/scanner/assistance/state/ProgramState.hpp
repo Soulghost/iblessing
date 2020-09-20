@@ -20,6 +20,16 @@ public:
     uint64_t pc;
     uint32_t depth;
     std::string condition;
+    
+    // stack
+    void *uc_stack;
+    uint64_t uc_stack_top_addr;
+    uint64_t uc_stack_size;
+    
+    ~ProgramState() {
+        free(uc_stack);
+        uc_stack = nullptr;
+    }
 };
 
 NS_IB_END

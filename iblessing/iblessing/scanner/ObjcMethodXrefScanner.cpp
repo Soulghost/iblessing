@@ -28,7 +28,9 @@
 #include "VirtualMemoryV2.hpp"
 #include "CoreFoundation.hpp"
 #include "ObjcMethodChainSerializationManager.hpp"
+#include "ProgramStateManager.hpp"
 
+#define UnicornStackTopAddr      0x300000000
 #define ClassAsInstanceTrickMask 0x0100000000000000
 #define IvarInstanceTrickMask    0x1000000000000000
 #define HeapInstanceTrickMask    0x2000000000000000
@@ -38,6 +40,7 @@
 #define SubClassDummyAddress      0xcafecaaecaaecaae
 #define ExternalClassDummyAddress 0xfacefacefaceface
 
+//#define Stalker
 //#define UsingSet
 //#define DebugMethod "mlist"
 //#define DebugTrackCall
@@ -111,6 +114,10 @@ public:
     uint64_t blockDescAddr;
     uint64_t blockSize;
     
+    // state manager
+    ProgramStateManager *stateManager;
+    shared_ptr<ProgramState> currentState;
+    
     // gc
     vector<pair<uint64_t, uint64_t>> tmpMappedRegions;
     vector<void *> tmpAllocateRegions;
@@ -135,6 +142,67 @@ public:
         
         tmpMappedRegions.clear();
         tmpAllocateRegions.clear();
+    }
+    
+    bool step(bool restart_emu = false, uint64_t endAddr = 0) {
+#ifdef Stalker
+        printf("Stalker %d: SubRoutine Ended\n\n", identifer);
+#endif
+        if (stateManager->isEmpty()) {
+            uc_emu_stop(engine);
+            gc();
+            return false;
+        }
+        
+//        printf("======= before =======\n");
+//        for (int i = 0; i < 20; i++) {
+//            uint64_t reg = 0;
+//            uc_reg_read(engine, UC_ARM64_REG_X0 + i, &reg);
+//            printf("===== uc context x%d = 0x%llx =====\n", i, reg);
+//        }
+//
+//        {
+//            uint64_t pc = 0;
+//            uc_reg_read(engine, UC_ARM64_REG_PC, &pc);
+//            printf("===== uc context pc = 0x%llx =====\n", pc);
+//        }
+        
+        shared_ptr<ProgramState> state = stateManager->popState();
+        uc_context_restore(engine, state->uc_ctx);
+        currentState = state;
+        lastPc = 0;
+        lastInsn = nullptr;
+        
+//        printf("====== after ======\n");
+//
+//        for (int i = 0; i < 20; i++) {
+//            uint64_t reg = 0;
+//            uc_reg_read(engine, UC_ARM64_REG_X0 + i, &reg);
+//            printf("===== uc context x%d = 0x%llx =====\n", i, reg);
+//        }
+//
+//        {
+//            uint64_t pc = 0;
+//            uc_reg_read(engine, UC_ARM64_REG_PC, &pc);
+//            printf("===== uc context pc = 0x%llx =====\n", pc);
+//        }
+        
+        // restore pc
+        uc_reg_write(engine, UC_ARM64_REG_PC, &state->pc);
+        
+        // restore stack
+        if (state->uc_stack) {
+            uc_mem_write(engine, state->uc_stack_top_addr - state->uc_stack_size, state->uc_stack, state->uc_stack_size);
+        }
+        
+        if (restart_emu) {
+            uc_emu_stop(engine);
+            uc_emu_start(engine, state->pc, endAddr, 0, 0);
+            if (!stateManager->isEmpty()) {
+                step(restart_emu, endAddr);
+            }
+        }
+        return true;
     }
 };
 
@@ -326,6 +394,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         return;
     }
     
+#ifdef Stalker
+    printf("Stalker %d: 0x%llx %s %s\n", ctx->identifer, insn->address, insn->mnemonic, insn->op_str);
+#endif
+    
     // FIXME: loop trick
     // detect loop
     if (address <= ctx->lastPc) {
@@ -348,8 +420,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         free(codes);
         cs_free(insn, count);
         finishBlockSession(ctx, uc);
-        uc_emu_stop(uc);
-        ctx->gc();
+        ctx->step();
         return;
     }
     
@@ -365,7 +436,52 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     // skip branches
     if (strncmp(insn->mnemonic, "b.", 2) == 0 ||
         strncmp(insn->mnemonic, "bl.", 3) == 0) {
-        // always jump to next ins
+        // create branching state
+        uint64_t branchPC = 0;
+        cs_arm64_op addrOp = insn->detail->arm64.operands[0];
+        if (addrOp.type == ARM64_OP_IMM) {
+            branchPC = addrOp.imm;
+        } else if (addrOp.type == ARM64_OP_REG) {
+            // FIXME: trick bridging between unicorn and capstone
+            uc_arm64_reg reg = (uc_arm64_reg)addrOp.reg;
+            assert(uc_reg_read(uc, reg, &branchPC) == UC_ERR_OK);
+        }
+        
+        if (branchPC > 0) {
+            // enqueue branch state and skip
+            uc_context *branchContext;
+            assert(uc_context_alloc(uc, &branchContext) == UC_ERR_OK);
+
+            // write pc to branching
+            assert(uc_reg_write(uc, UC_ARM64_REG_PC, &branchPC) == UC_ERR_OK);
+            uc_context_save(uc, branchContext);
+
+            shared_ptr<ProgramState> state = make_shared<ProgramState>();
+            state->uc_ctx = branchContext;
+            state->pc = branchPC;
+            state->depth = ctx->currentState ? ctx->currentState->depth + 1 : 1;
+            state->condition = StringUtils::format("%s %s", insn->mnemonic, insn->op_str);
+            state->uc_stack_size = 0x1000;
+            state->uc_stack = malloc(state->uc_stack_size);
+            state->uc_stack_top_addr = UnicornStackTopAddr;
+            assert(uc_mem_read(uc, state->uc_stack_top_addr - state->uc_stack_size, state->uc_stack, state->uc_stack_size) == UC_ERR_OK);
+            
+//            for (int i = 0; i < 20; i++) {
+//                uint64_t reg = 0;
+//                uc_reg_read(uc, UC_ARM64_REG_X0 + i, &reg);
+//                printf("===== uc context x%d = 0x%llx =====\n", i, reg);
+//            }
+//
+//            {
+//                uint64_t pc = 0;
+//                uc_reg_read(uc, UC_ARM64_REG_PC, &pc);
+//                printf("===== uc context pc = 0x%llx =====\n", pc);
+//            }
+            
+            ctx->stateManager->enqueueState(state);
+        }
+        
+        // jump to next ins (no branching)
         uint64_t pc = address + size;
         assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
     }
@@ -717,8 +833,16 @@ void* pthread_uc_worker(void *ctx) {
 //            printf("\t[*] uc error %s\n", uc_strerror(err));
 //            assert(0);
         }
+        if (!context->stateManager->isEmpty()) {
+            // restart emu
+            context->step(true, endAddr);
+        }
         uc_emu_stop(context->engine);
         context->gc();
+        
+#ifdef Stalker
+        printf("Stalker %d: SubRoutine Ended\n\n", context->identifer);
+#endif
         
         pthread_mutex_lock(&counterMutex);
         curCount += 1;
@@ -807,7 +931,7 @@ uc_engine* createEngine(int identifier) {
     // setup default thread state
     assert(uc_context_alloc(uc, &ctx) == UC_ERR_OK);
     
-    uint64_t unicorn_sp_start = 0x300000000;
+    uint64_t unicorn_sp_start = UnicornStackTopAddr;
     uc_reg_write(uc, UC_ARM64_REG_SP, &unicorn_sp_start);
     
     // set FPEN on CPACR_EL1
@@ -823,6 +947,9 @@ uc_engine* createEngine(int identifier) {
     // enable detail
     cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
     
+    // create state manager
+    ProgramStateManager *stateManager = new ProgramStateManager();
+    
     // build context
     EngineContext *engineCtx = new EngineContext();
     engineCtx->identifer = identifier;
@@ -831,6 +958,8 @@ uc_engine* createEngine(int identifier) {
     engineCtx->defaultContext = ctx;
     engineCtx->lastPc = 0;
     engineCtx->currentMethod = NULL;
+    engineCtx->stateManager = stateManager;
+    engineCtx->currentState = nullptr;
     engineContexts[uc] = engineCtx;
     return uc;
 }
