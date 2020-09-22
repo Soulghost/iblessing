@@ -18,7 +18,7 @@ class ProgramState {
 public:
     uc_context *uc_ctx;
     uint64_t pc;
-    uint32_t depth;
+    int depth;
     std::string condition;
     
     // stack

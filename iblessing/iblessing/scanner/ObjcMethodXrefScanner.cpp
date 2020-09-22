@@ -76,6 +76,7 @@ static set<string> trackSymbolBlacklist = {
 static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uint64_t x1, int sendSuperType);
 static void trackSymbolCall(uc_engine *uc, ObjcMethod *currentMethod, Symbol *symbol);
 static bool shouldTrackSymbols = true;
+static int findAllPathLevel = 0;
 static void storeMethodChains();
 
 static bool isValidClassInfo(ObjcClassRuntimeInfo *info) {
@@ -154,38 +155,11 @@ public:
             return false;
         }
         
-//        printf("======= before =======\n");
-//        for (int i = 0; i < 20; i++) {
-//            uint64_t reg = 0;
-//            uc_reg_read(engine, UC_ARM64_REG_X0 + i, &reg);
-//            printf("===== uc context x%d = 0x%llx =====\n", i, reg);
-//        }
-//
-//        {
-//            uint64_t pc = 0;
-//            uc_reg_read(engine, UC_ARM64_REG_PC, &pc);
-//            printf("===== uc context pc = 0x%llx =====\n", pc);
-//        }
-        
         shared_ptr<ProgramState> state = stateManager->popState();
         uc_context_restore(engine, state->uc_ctx);
         currentState = state;
         lastPc = 0;
         lastInsn = nullptr;
-        
-//        printf("====== after ======\n");
-//
-//        for (int i = 0; i < 20; i++) {
-//            uint64_t reg = 0;
-//            uc_reg_read(engine, UC_ARM64_REG_X0 + i, &reg);
-//            printf("===== uc context x%d = 0x%llx =====\n", i, reg);
-//        }
-//
-//        {
-//            uint64_t pc = 0;
-//            uc_reg_read(engine, UC_ARM64_REG_PC, &pc);
-//            printf("===== uc context pc = 0x%llx =====\n", pc);
-//        }
         
         // restore pc
         uc_reg_write(engine, UC_ARM64_REG_PC, &state->pc);
@@ -424,18 +398,25 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         return;
     }
     
-    // split at condition branch
-    // FIXME: skip now
-    if (strcmp(insn->mnemonic, "cbz") == 0 ||
-        strcmp(insn->mnemonic, "cbnz") == 0) {
-        // always jump to next ins
-        uint64_t pc = address + size;
-        assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
-    }
-    
-    // skip branches
-    if (strncmp(insn->mnemonic, "b.", 2) == 0 ||
-        strncmp(insn->mnemonic, "bl.", 3) == 0) {
+    auto splitAtBranch = [&]() {
+        // check switch
+        if (findAllPathLevel == 0) {
+            return;
+        }
+        
+        int curDepth = ctx->currentState ? ctx->currentState->depth : 1;
+        int nextDepth = curDepth + 1;
+        
+        // specific level
+        if (findAllPathLevel > 0) {
+            int maxDepth = findAllPathLevel + 1;
+            if (nextDepth > maxDepth) {
+                return;
+            }
+        }
+        
+        // findAllPathLevel < 0 means unlimit tracking
+        
         // create branching state
         uint64_t branchPC = 0;
         cs_arm64_op addrOp = insn->detail->arm64.operands[0];
@@ -459,27 +440,34 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             shared_ptr<ProgramState> state = make_shared<ProgramState>();
             state->uc_ctx = branchContext;
             state->pc = branchPC;
-            state->depth = ctx->currentState ? ctx->currentState->depth + 1 : 1;
+            state->depth = nextDepth;
             state->condition = StringUtils::format("%s %s", insn->mnemonic, insn->op_str);
             state->uc_stack_size = 0x1000;
             state->uc_stack = malloc(state->uc_stack_size);
             state->uc_stack_top_addr = UnicornStackTopAddr;
             assert(uc_mem_read(uc, state->uc_stack_top_addr - state->uc_stack_size, state->uc_stack, state->uc_stack_size) == UC_ERR_OK);
             
-//            for (int i = 0; i < 20; i++) {
-//                uint64_t reg = 0;
-//                uc_reg_read(uc, UC_ARM64_REG_X0 + i, &reg);
-//                printf("===== uc context x%d = 0x%llx =====\n", i, reg);
-//            }
-//
-//            {
-//                uint64_t pc = 0;
-//                uc_reg_read(uc, UC_ARM64_REG_PC, &pc);
-//                printf("===== uc context pc = 0x%llx =====\n", pc);
-//            }
-            
             ctx->stateManager->enqueueState(state);
         }
+    };
+    
+    // split at condition branch
+    // FIXME: skip now
+    if (strcmp(insn->mnemonic, "cbz") == 0 ||
+        strcmp(insn->mnemonic, "cbnz") == 0) {
+        // split condition branch end enqueue
+        splitAtBranch();
+        
+        // jump to next ins
+        uint64_t pc = address + size;
+        assert(uc_reg_write(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
+    }
+    
+    // skip branches
+    if (strncmp(insn->mnemonic, "b.", 2) == 0 ||
+        strncmp(insn->mnemonic, "bl.", 3) == 0) {
+        // split condition branch end enqueue
+        splitAtBranch();
         
         // jump to next ins (no branching)
         uint64_t pc = address + size;
@@ -980,7 +968,11 @@ int ObjcMethodXrefScanner::start() {
         shouldTrackSymbols = atoi(options["trackSymbols"].c_str()) != 0;
     }
     
-    printf("  [*] Status: Track C Symbols: %d, Anti Wrapper: %d\n", shouldTrackSymbols, shouldAntiWrapper);
+    if (options.find("findAllPath") != options.end()) {
+        findAllPathLevel = atoi(options["findAllPath"].c_str());
+    }
+    
+    printf("  [*] Status: Track C Symbols: %d, Anti Wrapper: %d, Find All Path Level: %d\n", shouldTrackSymbols, shouldAntiWrapper, findAllPathLevel);
     
     printf("  [*] Step 1. realize all app classes\n");
     ObjcRuntime *rt = ObjcRuntime::getInstance();
