@@ -67,6 +67,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     
     uint32_t ncmds = hdr->ncmds;
     uint8_t *cmds = mappedFile + sizeof(struct ib_mach_header_64);
+    uint64_t textRelocAddr = 0;
+    uint64_t textRelocCount = 0;
     
     struct ib_symtab_command *symtab_cmd = nullptr;
     struct ib_dysymtab_command *dysymtab_cmd = nullptr;
@@ -97,6 +99,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
                         // * Notice: sectname is char[16]
                         if (strncmp(sect->sectname, "__text", 16) == 0) {
                             textSect = sect;
+                            textRelocAddr = sect->reloff;
+                            textRelocCount = sect->nreloc;
                         }
                         if (strncmp(sect->sectname, "__bss", 16) == 0) {
                             vmaddr_bss_start = sect->addr;
@@ -160,22 +164,22 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     });
     
     // test our searching
-    if (!dyld_info) {
-        return SC_ERR_MACHO_MISSING_SEGMENT_DYLD;
-    }
+//    if (!dyld_info) {
+//        return SC_ERR_MACHO_MISSING_SEGMENT_DYLD;
+//    }
     
     // sanity check
-    if (!textSeg64) {
-        return SC_ERR_MACHO_MISSING_SEGMENT_TEXT;
-    }
+//    if (!textSeg64) {
+//        return SC_ERR_MACHO_MISSING_SEGMENT_TEXT;
+//    }
     
     // build string table
     if (!symtab_cmd) {
         return SC_ERR_MACHO_MISSING_SEGMENT_SYMTAB;
     }
-    if (!dysymtab_cmd) {
-        return SC_ERR_MACHO_MISSING_SEGMENT_DYSYMTAB;
-    }
+//    if (!dysymtab_cmd) {
+//        return SC_ERR_MACHO_MISSING_SEGMENT_DYSYMTAB;
+//    }
     
     StringTable *strtab = StringTable::getInstance();
     uint64_t strtab_vmaddr = linkedit_base + symtab_cmd->stroff;
@@ -184,7 +188,20 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     // symtab vmaddr will be loaded base on linkedit_base
     SymbolTable *symtab = SymbolTable::getInstance();
     symtab->buildSymbolTable(mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
-    symtab->buildDynamicSymbolTable(sectionHeaders, mappedFile + dysymtab_cmd->indirectsymoff, dysymtab_cmd->nindirectsyms, mappedFile);
+    if (dysymtab_cmd) {
+        symtab->buildDynamicSymbolTable(sectionHeaders, mappedFile + dysymtab_cmd->indirectsymoff, dysymtab_cmd->nindirectsyms, mappedFile);
+    }
+    
+    if (textRelocAddr > 0 && textRelocCount > 0) {
+        struct scattered_relocation_info *reloc_info = (struct scattered_relocation_info *)(mappedFile + textRelocAddr);
+        while (textRelocCount--) {
+            uint32_t addr = (reloc_info->r_address & 0x00ffffff);
+            uint32_t symbolNum = (reloc_info->r_value & 0x00ffffff);
+//            symtab->relocSymbol(addr, symbolNum);
+            reloc_info++;
+        }
+    }
+    
     symtab->sync();
     
     return SC_ERR_OK;

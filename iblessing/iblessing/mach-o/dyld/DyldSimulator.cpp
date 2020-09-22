@@ -53,6 +53,10 @@ static intptr_t read_sleb128(const uint8_t*& p, const uint8_t* end)
 
 
 bool DyldSimulator::eachBind(uint8_t *mappedData, std::vector<struct ib_segment_command_64 *> segmentHeaders, ib_dyld_info_command *dyldinfo, DyldBindHandler handler) {
+    if (!dyldinfo) {
+        return false;
+    }
+    
     uint32_t bind_off = dyldinfo->bind_off;
     uint32_t bind_size = dyldinfo->bind_size;
     const uint8_t * const bind_start = mappedData + bind_off;

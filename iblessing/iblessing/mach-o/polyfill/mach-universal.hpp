@@ -657,4 +657,32 @@ struct ib_entry_point_command {
     uint64_t  stacksize;/* if not zero, initial stack size */
 };
 
+#define R_SCATTERED 0x80000000    /* mask to be applied to the r_address field
+                   of a relocation_info structure to tell that
+                   is is really a scattered_relocation_info
+                   stucture */
+struct scattered_relocation_info {
+//#ifdef __BIG_ENDIAN__
+//   uint32_t    r_scattered:1,    /* 1=scattered, 0=non-scattered (see above) */
+//        r_pcrel:1,     /* was relocated pc relative already */
+//        r_length:2,    /* 0=byte, 1=word, 2=long, 3=quad */
+//        r_type:4,    /* if not 0, machine specific relocation type */
+//           r_address:24;    /* offset in the section to what is being
+//                   relocated */
+//   int32_t    r_value;    /* the value the item to be relocated is
+//                   refering to (without any offset added) */
+//#endif /* __BIG_ENDIAN__ */
+//#ifdef __LITTLE_ENDIAN__
+   uint32_t
+        r_address:24,    /* offset in the section to what is being
+                   relocated */
+        r_type:4,    /* if not 0, machine specific relocation type */
+        r_length:2,    /* 0=byte, 1=word, 2=long, 3=quad */
+        r_pcrel:1,     /* was relocated pc relative already */
+        r_scattered:1;    /* 1=scattered, 0=non-scattered (see above) */
+   int32_t    r_value;    /* the value the item to be relocated is
+                   refering to (without any offset added) */
+//#endif /* __LITTLE_ENDIAN__ */
+};
+
 #endif /* mach_universal_hpp */
