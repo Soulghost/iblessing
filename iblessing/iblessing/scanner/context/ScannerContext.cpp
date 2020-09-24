@@ -11,6 +11,8 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <vector>
+#include <sys/time.h>
+#include <sys/stat.h>
 
 #include "VirtualMemory.hpp"
 #include "VirtualMemoryV2.hpp"
@@ -18,15 +20,17 @@
 #include "StringTable.hpp"
 #include "SymbolTable.hpp"
 #include "mach-universal.hpp"
+#include "mach-machine.h"
+#include "StringUtils.h"
 
 using namespace std;
+using namespace std::chrono;
 using namespace iblessing;
 
-#pragma mark - setup
-scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
-    // mapping binary file
-    cout << "[*] ScannerContext load binary file at " << binaryPath << endl;
-    
+static scanner_err headerDetector(string binaryPath,
+                                  uint8_t **mappedFileOut,    /** OUT */
+                                  uint64_t *sizeOut,         /** OUT */
+                                  ib_mach_header_64 **hdrOut  /** OUT */) {
     int fd = open(binaryPath.c_str(), O_RDWR);
     if (fd == -1) {
         return SC_ERR_INVALID_BINARY;
@@ -37,13 +41,15 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     if (reinterpret_cast<int64_t>(mappedFile) == -1) {
         return SC_ERR_MAP_FAILED;
     }
+    *mappedFileOut = mappedFile;
+    *sizeOut = fileStatus.st_size;
     
     // read header
     struct ib_mach_header_64 *hdr = (struct ib_mach_header_64 *)mappedFile;
     uint32_t magic = hdr->magic;
     switch (magic) {
         case IB_MH_MAGIC_64:
-        case IB_MH_CIGAM_64:
+        case IB_MH_CIGAM_64: {
             cout << "[+] ScannerContext detect mach-o header 64" << endl;
             if (magic == IB_MH_CIGAM_64) {
                 cout << "[+] ScannerContext detect big-endian, swap header to litten-endian" << endl;
@@ -51,10 +57,89 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
             } else {
                 cout << "[+] ScannerContext detect litten-endian" << endl;
             }
+            *hdrOut = hdr;
             break;
+        }
+        case IB_FAT_MAGIC:
+        case IB_FAT_CIGAM: {
+            cout << "[+] ScannerContext - detect mach-o fat header 64" << endl;
+            struct ib_fat_header *fat_hdr = (struct ib_fat_header *)mappedFile;
+            if (magic == IB_FAT_CIGAM) {
+                cout << "[+] ScannerContext - detect big-endian, swap header to litten-endian" << endl;
+                ib_swap_fat_header(fat_hdr, IB_LittleEndian);
+            } else {
+                cout << "[+] ScannerContext - detect litten-endian" << endl;
+            }
+            
+            // split aarch64
+            uint32_t narchs = fat_hdr->nfat_arch;
+            struct ib_fat_arch *arch = (struct ib_fat_arch *)(mappedFile + sizeof(struct ib_fat_header));
+            uint64_t arch_hdr_offset = 0;
+            for (uint32_t i = 0; i < narchs; i++) {
+                ib_swap_fat_arch(arch, IB_LittleEndian);
+                if (arch->cputype == CPU_TYPE_ARM64) {
+                    arch_hdr_offset = arch->offset;
+                }
+                arch += 1;
+            }
+            
+            if (arch_hdr_offset == 0) {
+                return SC_ERR_UNSUPPORT_ARCH;
+            }
+            
+            uint64_t firstByte = *(uint64_t *)(mappedFile + arch_hdr_offset);
+            if (firstByte == *(uint64_t *)"!<arch>\n") {
+                return SC_ERR_NEED_ARCHIVE;
+            } else {
+                hdr = (struct ib_mach_header_64 *)(mappedFile + arch_hdr_offset);
+                *hdrOut = hdr;
+            }
+            break;
+        }
         default: {
             return SC_ERR_UNSUPPORT_ARCH;
         }
+    }
+    return SC_ERR_OK;
+}
+
+#pragma mark - setup
+scanner_err ScannerContext::archiveStaticLibraryAndRetry(string binaryPath) {
+    // mapping binary file
+    cout << "[*] ScannerContext - detect static libary at " << binaryPath << endl;
+    
+    
+    // generate tmp dir name
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    long long ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
+    string tmpDir = StringUtils::format("/tmp/iblessing_archive_%lld", ms);
+    if (mkdir(tmpDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH ) != 0) {
+        cout << "[*] ScannerContext - cannot create dir at " << tmpDir;
+        return SC_ERR_UNKNOWN;
+    }
+    return SC_ERR_OK;
+}
+
+scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry) {
+    // mapping binary file
+    cout << "[*] ScannerContext - load binary file at " << binaryPath << endl;
+    
+    uint8_t *mappedFile = nullptr;
+    uint64_t fileSize = 0;
+    ib_mach_header_64 *hdr = nullptr;
+    scanner_err err = headerDetector(binaryPath, &mappedFile, &fileSize, &hdr);
+    if (err != SC_ERR_OK) {
+        if (err != SC_ERR_NEED_ARCHIVE) {
+            return err;
+        }
+        
+        // avoid of deadloop
+        if (reentry) {
+            return SC_ERR_UNSUPPORT_ARCH;
+        }
+        
+        return archiveStaticLibraryAndRetry(binaryPath);
     }
     
     // parse section headers
@@ -145,7 +230,7 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     vm->vmaddr_bss_start = vmaddr_bss_start;
     vm->vmaddr_bss_end = vmaddr_bss_end;
     vm->mappedFile = mappedFile;
-    vm->mappedSize = fileStatus.st_size;
+    vm->mappedSize = fileSize;
     vm->segmentHeaders = segmentHeaders;
     vm->dyldinfo = dyld_info;
     vm->textSect = textSect;
@@ -195,8 +280,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath) {
     if (textRelocAddr > 0 && textRelocCount > 0) {
         struct scattered_relocation_info *reloc_info = (struct scattered_relocation_info *)(mappedFile + textRelocAddr);
         while (textRelocCount--) {
-            uint32_t addr = (reloc_info->r_address & 0x00ffffff);
-            uint32_t symbolNum = (reloc_info->r_value & 0x00ffffff);
+//            uint32_t addr = (reloc_info->r_address & 0x00ffffff);
+//            uint32_t symbolNum = (reloc_info->r_value & 0x00ffffff);
 //            symtab->relocSymbol(addr, symbolNum);
             reloc_info++;
         }

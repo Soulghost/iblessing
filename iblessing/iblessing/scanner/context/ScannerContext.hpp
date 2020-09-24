@@ -18,7 +18,8 @@ NS_IB_BEGIN
 class ScannerContext {
 public:
     std::string getBinaryPath();
-    scanner_err setupWithBinaryPath(std::string binaryPath);
+    scanner_err archiveStaticLibraryAndRetry(std::string binaryPath);
+    scanner_err setupWithBinaryPath(std::string binaryPath, bool reentry = false);
     
 private:
     std::string binaryPath;
