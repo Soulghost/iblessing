@@ -125,9 +125,24 @@ struct ib_mach_header_64 {
     uint32_t    reserved;    /* reserved */
 };
 
+struct ib_fat_header {
+    uint32_t    magic;        /* FAT_MAGIC */
+    uint32_t    nfat_arch;    /* number of structs that follow */
+};
+
+struct ib_fat_arch {
+    int         cputype;    /* cpu specifier (int) */
+    int         cpusubtype;    /* machine specifier (int) */
+    uint32_t    offset;        /* file offset to this object file */
+    uint32_t    size;        /* size of this object file */
+    uint32_t    align;        /* alignment as a power of 2 */
+};
+
 /* Constant for the magic field of the mach_header_64 (64-bit architectures) */
 #define IB_MH_MAGIC_64 0xfeedfacf /* the 64-bit mach magic number */
 #define IB_MH_CIGAM_64 0xcffaedfe /* NXSwapInt(MH_MAGIC_64) */
+#define IB_FAT_MAGIC   0xcafebabe
+#define IB_FAT_CIGAM   0xbebafeca /* NXSwapLong(FAT_MAGIC) */
 
 /*
  * The 64-bit segment load command indicates that a part of this file is to be
@@ -210,9 +225,9 @@ enum IBByteOrder {
     IB_BigEndian
 };
 
-extern void ib_swap_mach_header_64(
-struct ib_mach_header_64 *mh,
-enum IBByteOrder target_byte_order);
+extern void ib_swap_mach_header_64(struct ib_mach_header_64 *mh, enum IBByteOrder target_byte_order);
+extern void ib_swap_fat_header(struct ib_fat_header *mh, enum IBByteOrder target_byte_order);
+extern void ib_swap_fat_arch(struct ib_fat_arch *arch, enum IBByteOrder target_byte_order);
 
 
 #pragma mark - Segments

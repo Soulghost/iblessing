@@ -11,6 +11,8 @@
 
 typedef enum scanner_err {
     SC_ERR_OK = 0,
+    SC_ERR_UNKNOWN,
+    SC_ERR_NEED_ARCHIVE,
     SC_ERR_INVALID_BINARY,          // invalid binary file
     SC_ERR_MAP_FAILED,
     SC_ERR_UNSUPPORT_ARCH,          // only support aarch64 now
