@@ -37,7 +37,10 @@ add_executable(iblessing iblessing/main.cpp)
 # vendor libs
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/capstone/libcapstone.a)
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/unicorn/libunicorn.a)
-target_link_libraries(iblessing stdc++fs)
+
+if ((iblessing.PLATFORM STREQUAL "linux")) 
+    target_link_libraries(iblessing stdc++fs)
+endif()
 
 # macro inject
 if (iblessing.CSR_ENABLED) 
@@ -46,6 +49,10 @@ endif()
 
 if (iblessing.COCOA_FOUNDATION_ENABLED) 
     target_compile_definitions(iblessing PRIVATE IB_COCOA_FOUNDATION_ENABLED)
+endif()
+
+if (iblessing.PLATFORM STREQUAL "macos") 
+    target_compile_definitions(iblessing PRIVATE IB_PLATFORM_DARWIN)
 endif()
 
 set(iblessing.VENDOR_INCLUDES
