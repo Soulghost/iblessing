@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 
 project(iblessing VERSION 1.0)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -pthread)
 set(CMAKE_C_STANDARD 11)
@@ -149,6 +149,7 @@ set(iblessing.SOURCE_LIST
     # scanner
     iblessing/scanner/context/ScannerContext.cpp
     iblessing/scanner/context/ScannerContextManager.cpp
+    iblessing/scanner/context/ScannerWorkDirManager.cpp
 
     iblessing/scanner/dispatcher/ScannerDispatcher.cpp
 

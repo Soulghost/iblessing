@@ -19,18 +19,23 @@
 #include "ObjcRuntime.hpp"
 #include "StringTable.hpp"
 #include "SymbolTable.hpp"
-#include "mach-universal.hpp"
-#include "mach-machine.h"
 #include "StringUtils.h"
 
 using namespace std;
-using namespace std::chrono;
 using namespace iblessing;
 
-static scanner_err headerDetector(string binaryPath,
-                                  uint8_t **mappedFileOut,    /** OUT */
-                                  uint64_t *sizeOut,         /** OUT */
-                                  ib_mach_header_64 **hdrOut  /** OUT */) {
+ScannerContext::ScannerContext() {
+    workDirManager.reset(new ScannerWorkDirManager("/tmp/iblessing-workdir"));
+}
+
+scanner_err ScannerContext::headerDetector(string binaryPath,
+                                           uint8_t **mappedFileOut,    /** OUT */
+                                           uint64_t *sizeOut,          /** OUT */
+                                           ib_mach_header_64 **hdrOut  /** OUT */) {
+    if (!mappedFileOut || !sizeOut || !hdrOut) {
+        return SC_ERR_INVALID_ARGUMENTS;
+    }
+    
     int fd = open(binaryPath.c_str(), O_RDWR);
     if (fd == -1) {
         return SC_ERR_INVALID_BINARY;
@@ -41,9 +46,22 @@ static scanner_err headerDetector(string binaryPath,
     if (reinterpret_cast<int64_t>(mappedFile) == -1) {
         return SC_ERR_MAP_FAILED;
     }
-    *mappedFileOut = mappedFile;
-    *sizeOut = fileStatus.st_size;
     
+    uint64_t offset = 0, size = 0;
+    scanner_err err = headerDetector(mappedFile, hdrOut, &offset, &size);
+    if (err || !*hdrOut) {
+        return err;
+    }
+    
+    *mappedFileOut = (mappedFile + offset);
+    *sizeOut = size == 0 ? fileStatus.st_size : size;
+    return SC_ERR_OK;
+}
+
+scanner_err ScannerContext::headerDetector(uint8_t *mappedFile,
+                                           ib_mach_header_64 **hdrOut,
+                                           uint64_t *archOffsetOut,
+                                           uint64_t *archSizeOut) {
     // read header
     struct ib_mach_header_64 *hdr = (struct ib_mach_header_64 *)mappedFile;
     uint32_t magic = hdr->magic;
@@ -57,15 +75,24 @@ static scanner_err headerDetector(string binaryPath,
             } else {
                 cout << "[+] ScannerContext detect litten-endian" << endl;
             }
+            
             *hdrOut = hdr;
+            if (archOffsetOut) {
+                *archOffsetOut = 0;
+            }
+            if (archSizeOut) {
+                *archSizeOut = 0;
+            }
             break;
         }
         case IB_FAT_MAGIC:
         case IB_FAT_CIGAM: {
             cout << "[+] ScannerContext - detect mach-o fat header 64" << endl;
             struct ib_fat_header *fat_hdr = (struct ib_fat_header *)mappedFile;
+            bool needSwapHeader = false;
             if (magic == IB_FAT_CIGAM) {
                 cout << "[+] ScannerContext - detect big-endian, swap header to litten-endian" << endl;
+                needSwapHeader = true;
                 ib_swap_fat_header(fat_hdr, IB_LittleEndian);
             } else {
                 cout << "[+] ScannerContext - detect litten-endian" << endl;
@@ -76,9 +103,12 @@ static scanner_err headerDetector(string binaryPath,
             struct ib_fat_arch *arch = (struct ib_fat_arch *)(mappedFile + sizeof(struct ib_fat_header));
             uint64_t arch_hdr_offset = 0;
             for (uint32_t i = 0; i < narchs; i++) {
-                ib_swap_fat_arch(arch, IB_LittleEndian);
+                if (needSwapHeader) {
+                    ib_swap_fat_arch(arch, IB_LittleEndian);
+                }
                 if (arch->cputype == CPU_TYPE_ARM64) {
                     arch_hdr_offset = arch->offset;
+                    break;
                 }
                 arch += 1;
             }
@@ -93,6 +123,12 @@ static scanner_err headerDetector(string binaryPath,
             } else {
                 hdr = (struct ib_mach_header_64 *)(mappedFile + arch_hdr_offset);
                 *hdrOut = hdr;
+                if (archOffsetOut) {
+                    *archOffsetOut = arch->offset;
+                }
+                if (archSizeOut) {
+                    *archSizeOut = arch->size;
+                }
             }
             break;
         }
@@ -125,10 +161,27 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     // mapping binary file
     cout << "[*] ScannerContext - load binary file at " << binaryPath << endl;
     
+    if (workDirManager->resetWorkDir() != 0) {
+        return SC_ERR_RESET_WORK_DIR;
+    }
+    
+    char *shadowFilePath = nullptr;
+    if (workDirManager->createShadowFile(binaryPath, &shadowFilePath) != 0) {
+        return SC_ERR_MAP_FAILED;
+    }
+    
+    if (shadowFilePath == nullptr) {
+        return SC_ERR_MAP_FAILED;
+    }
+    
+    binaryPath = shadowFilePath;
+    // create shadow file
+    cout << "[*] ScannerContext - create shadow file at " << binaryPath << endl;
+    
     uint8_t *mappedFile = nullptr;
     uint64_t fileSize = 0;
     ib_mach_header_64 *hdr = nullptr;
-    scanner_err err = headerDetector(binaryPath, &mappedFile, &fileSize, &hdr);
+    scanner_err err = ScannerContext::headerDetector(binaryPath, &mappedFile, &fileSize, &hdr);
     if (err != SC_ERR_OK) {
         if (err != SC_ERR_NEED_ARCHIVE) {
             return err;
@@ -238,7 +291,9 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     
     // load vm-v2
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
-    vm2->loadWithMachOData(mappedFile);
+    if (vm2->loadWithMachOData(mappedFile) != 0) {
+        return SC_ERR_UNSUPPORT_ARCH;
+    }
     
     ObjcRuntime *objcRuntime = ObjcRuntime::getInstance();
     objcRuntime->loadClassList(objc_classlist_addr, objc_classlist_size);

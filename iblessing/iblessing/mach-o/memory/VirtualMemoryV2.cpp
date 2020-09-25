@@ -10,6 +10,8 @@
 #include "VirtualMemory.hpp"
 #include "termcolor.h"
 #include "StringUtils.h"
+#include "mach-machine.h"
+#include "ScannerContext.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -90,20 +92,11 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
     }
     
     // mapping file
-    struct ib_mach_header_64 *hdr = (struct ib_mach_header_64 *)mappedFile;
-    uint32_t magic = hdr->magic;
-    switch (magic) {
-        case IB_MH_MAGIC_64:
-        case IB_MH_CIGAM_64:
-            if (magic == IB_MH_CIGAM_64) {
-                ib_swap_mach_header_64(hdr, IB_LittleEndian);
-            }
-            break;
-        default: {
-            cout << termcolor::red << "[-] VirtualMemoryV2 - Error: unsupport arch, only support aarch64 now";
-            cout << termcolor::reset << endl;
-            break;
-        }
+    struct ib_mach_header_64 *hdr = nullptr;
+    if (ScannerContext::headerDetector(mappedFile, &hdr) != SC_ERR_OK) {
+        cout << termcolor::red << "[-] VirtualMemoryV2 - cannot extract aarch64 header from binary file";;
+        cout << termcolor::reset << endl;
+        return 1;
     }
     
     // parse section headers

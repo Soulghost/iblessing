@@ -11,6 +11,7 @@
 
 #include <cstdio>
 #include <iostream>
+#include <memory>
 #include <cassert>
 #include <string>
 #include <functional>
