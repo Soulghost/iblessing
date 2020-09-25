@@ -8,12 +8,12 @@
 
 #include "ScannerWorkDirManager.hpp"
 #include "StringUtils.h"
-#include <filesystem>
+#include <experimental/filesystem>
 #include <sys/stat.h>
 
 using namespace std;
 using namespace iblessing;
-namespace fs = std::filesystem;
+namespace fs = std::experimental::filesystem;
 
 ScannerWorkDirManager::ScannerWorkDirManager(string workDir) {
     if (!StringUtils::has_prefix(workDir, "/tmp/")) {

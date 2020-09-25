@@ -37,6 +37,7 @@ add_executable(iblessing iblessing/main.cpp)
 # vendor libs
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/capstone/libcapstone.a)
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/unicorn/libunicorn.a)
+target_link_libraries(iblessing stdc++fs)
 
 # macro inject
 if (iblessing.CSR_ENABLED) 
