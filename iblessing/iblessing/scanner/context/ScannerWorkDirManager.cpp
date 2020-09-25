@@ -8,12 +8,23 @@
 
 #include "ScannerWorkDirManager.hpp"
 #include "StringUtils.h"
+
+#ifdef IB_PLATFORM_DARWIN
+#include <filesystem>
+#else
 #include <experimental/filesystem>
+#endif
+
 #include <sys/stat.h>
 
 using namespace std;
 using namespace iblessing;
+
+#ifdef IB_PLATFORM_DARWIN
+namespace fs = std::filesystem;
+#else
 namespace fs = std::experimental::filesystem;
+#endif
 
 ScannerWorkDirManager::ScannerWorkDirManager(string workDir) {
     if (!StringUtils::has_prefix(workDir, "/tmp/")) {
