@@ -12,6 +12,7 @@
 #include "StringUtils.h"
 #include "mach-machine.h"
 #include "ScannerContext.hpp"
+#include "SymbolTable.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -181,6 +182,17 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
     }
     
     return 0;
+}
+
+void VirtualMemoryV2::relocAllRegions() {
+    // perform relocs
+    SymbolTable *symtab = SymbolTable::getInstance();
+    for (pair<uint64_t, pair<uint64_t, uint64_t>> reloc : symtab->getAllRelocs()) {
+        uint64_t originAddr = reloc.first;
+        uint64_t relocAddr = reloc.second.first;
+        uint64_t relocSize = reloc.second.second;
+        uc_mem_write(uc, originAddr, &relocAddr, relocSize);
+    }
 }
 
 uint64_t VirtualMemoryV2::read64(uint64_t address, bool *success) {
