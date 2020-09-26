@@ -37,6 +37,7 @@ add_executable(iblessing iblessing/main.cpp)
 # vendor libs
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/capstone/libcapstone.a)
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/unicorn/libunicorn.a)
+target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/keystone/build/llvm/lib/libkeystone.a)
 
 if ((iblessing.PLATFORM STREQUAL "linux")) 
     target_link_libraries(iblessing stdc++fs)
@@ -58,6 +59,7 @@ endif()
 set(iblessing.VENDOR_INCLUDES
     ${CMAKE_SOURCE_DIR}/../submodules/capstone/include
     ${CMAKE_SOURCE_DIR}/../submodules/unicorn/include
+    ${CMAKE_SOURCE_DIR}/../submodules/keystone/include
 )
 
 set(iblessing.SOURCE_INCLUDES

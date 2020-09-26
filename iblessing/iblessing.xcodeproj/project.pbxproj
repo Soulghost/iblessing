@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		68192CC0251F359500EB867C /* libkeystone.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68192CBF251F359500EB867C /* libkeystone.a */; };
 		6829627A24CBEE4A00EF9251 /* Tests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829627924CBEE4A00EF9251 /* Tests.m */; };
 		6829628724CBEEA300EF9251 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829628624CBEEA300EF9251 /* AppDelegate.m */; };
 		6829628D24CBEEA300EF9251 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829628C24CBEEA300EF9251 /* ViewController.m */; };
@@ -79,6 +80,7 @@
 
 /* Begin PBXFileReference section */
 		6800875E24CAD5D100853E04 /* iblessing.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = iblessing.entitlements; sourceTree = "<group>"; };
+		68192CBF251F359500EB867C /* libkeystone.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libkeystone.a; sourceTree = "<group>"; };
 		6829627724CBEE4A00EF9251 /* Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6829627924CBEE4A00EF9251 /* Tests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Tests.m; sourceTree = "<group>"; };
 		6829627B24CBEE4A00EF9251 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -283,6 +285,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				68C362FA24C9C9D100441950 /* libSystem.B.tbd in Frameworks */,
+				68192CC0251F359500EB867C /* libkeystone.a in Frameworks */,
 				68D755D924C714EC0057E092 /* libcapstone.a in Frameworks */,
 				68D755D724C714E00057E092 /* libunicorn.a in Frameworks */,
 			);
@@ -548,6 +551,7 @@
 		685CE82E24C5723F002CC5E8 /* libs */ = {
 			isa = PBXGroup;
 			children = (
+				68192CBF251F359500EB867C /* libkeystone.a */,
 				68D755D824C714EC0057E092 /* libcapstone.a */,
 				68D755D624C714E00057E092 /* libunicorn.a */,
 			);
@@ -1277,6 +1281,7 @@
 				SYSTEM_HEADER_SEARCH_PATHS = (
 					"${SRCROOT}/../submodules/capstone/include",
 					"${SRCROOT}/../submodules/unicorn/include",
+					"${SRCROOT}/../submodules/keystone/include",
 				);
 			};
 			name = Debug;
@@ -1303,6 +1308,7 @@
 				SYSTEM_HEADER_SEARCH_PATHS = (
 					"${SRCROOT}/../submodules/capstone/include",
 					"${SRCROOT}/../submodules/unicorn/include",
+					"${SRCROOT}/../submodules/keystone/include",
 				);
 			};
 			name = Release;
