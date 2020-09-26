@@ -80,3 +80,18 @@ int ScannerWorkDirManager::createShadowFile(std::string filePath, char **shadowP
     }
     return 0;
 }
+
+std::vector<std::string> ScannerWorkDirManager::findAllObjectFiles(std::set<std::string> excludeFiles) {
+    vector<std::string> files;
+    for (auto &p : fs::directory_iterator(workDir)) {
+        string fileName = p.path().filename();
+        if (excludeFiles.find(fileName) != excludeFiles.end()) {
+            continue;;
+        }
+        
+        if (p.path().has_extension() && p.path().extension() == ".o") {
+            files.push_back(p.path());
+        }
+    }
+    return files;
+}

@@ -61,7 +61,8 @@ ScannerContext* ScannerContextManager::getContextByBinaryPath(string binaryPath)
                 cout << endl;
                 return nullptr;
             default:
-                break;
+                cout << termcolor::red << "[-] ScannerContextManager Error: ?";
+                return nullptr;
         }
     }
     
