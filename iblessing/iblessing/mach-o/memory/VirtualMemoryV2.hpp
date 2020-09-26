@@ -18,13 +18,15 @@ NS_IB_BEGIN
 
 class VirtualMemoryV2 {
 public:
-    static VirtualMemoryV2* progressDefault();
+    std::vector<std::pair<uint64_t, uint32_t>> textPatch;
     
+    static VirtualMemoryV2* progressDefault();
     int loadWithMachOData(uint8_t *mappedFile);
     int mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile);
-    void relocAllRegions();
+    void relocAllRegions(uc_engine *target = nullptr);
     uint64_t read64(uint64_t address, bool *success);
     uint32_t read32(uint64_t address, bool *success);
+    bool write32(uint64_t address, uint32_t value);
     void* readBySize(uint64_t address, uint64_t size);
     char* readString(uint64_t address, uint64_t limit);
     CFString* readAsCFString(uint64_t address, bool needCheck = true);

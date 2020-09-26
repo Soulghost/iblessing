@@ -159,7 +159,7 @@ void SymbolTable::buildDynamicSymbolTable(std::vector<struct ib_section_64 *> se
     }
 }
 
-bool SymbolTable::relocSymbol(uint64_t addr, uint64_t idx) {
+bool SymbolTable::relocSymbol(uint64_t addr, uint64_t idx, string sectname) {
     if (idx >= symbols.size()) {
         return false;
     }
@@ -171,13 +171,13 @@ bool SymbolTable::relocSymbol(uint64_t addr, uint64_t idx) {
     
     symbolMap.insert(addr, symbol);
     name2symbol[symbol->name].pushBack(symbol);
-    relocs[addr] = symbol;
+    relocs[addr] = {symbol, sectname};
     return true;
 }
 
 uint64_t SymbolTable::relocQuery(uint64_t addr) {
     if (relocs.find(addr) != relocs.end()) {
-        Symbol *symbol = relocs[addr];
+        Symbol *symbol = relocs[addr].first;
         return symbol->info->n_value;
     }
     
@@ -214,10 +214,10 @@ Symbol* SymbolTable::getSymbolByName(std::string name) {
     return nullptr;
 }
 
-vector<pair<uint64_t, pair<uint64_t, uint64_t>>> SymbolTable::getAllRelocs() {
-    vector<pair<uint64_t, pair<uint64_t, uint64_t>>> allRelocs;
+vector<pair<pair<uint64_t, string>, pair<uint64_t, uint64_t>>> SymbolTable::getAllRelocs() {
+    vector<pair<pair<uint64_t, string>, pair<uint64_t, uint64_t>>> allRelocs;
     for (auto it : relocs) {
-        allRelocs.push_back({it.first, {it.second->info->n_value, 8}});
+        allRelocs.push_back({{it.first, it.second.second}, {it.second.first->info->n_value, 8}});
     }
     return allRelocs;
 }

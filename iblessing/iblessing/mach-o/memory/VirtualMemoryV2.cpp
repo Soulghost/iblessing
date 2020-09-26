@@ -103,6 +103,7 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
     // parse section headers
     // vmaddr base
     uint64_t vmaddr_base = 0;
+    vector<pair<uint64_t, uint64_t>> textSects;
     
     // symtab、dlsymtab、strtab's vmaddr base on LINKEDIT's vmaddr
     uint64_t linkedit_base = 0;
@@ -136,6 +137,9 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
                 if (seg64->nsects > 0) {
                     struct ib_section_64 *sect = (struct ib_section_64 *)((uint8_t *)seg64 + sizeof(struct ib_segment_command_64));
                     for (uint32_t i = 0; i < seg64->nsects; i++) {
+                        if (strcmp(sect->sectname, "__text") == 0) {
+                            textSects.push_back({sect->addr, sect->size});
+                        }
                         uc_err err = uc_mem_write(uc, sect->addr, mappedFile + sect->offset, sect->size);
                         if (err != UC_ERR_OK) {
                             cout << termcolor::red << "[-] VirtualMemoryV2 - Error: cannot map section ";
@@ -181,17 +185,31 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
         return 1;
     }
     
+    if (uc != this->uc) {
+        // sync text segment since we may have fixed it
+        for (pair<uint64_t, uint32_t> patch : textPatch) {
+            uc_mem_write(uc, patch.first, &patch.second, sizeof(uint32_t));
+        }
+        relocAllRegions(uc);
+        
+    }
     return 0;
 }
 
-void VirtualMemoryV2::relocAllRegions() {
+void VirtualMemoryV2::relocAllRegions(uc_engine *target) {
+    if (target == nullptr) {
+        target = this->uc;
+    }
     // perform relocs
     SymbolTable *symtab = SymbolTable::getInstance();
-    for (pair<uint64_t, pair<uint64_t, uint64_t>> reloc : symtab->getAllRelocs()) {
-        uint64_t originAddr = reloc.first;
+    for (pair<pair<uint64_t, string>, pair<uint64_t, uint64_t>> reloc : symtab->getAllRelocs()) {
+        if (reloc.first.second == "__text") {
+            continue;
+        }
+        uint64_t originAddr = reloc.first.first;
         uint64_t relocAddr = reloc.second.first;
         uint64_t relocSize = reloc.second.second;
-        uc_mem_write(uc, originAddr, &relocAddr, relocSize);
+        uc_mem_write(target, originAddr, &relocAddr, relocSize);
     }
 }
 
@@ -233,6 +251,10 @@ uint32_t VirtualMemoryV2::read32(uint64_t address, bool *success) {
         *success = false;
     }
     return 0;
+}
+
+bool VirtualMemoryV2::write32(uint64_t address, uint32_t value) {
+    return uc_mem_write(uc, address, &value, 4) == UC_ERR_OK;
 }
 
 char* VirtualMemoryV2::readString(uint64_t address, uint64_t limit) {

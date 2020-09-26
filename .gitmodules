@@ -4,3 +4,6 @@
 [submodule "submodules/unicorn"]
 	path = submodules/unicorn
 	url = https://github.com/unicorn-engine/unicorn
+[submodule "submodules/keystone"]
+	path = submodules/keystone
+	url = https://github.com/keystone-engine/keystone

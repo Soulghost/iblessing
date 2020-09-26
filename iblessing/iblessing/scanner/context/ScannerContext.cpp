@@ -14,7 +14,10 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <keystone/keystone.h>
+#include <capstone/capstone.h>
 
+#include "termcolor.h"
 #include "VirtualMemory.hpp"
 #include "VirtualMemoryV2.hpp"
 #include "ObjcRuntime.hpp"
@@ -131,6 +134,14 @@ scanner_err ScannerContext::headerDetector(uint8_t *mappedFile,
                     *archSizeOut = arch->size;
                 }
             }
+            
+            arch = (struct ib_fat_arch *)(mappedFile + sizeof(struct ib_fat_header));
+            for (uint32_t i = 0; i < narchs; i++) {
+                if (needSwapHeader) {
+                    ib_swap_fat_arch(arch, IB_LittleEndian);
+                }
+                arch += 1;
+            }
             break;
         }
         default: {
@@ -176,7 +187,7 @@ scanner_err ScannerContext::archiveStaticLibraryAndRetry(string binaryPath) {
     if (workDirManager->resetWorkDir() != 0) {
         return SC_ERR_RESET_WORK_DIR;
     }
-    
+
     char *shadowFilePath = nullptr;
     if (workDirManager->createShadowFile(binaryPath, &shadowFilePath) != 0) {
         return SC_ERR_MAP_FAILED;
@@ -256,18 +267,18 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
         if (workDirManager->resetWorkDir() != 0) {
             return SC_ERR_RESET_WORK_DIR;
         }
-        
+
         if (workDirManager->createShadowFile(binaryPath, &shadowFilePath) != 0) {
             return SC_ERR_MAP_FAILED;
         }
-        
+
         if (shadowFilePath == nullptr) {
             return SC_ERR_MAP_FAILED;
         }
     } else {
         shadowFilePath = strdup(binaryPath.c_str());
     }
-    
+
     string originPath = binaryPath;
     binaryPath = shadowFilePath;
     // create shadow file
@@ -304,8 +315,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     
     uint32_t ncmds = hdr->ncmds;
     uint8_t *cmds = mappedFile + sizeof(struct ib_mach_header_64);
-    // offset, symbolIdx, baseAddr
-    vector<pair<pair<uint64_t, uint64_t>, uint64_t>> allRelocs;
+    // offset, symbolIdx, baseAddr, sectname
+    vector<pair<pair<uint64_t, uint64_t>, pair<uint64_t, string>>> allRelocs;
     
     struct ib_symtab_command *symtab_cmd = nullptr;
     struct ib_dysymtab_command *dysymtab_cmd = nullptr;
@@ -347,7 +358,7 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
                         }
                         
                         if (sect->reloff > 0 && sect->nreloc > 0) {
-                            allRelocs.push_back({{sect->reloff, sect->nreloc}, sect->addr});
+                            allRelocs.push_back({{sect->reloff, sect->nreloc}, {sect->addr, string(sect->sectname)}});
                         }
                         
                         sectionHeaders.push_back(sect);
@@ -391,12 +402,6 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     vm->dyldinfo = dyld_info;
     vm->textSect = textSect;
     vm->textSeg = textSeg64;
-    
-    // load vm-v2
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
-    if (vm2->loadWithMachOData(mappedFile) != 0) {
-        return SC_ERR_UNSUPPORT_ARCH;
-    }
 
     // sort sectionHeaders by offset
     sort(sectionHeaders.begin(), sectionHeaders.end(), [&](struct ib_section_64 *a, struct ib_section_64 *b) {
@@ -419,19 +424,77 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
         symtab->buildDynamicSymbolTable(sectionHeaders, mappedFile + dysymtab_cmd->indirectsymoff, dysymtab_cmd->nindirectsyms, mappedFile);
     }
     
+    // load vm-v2
+    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+    if (vm2->loadWithMachOData(mappedFile) != 0) {
+        return SC_ERR_UNSUPPORT_ARCH;
+    }
     
+    uint64_t textStart = textSect->offset;
+    uint64_t textEnd = textStart + textSect->size;
     if (allRelocs.size() > 0) {
-        for (pair<pair<uint64_t, uint64_t>, uint64_t> &reloc : allRelocs) {
+        ks_engine *ks;
+        assert(ks_open(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN, &ks) == KS_ERR_OK);
+        
+        csh handle;
+        assert(cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle) == CS_ERR_OK);
+        cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
+        
+        for (pair<pair<uint64_t, uint64_t>, pair<uint64_t, string>> &reloc : allRelocs) {
             uint64_t relocAddr = reloc.first.first;
             uint64_t relocCount = reloc.first.second;
-            uint64_t relocBase = reloc.second;
+            uint64_t relocBase = reloc.second.first;
             
             struct scattered_relocation_info *reloc_info = (struct scattered_relocation_info *)(mappedFile + relocAddr);
             while (relocCount--) {
                 uint64_t addr =  relocBase + (reloc_info->r_address & 0x00ffffff);
                 uint64_t symbolNum = (reloc_info->r_value & 0x00ffffff);
-                symtab->relocSymbol(addr, symbolNum);
+                symtab->relocSymbol(addr, symbolNum, reloc.second.second);
                 reloc_info++;
+                
+                if (addr >= textStart && addr <= textEnd) {
+                    if (addr == 0xe6f0) {
+                        
+                    }
+                    uint64_t insnAddr = addr;
+                    cs_insn *insn = nullptr;
+                    uint32_t asmcode = vm2->read32(addr, nullptr);
+                    uint8_t *code = (uint8_t *)&asmcode;
+                    size_t count = cs_disasm(handle, code, 4, insnAddr, 0, &insn);
+                    if (count == 1) {
+                        bool needFix = false;
+                        size_t size = 0, count = 0;
+                        unsigned char *encode = nullptr;
+                        if (strcmp(insn->mnemonic, "adrp") == 0) {
+                            string text = StringUtils::format("%s %s", insn->mnemonic, insn->op_str);
+                            uint64_t relocPage = symtab->relocQuery(addr);
+                            uint64_t page = (relocPage & ~0xfff);
+                            string fixup = StringUtils::split(text, '#')[0];
+                            fixup += StringUtils::format("0x%llx", page);
+                            if (ks_asm(ks, fixup.c_str(), addr, &encode, &size, &count) == KS_ERR_OK) {
+                                needFix = true;
+                            };
+                        } else if (strcmp(insn->mnemonic, "ldr") == 0) {
+                            string text = StringUtils::format("%s %s", insn->mnemonic, insn->op_str);
+                            uint64_t relocPage = symtab->relocQuery(addr);
+                            uint64_t pageoff = relocPage & 0xfff;
+                            string fixup = StringUtils::split(text, ']')[0];
+                            fixup += StringUtils::format(", #0x%llx]", pageoff);
+                            if (ks_asm(ks, fixup.c_str(), addr, &encode, &size, &count) == KS_ERR_OK) {
+                                needFix = true;
+                            };
+                        }
+                        
+                        if (needFix) {
+                            uint32_t fixcode = 0;
+                            for (size_t i = 0; i < size; i++) {
+                                fixcode += (encode[i] << (i * 8));
+                            }
+                            vm2->write32(addr, fixcode);
+                            vm2->textPatch.push_back({addr, fixcode});
+                        }
+                    }
+                }
             }
         }
     }

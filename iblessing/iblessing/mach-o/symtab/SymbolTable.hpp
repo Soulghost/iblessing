@@ -26,13 +26,13 @@ public:
     void buildDynamicSymbolTable(std::vector<struct ib_section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols, uint8_t *mappedData);
     void insertSymbol(Symbol *symbol);
     void sync();
-    bool relocSymbol(uint64_t addr, uint64_t idx);
+    bool relocSymbol(uint64_t addr, uint64_t idx, std::string sectname);
     uint64_t relocQuery(uint64_t addr);
     
     Symbol* getSymbolNearByAddress(uint64_t address);
     Symbol* getSymbolByAddress(uint64_t address);
     Symbol* getSymbolByName(std::string name);
-    std::vector<std::pair<uint64_t, std::pair<uint64_t, uint64_t>>> getAllRelocs();
+    std::vector<std::pair<std::pair<uint64_t, std::string>, std::pair<uint64_t, uint64_t>>> getAllRelocs();
     
 private:
     Map<uint64_t, Symbol *> symbolMap;
@@ -40,7 +40,7 @@ private:
     std::map<std::string, Vector<Symbol *>> name2symbol;
     std::vector<std::pair<std::string, struct ib_nlist_64 *>> symbolTable;
     std::vector<Symbol *> symbols;
-    std::map<uint64_t, Symbol *> relocs;
+    std::map<uint64_t, std::pair<Symbol *, std::string>> relocs;
     
     static SymbolTable *_instance;
     SymbolTable();
