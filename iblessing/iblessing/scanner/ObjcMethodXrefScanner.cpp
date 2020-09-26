@@ -419,13 +419,24 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         
         // create branching state
         uint64_t branchPC = 0;
-        cs_arm64_op addrOp = insn->detail->arm64.operands[0];
-        if (addrOp.type == ARM64_OP_IMM) {
-            branchPC = addrOp.imm;
-        } else if (addrOp.type == ARM64_OP_REG) {
-            // FIXME: trick bridging between unicorn and capstone
-            uc_arm64_reg reg = (uc_arm64_reg)addrOp.reg;
-            assert(uc_reg_read(uc, reg, &branchPC) == UC_ERR_OK);
+        if (strncmp("b", insn->mnemonic, 1) == 0) {
+            cs_arm64_op addrOp = insn->detail->arm64.operands[0];
+            if (addrOp.type == ARM64_OP_IMM) {
+                branchPC = addrOp.imm;
+            } else if (addrOp.type == ARM64_OP_REG) {
+                // FIXME: trick bridging between unicorn and capstone
+                uc_arm64_reg reg = (uc_arm64_reg)addrOp.reg;
+                assert(uc_reg_read(uc, reg, &branchPC) == UC_ERR_OK);
+            }
+        } else if (strncmp("cb", insn->mnemonic, 2) == 0) {
+            cs_arm64_op addrOp = insn->detail->arm64.operands[1];
+            if (addrOp.type == ARM64_OP_IMM) {
+                branchPC = addrOp.imm;
+            }
+        }
+        
+        if (branchPC == 0) {
+            branchPC = symtab->relocQuery(insn->address);
         }
         
         if (branchPC > 0) {
@@ -816,6 +827,7 @@ void* pthread_uc_worker(void *ctx) {
             }
         }
         
+        context->currentState = nullptr;
         uc_err err = uc_emu_start(context->engine, m->imp, endAddr, 0, 0);
         if (err != UC_ERR_OK) {
 //            printf("\t[*] uc error %s\n", uc_strerror(err));
