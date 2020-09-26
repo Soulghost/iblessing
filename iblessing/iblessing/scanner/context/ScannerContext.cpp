@@ -69,12 +69,12 @@ scanner_err ScannerContext::headerDetector(uint8_t *mappedFile,
     switch (magic) {
         case IB_MH_MAGIC_64:
         case IB_MH_CIGAM_64: {
-            cout << "[+] ScannerContext detect mach-o header 64" << endl;
+//            cout << "[+] ScannerContext detect mach-o header 64" << endl;
             if (magic == IB_MH_CIGAM_64) {
-                cout << "[+] ScannerContext detect big-endian, swap header to litten-endian" << endl;
+//                cout << "[+] ScannerContext detect big-endian, swap header to litten-endian" << endl;
                 ib_swap_mach_header_64(hdr, IB_LittleEndian);
             } else {
-                cout << "[+] ScannerContext detect litten-endian" << endl;
+//                cout << "[+] ScannerContext detect litten-endian" << endl;
             }
             
             *hdrOut = hdr;
@@ -88,15 +88,15 @@ scanner_err ScannerContext::headerDetector(uint8_t *mappedFile,
         }
         case IB_FAT_MAGIC:
         case IB_FAT_CIGAM: {
-            cout << "[+] ScannerContext - detect mach-o fat header 64" << endl;
+//            cout << "[+] ScannerContext - detect mach-o fat header 64" << endl;
             struct ib_fat_header *fat_hdr = (struct ib_fat_header *)mappedFile;
             bool needSwapHeader = false;
             if (magic == IB_FAT_CIGAM) {
-                cout << "[+] ScannerContext - detect big-endian, swap header to litten-endian" << endl;
+//                cout << "[+] ScannerContext - detect big-endian, swap header to litten-endian" << endl;
                 needSwapHeader = true;
                 ib_swap_fat_header(fat_hdr, IB_LittleEndian);
             } else {
-                cout << "[+] ScannerContext - detect litten-endian" << endl;
+//                cout << "[+] ScannerContext - detect litten-endian" << endl;
             }
             
             // split aarch64
@@ -287,7 +287,11 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
             return SC_ERR_UNSUPPORT_ARCH;
         }
         
+#ifdef IB_PLATFORM_DARWIN
         return archiveStaticLibraryAndRetry(originPath);
+#else
+        return SC_ERR_UNSUPPORT_ARCH;
+#endif
     }
     
     // parse section headers
@@ -300,8 +304,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     
     uint32_t ncmds = hdr->ncmds;
     uint8_t *cmds = mappedFile + sizeof(struct ib_mach_header_64);
-    uint64_t textRelocAddr = 0;
-    uint64_t textRelocCount = 0;
+    // offset, symbolIdx, baseAddr
+    vector<pair<pair<uint64_t, uint64_t>, uint64_t>> allRelocs;
     
     struct ib_symtab_command *symtab_cmd = nullptr;
     struct ib_dysymtab_command *dysymtab_cmd = nullptr;
@@ -332,8 +336,6 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
                         // * Notice: sectname is char[16]
                         if (strncmp(sect->sectname, "__text", 16) == 0) {
                             textSect = sect;
-                            textRelocAddr = sect->reloff;
-                            textRelocCount = sect->nreloc;
                         }
                         if (strncmp(sect->sectname, "__bss", 16) == 0) {
                             vmaddr_bss_start = sect->addr;
@@ -343,8 +345,14 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
                             objc_classlist_addr = sect->addr;
                             objc_classlist_size = sect->size;
                         }
+                        
+                        if (sect->reloff > 0 && sect->nreloc > 0) {
+                            allRelocs.push_back({{sect->reloff, sect->nreloc}, sect->addr});
+                        }
+                        
                         sectionHeaders.push_back(sect);
                         sect += 1;
+                        
                     }
                 }
                 break;
@@ -389,32 +397,16 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     if (vm2->loadWithMachOData(mappedFile) != 0) {
         return SC_ERR_UNSUPPORT_ARCH;
     }
-    
-    ObjcRuntime *objcRuntime = ObjcRuntime::getInstance();
-    objcRuntime->loadClassList(objc_classlist_addr, objc_classlist_size);
 
     // sort sectionHeaders by offset
     sort(sectionHeaders.begin(), sectionHeaders.end(), [&](struct ib_section_64 *a, struct ib_section_64 *b) {
         return a->offset < b->offset;
     });
     
-    // test our searching
-//    if (!dyld_info) {
-//        return SC_ERR_MACHO_MISSING_SEGMENT_DYLD;
-//    }
-    
-    // sanity check
-//    if (!textSeg64) {
-//        return SC_ERR_MACHO_MISSING_SEGMENT_TEXT;
-//    }
-    
     // build string table
     if (!symtab_cmd) {
         return SC_ERR_MACHO_MISSING_SEGMENT_SYMTAB;
     }
-//    if (!dysymtab_cmd) {
-//        return SC_ERR_MACHO_MISSING_SEGMENT_DYSYMTAB;
-//    }
     
     StringTable *strtab = StringTable::getInstance();
     uint64_t strtab_vmaddr = linkedit_base + symtab_cmd->stroff;
@@ -427,17 +419,27 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
         symtab->buildDynamicSymbolTable(sectionHeaders, mappedFile + dysymtab_cmd->indirectsymoff, dysymtab_cmd->nindirectsyms, mappedFile);
     }
     
-    if (textRelocAddr > 0 && textRelocCount > 0) {
-        struct scattered_relocation_info *reloc_info = (struct scattered_relocation_info *)(mappedFile + textRelocAddr);
-        while (textRelocCount--) {
-//            uint32_t addr = (reloc_info->r_address & 0x00ffffff);
-//            uint32_t symbolNum = (reloc_info->r_value & 0x00ffffff);
-//            symtab->relocSymbol(addr, symbolNum);
-            reloc_info++;
+    
+    if (allRelocs.size() > 0) {
+        for (pair<pair<uint64_t, uint64_t>, uint64_t> &reloc : allRelocs) {
+            uint64_t relocAddr = reloc.first.first;
+            uint64_t relocCount = reloc.first.second;
+            uint64_t relocBase = reloc.second;
+            
+            struct scattered_relocation_info *reloc_info = (struct scattered_relocation_info *)(mappedFile + relocAddr);
+            while (relocCount--) {
+                uint64_t addr =  relocBase + (reloc_info->r_address & 0x00ffffff);
+                uint64_t symbolNum = (reloc_info->r_value & 0x00ffffff);
+                symtab->relocSymbol(addr, symbolNum);
+                reloc_info++;
+            }
         }
     }
-    
     symtab->sync();
+    vm2->relocAllRegions();
+    
+    ObjcRuntime *objcRuntime = ObjcRuntime::getInstance();
+    objcRuntime->loadClassList(objc_classlist_addr, objc_classlist_size);
     
     return SC_ERR_OK;
 }

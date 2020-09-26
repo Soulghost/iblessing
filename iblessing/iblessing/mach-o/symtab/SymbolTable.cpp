@@ -39,31 +39,43 @@ void SymbolTable::sync() {
 }
 
 void SymbolTable::buildSymbolTable(uint8_t *data, uint64_t nSymbols) {
+    symbols.clear();
+    name2symbol.clear();
+    symbolMap.clear();
+    symbolMapCpp.clear();
+    symbolTable.clear();
+    
     struct ib_nlist_64 *li = (struct ib_nlist_64 *)data;
     StringTable *strtab = StringTable::getInstance();
     
     for (uint64_t i = 0; i < nSymbols; i++) {
         uint32_t strIdx = li->n_un.n_strx;
         std::string symName = strtab->getStringAtIndex(strIdx);
+        Symbol *symbol = new Symbol();
+        symbol->name = symName;
+        symbol->info = li;
         
         if ((li->n_type & IB_N_STAB) == 0) {
             uint64_t symAddr = li->n_value;
             // non-lazy symbol
             if (symAddr != 0) {
-                Symbol *symbol = new Symbol();
-                symbol->name = symName;
-                symbol->info = li;
                 symbolMap.insert(symAddr, symbol);
                 name2symbol[symName].pushBack(symbol);
                 symbol->release();
             }
         } else {
+            if (!symName.empty() && li->n_value > 0) {
+                symbolMap.insert(li->n_value, symbol);
+                name2symbol[symName].pushBack(symbol);
+                symbol->release();
+            }
 //            uint64_t idx = 1 + (symbolTable.size() == 0 ? 0 : li - symbolTable.at(0).second);
 //            uint64_t addr = -idx;
 //            printf("undefined symbol addr 0x%llx\n", addr);
         }
         
         symbolTable.push_back({symName, li});
+        symbols.push_back(symbol);
         li += 1;
     }
 }
@@ -147,6 +159,31 @@ void SymbolTable::buildDynamicSymbolTable(std::vector<struct ib_section_64 *> se
     }
 }
 
+bool SymbolTable::relocSymbol(uint64_t addr, uint64_t idx) {
+    if (idx >= symbols.size()) {
+        return false;
+    }
+    
+    Symbol *symbol = symbols[idx];
+    if (symbol->name.length() == 0) {
+        return false;
+    }
+    
+    symbolMap.insert(addr, symbol);
+    name2symbol[symbol->name].pushBack(symbol);
+    relocs[addr] = symbol;
+    return true;
+}
+
+uint64_t SymbolTable::relocQuery(uint64_t addr) {
+    if (relocs.find(addr) != relocs.end()) {
+        Symbol *symbol = relocs[addr];
+        return symbol->info->n_value;
+    }
+    
+    return addr;
+}
+
 Symbol* SymbolTable::getSymbolByAddress(uint64_t address) {
     if (symbolMap.find(address) != symbolMap.end()){
         return symbolMap.at(address);
@@ -175,6 +212,14 @@ Symbol* SymbolTable::getSymbolByName(std::string name) {
         return name2symbol[name].at(0);
     }
     return nullptr;
+}
+
+vector<pair<uint64_t, pair<uint64_t, uint64_t>>> SymbolTable::getAllRelocs() {
+    vector<pair<uint64_t, pair<uint64_t, uint64_t>>> allRelocs;
+    for (auto it : relocs) {
+        allRelocs.push_back({it.first, {it.second->info->n_value, 8}});
+    }
+    return allRelocs;
 }
 
 void SymbolTable::insertSymbol(Symbol *symbol) {

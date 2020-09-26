@@ -22,6 +22,7 @@ public:
     
     int loadWithMachOData(uint8_t *mappedFile);
     int mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile);
+    void relocAllRegions();
     uint64_t read64(uint64_t address, bool *success);
     uint32_t read32(uint64_t address, bool *success);
     void* readBySize(uint64_t address, uint64_t size);
