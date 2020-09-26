@@ -13,6 +13,7 @@
 #include <vector>
 #include <sys/time.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 #include "VirtualMemory.hpp"
 #include "VirtualMemoryV2.hpp"
@@ -140,26 +141,37 @@ scanner_err ScannerContext::headerDetector(uint8_t *mappedFile,
 }
 
 #pragma mark - setup
-scanner_err ScannerContext::archiveStaticLibraryAndRetry(string binaryPath) {
-    // mapping binary file
-    cout << "[*] ScannerContext - detect static libary at " << binaryPath << endl;
-    
-    
-    // generate tmp dir name
-    struct timeval tp;
-    gettimeofday(&tp, NULL);
-    long long ms = tp.tv_sec * 1000 + tp.tv_usec / 1000;
-    string tmpDir = StringUtils::format("/tmp/iblessing_archive_%lld", ms);
-    if (mkdir(tmpDir.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH ) != 0) {
-        cout << "[*] ScannerContext - cannot create dir at " << tmpDir;
+static scanner_err forkExec(string name, function<int (void)> woker) {
+    pid_t childPid = fork();
+    if (childPid == -1) {
         return SC_ERR_UNKNOWN;
     }
+    
+    int status = -1;
+    if (childPid == 0) {
+        exit(woker());
+    } else {
+        printf("[*] ScannerContext - waiting for %s process %d\n", name.c_str(), childPid);
+        do {
+            pid_t wpid = waitpid(childPid, &status, WNOHANG);
+            if (wpid == childPid && status != -1) {
+                break;
+            }
+        } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    }
+
+    if (status != 0) {
+        printf("[*] ScannerContext - %s failed with error code %d\n", name.c_str(), status);
+        return SC_ERR_UNKNOWN;
+    }
+    
+    printf("[*] ScannerContext - %s success\n", name.c_str());
     return SC_ERR_OK;
 }
 
-scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry) {
+scanner_err ScannerContext::archiveStaticLibraryAndRetry(string binaryPath) {
     // mapping binary file
-    cout << "[*] ScannerContext - load binary file at " << binaryPath << endl;
+    cout << "[*] ScannerContext - detect static libary at " << binaryPath << endl;
     
     if (workDirManager->resetWorkDir() != 0) {
         return SC_ERR_RESET_WORK_DIR;
@@ -174,6 +186,89 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
         return SC_ERR_MAP_FAILED;
     }
     
+    binaryPath = shadowFilePath;
+    vector<string> pathComponents = StringUtils::split(binaryPath, '/');
+    string fileName = pathComponents[pathComponents.size() - 1];
+    printf("[*] ScannerContext - thinning file %s to arm64\n", shadowFilePath);
+    
+    scanner_err err = forkExec("lipo", [&]() {
+        return execl("/usr/bin/lipo", "lipo", "-thin", "arm64", shadowFilePath, "-o", shadowFilePath, NULL);
+    });
+    if (err != SC_ERR_OK) {
+        return err;
+    }
+    
+    size_t size = pathconf(".", _PC_PATH_MAX);
+    char *buf = (char *)malloc((size_t)size);
+    char *pWorkDir = getcwd(buf, (size_t)size);
+    string tmpWorkDir = workDirManager->getWorkDir();
+    if (chdir(tmpWorkDir.c_str()) != 0) {
+        return SC_ERR_UNKNOWN;
+    }
+    
+    err = forkExec("ar", [&]() {
+        return execl("/usr/bin/ar", "ar", "-x", shadowFilePath, NULL);
+    });
+    
+    chdir(pWorkDir);
+    free(buf);
+    
+    if (err != SC_ERR_OK) {
+        return err;
+    }
+    
+    vector<string> objectFiles = workDirManager->findAllObjectFiles({fileName});
+    // 4 + o_size + 2 + 1 = o_size + 7
+    size_t osize = objectFiles.size() + 7;
+    char **argv = (char **)malloc(sizeof(char *) * osize);
+    argv[0] = strdup("ld");
+    argv[1] = strdup("-r");
+    argv[2] = strdup("-arch");
+    argv[3] = strdup("arm64");
+    for (size_t i = 0; i < objectFiles.size(); i++) {
+        argv[i + 4] = strdup(objectFiles[i].c_str());
+    }
+    argv[osize - 3] = strdup("-o");
+    argv[osize - 2] = strdup(binaryPath.c_str());
+    argv[osize - 1] = NULL;
+    
+    err = forkExec("ld", [&]() {
+        return execv("/usr/bin/ld", argv);
+    });
+    
+    for (int i = 0; i < osize; i++) {
+        free(argv[i]);
+    }
+    free(argv);
+    
+    return setupWithBinaryPath(binaryPath, true);
+}
+
+scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry) {
+    // mapping binary file
+    if (reentry) {
+        cout << "[+] ScannerContext - reentry from archiver" << endl;
+    }
+    cout << "[*] ScannerContext - load binary file at " << binaryPath << endl;
+    
+    char *shadowFilePath = nullptr;
+    if (!reentry) {
+        if (workDirManager->resetWorkDir() != 0) {
+            return SC_ERR_RESET_WORK_DIR;
+        }
+        
+        if (workDirManager->createShadowFile(binaryPath, &shadowFilePath) != 0) {
+            return SC_ERR_MAP_FAILED;
+        }
+        
+        if (shadowFilePath == nullptr) {
+            return SC_ERR_MAP_FAILED;
+        }
+    } else {
+        shadowFilePath = strdup(binaryPath.c_str());
+    }
+    
+    string originPath = binaryPath;
     binaryPath = shadowFilePath;
     // create shadow file
     cout << "[*] ScannerContext - create shadow file at " << binaryPath << endl;
@@ -192,7 +287,7 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
             return SC_ERR_UNSUPPORT_ARCH;
         }
         
-        return archiveStaticLibraryAndRetry(binaryPath);
+        return archiveStaticLibraryAndRetry(originPath);
     }
     
     // parse section headers
