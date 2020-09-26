@@ -40,6 +40,7 @@
 #define SubClassDummyAddress      0xcafecaaecaaecaae
 #define ExternalClassDummyAddress 0xfacefacefaceface
 
+//#define SkipPreScannerDriver
 //#define Stalker
 //#define UsingSet
 //#define DebugMethod "mlist"
@@ -186,7 +187,7 @@ static pthread_mutex_t counterMutex;
 static pthread_mutex_t indexMutex;
 static uint64_t curCount = 0;
 static uint64_t totalCount = 0;
-static set<uint64_t> functionAddrs;
+static vector<uint64_t> functionAddrs;
 
 static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
     if (!ctx->isInBlockBuilder) {
@@ -1032,7 +1033,8 @@ int ObjcMethodXrefScanner::start() {
     }
     printf("\n");
     printf("\t[+] get %lu methods to analyze\n", methods.size());
-    functionAddrs = impAddrs;
+    
+    vector<uint64_t> funcAddrs(impAddrs.begin(), impAddrs.end());
     
     printf("  [*] Step 2. Start sub-scanners\n");
     ScannerDisassemblyDriver *sharedDriver = new ScannerDisassemblyDriver();
@@ -1076,6 +1078,7 @@ int ObjcMethodXrefScanner::start() {
     string last_mnemonic = "";
     char progressChars[] = {'\\', '|', '/', '-'};
     uint8_t progressCur = 0;
+#ifndef SkipPreScannerDriver
     sharedDriver->startDisassembly(codeData, startAddr, endAddr, [&](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
         float progress = 100.0 * (insn->address - startAddr) / addrRange;
 #ifdef XcodeDebug
@@ -1091,6 +1094,7 @@ int ObjcMethodXrefScanner::start() {
 #endif
         progressCur = (++progressCur) % sizeof(progressChars);
     });
+#endif
     
     printf("  [*] Step 3. Create Common ClassInfo for subs and add to analysis list\n");
     vector<ObjcMethod *> subMethods;
@@ -1116,7 +1120,7 @@ int ObjcMethodXrefScanner::start() {
             subMethods.push_back(subMethod);
             
             // record function addr
-            functionAddrs.insert(sxref.startAddr);
+            funcAddrs.push_back(sxref.startAddr);
         }
     }
     delete sxrefScanner;
@@ -1158,7 +1162,7 @@ int ObjcMethodXrefScanner::start() {
         symtab->insertSymbol(sym);
         
         // record symbol addr
-        functionAddrs.insert(symbolAddr);
+        funcAddrs.push_back(symbolAddr);
     });
     
     // remove dupliate elements
@@ -1169,6 +1173,10 @@ int ObjcMethodXrefScanner::start() {
     subMethods.erase(unique(subMethods.begin(), subMethods.end(), [](ObjcMethod *a, ObjcMethod *b) {
         return a->imp == b->imp;
     }), subMethods.end());
+    
+    // record all method addrs
+    sort(funcAddrs.begin(), funcAddrs.end());
+    functionAddrs = funcAddrs;
     
     
     // create global lock
