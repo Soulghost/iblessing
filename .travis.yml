@@ -9,7 +9,7 @@ script:
   - ./compile-cmake.sh
   
 compiler:
-  - clang
+# - clang
   - gcc
   
 os:
