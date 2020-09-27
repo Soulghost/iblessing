@@ -31,7 +31,7 @@ public:
                                       ib_mach_header_64 **hdrOut, /** OUT */
                                       uint64_t *archOffsetOut = nullptr, /** OUT */
                                       uint64_t *archSizeOut = nullptr    /** OUT */);
-    scanner_err archiveStaticLibraryAndRetry(std::string binaryPath);
+    scanner_err archiveStaticLibraryAndRetry(std::string binaryPath, scanner_err analyzeError);
     scanner_err setupWithBinaryPath(std::string binaryPath, bool reentry = false);
     
 private:

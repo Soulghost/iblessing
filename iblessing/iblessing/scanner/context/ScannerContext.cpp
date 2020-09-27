@@ -66,6 +66,11 @@ scanner_err ScannerContext::headerDetector(uint8_t *mappedFile,
                                            ib_mach_header_64 **hdrOut,
                                            uint64_t *archOffsetOut,
                                            uint64_t *archSizeOut) {
+    uint64_t firstByte = *(uint64_t *)mappedFile;
+    if (firstByte == *(uint64_t *)"!<arch>\n") {
+        return SC_ERR_NEED_ARCHIVE_NOLIPO;
+    }
+    
     // read header
     struct ib_mach_header_64 *hdr = (struct ib_mach_header_64 *)mappedFile;
     uint32_t magic = hdr->magic;
@@ -123,7 +128,7 @@ scanner_err ScannerContext::headerDetector(uint8_t *mappedFile,
             
             uint64_t firstByte = *(uint64_t *)(mappedFile + arch_hdr_offset);
             if (firstByte == *(uint64_t *)"!<arch>\n") {
-                return SC_ERR_NEED_ARCHIVE;
+                return SC_ERR_NEED_ARCHIVE_LIPO;
             } else {
                 hdr = (struct ib_mach_header_64 *)(mappedFile + arch_hdr_offset);
                 *hdrOut = hdr;
@@ -180,7 +185,7 @@ static scanner_err forkExec(string name, function<int (void)> woker) {
     return SC_ERR_OK;
 }
 
-scanner_err ScannerContext::archiveStaticLibraryAndRetry(string binaryPath) {
+scanner_err ScannerContext::archiveStaticLibraryAndRetry(string binaryPath, scanner_err analyzeError) {
     // mapping binary file
     cout << "[*] ScannerContext - detect static libary at " << binaryPath << endl;
     
@@ -202,11 +207,14 @@ scanner_err ScannerContext::archiveStaticLibraryAndRetry(string binaryPath) {
     string fileName = pathComponents[pathComponents.size() - 1];
     printf("[*] ScannerContext - thinning file %s to arm64\n", shadowFilePath);
     
-    scanner_err err = forkExec("lipo", [&]() {
-        return execl("/usr/bin/lipo", "lipo", "-thin", "arm64", shadowFilePath, "-o", shadowFilePath, NULL);
-    });
-    if (err != SC_ERR_OK) {
-        return err;
+    scanner_err err = SC_ERR_OK;
+    if (analyzeError == SC_ERR_NEED_ARCHIVE_LIPO) {
+        err = forkExec("lipo", [&]() {
+            return execl("/usr/bin/lipo", "lipo", "-thin", "arm64", shadowFilePath, "-o", shadowFilePath, NULL);
+        });
+        if (err != SC_ERR_OK) {
+            return err;
+        }
     }
     
     size_t size = pathconf(".", _PC_PATH_MAX);
@@ -289,7 +297,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     ib_mach_header_64 *hdr = nullptr;
     scanner_err err = ScannerContext::headerDetector(binaryPath, &mappedFile, &fileSize, &hdr);
     if (err != SC_ERR_OK) {
-        if (err != SC_ERR_NEED_ARCHIVE) {
+        if (err != SC_ERR_NEED_ARCHIVE_LIPO &&
+            err != SC_ERR_NEED_ARCHIVE_NOLIPO) {
             return err;
         }
         
@@ -299,7 +308,7 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
         }
         
 #ifdef IB_PLATFORM_DARWIN
-        return archiveStaticLibraryAndRetry(originPath);
+        return archiveStaticLibraryAndRetry(originPath, err);
 #else
         return SC_ERR_UNSUPPORT_ARCH;
 #endif
