@@ -12,7 +12,8 @@
 typedef enum scanner_err {
     SC_ERR_OK = 0,
     SC_ERR_UNKNOWN,
-    SC_ERR_NEED_ARCHIVE,
+    SC_ERR_NEED_ARCHIVE_LIPO,
+    SC_ERR_NEED_ARCHIVE_NOLIPO,
     SC_ERR_INVALID_ARGUMENTS,
     SC_ERR_INVALID_BINARY,          // invalid binary file
     SC_ERR_RESET_WORK_DIR,
