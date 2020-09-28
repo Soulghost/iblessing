@@ -324,8 +324,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     
     uint32_t ncmds = hdr->ncmds;
     uint8_t *cmds = mappedFile + sizeof(struct ib_mach_header_64);
-    // offset, symbolIdx, baseAddr, sectname
-    vector<pair<pair<uint64_t, uint64_t>, pair<uint64_t, string>>> allRelocs;
+    // offset, size, baseAddr, sect
+    vector<pair<pair<uint64_t, uint64_t>, pair<uint64_t, ib_section_64 *>>> allRelocs;
     
     struct ib_symtab_command *symtab_cmd = nullptr;
     struct ib_dysymtab_command *dysymtab_cmd = nullptr;
@@ -367,7 +367,7 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
                         }
                         
                         if (sect->reloff > 0 && sect->nreloc > 0) {
-                            allRelocs.push_back({{sect->reloff, sect->nreloc}, {sect->addr, string(sect->sectname)}});
+                            allRelocs.push_back({{sect->reloff, sect->nreloc}, {sect->addr, sect}});
                         }
                         
                         sectionHeaders.push_back(sect);
@@ -439,7 +439,7 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
         return SC_ERR_UNSUPPORT_ARCH;
     }
     
-    uint64_t textStart = textSect->offset;
+    uint64_t textStart = textSect->addr;
     uint64_t textEnd = textStart + textSect->size;
     if (allRelocs.size() > 0) {
         ks_engine *ks;
@@ -449,25 +449,23 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
         assert(cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle) == CS_ERR_OK);
         cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
         
-        for (pair<pair<uint64_t, uint64_t>, pair<uint64_t, string>> &reloc : allRelocs) {
-            uint64_t relocAddr = reloc.first.first;
-            uint64_t relocCount = reloc.first.second;
-            uint64_t relocBase = reloc.second.first;
+        for (pair<pair<uint64_t, uint64_t>, pair<uint64_t, ib_section_64 *>> &reloc : allRelocs) {
+            uint64_t relocInfoAddr = reloc.first.first;
+            uint64_t relocInfoCount = reloc.first.second;
+            uint64_t relocInfoBase = reloc.second.first;
+            ib_section_64 *relocSection = reloc.second.second;
             
-            struct scattered_relocation_info *reloc_info = (struct scattered_relocation_info *)(mappedFile + relocAddr);
-            while (relocCount--) {
-                uint64_t addr =  relocBase + (reloc_info->r_address & 0x00ffffff);
+            struct ib_scattered_relocation_info *reloc_info = (struct ib_scattered_relocation_info *)(mappedFile + relocInfoAddr);
+            while (relocInfoCount--) {
+                uint64_t targetAddr = relocInfoBase + (reloc_info->r_address & 0x00ffffff);
                 uint64_t symbolNum = (reloc_info->r_value & 0x00ffffff);
-                symtab->relocSymbol(addr, symbolNum, reloc.second.second);
+                symtab->relocSymbol(targetAddr, symbolNum, relocSection);
                 reloc_info++;
                 
-                if (addr >= textStart && addr <= textEnd) {
-                    if (addr == 0xe6f0) {
-                        
-                    }
-                    uint64_t insnAddr = addr;
+                if (targetAddr >= textStart && targetAddr <= textEnd) {
+                    uint64_t insnAddr = targetAddr;
                     cs_insn *insn = nullptr;
-                    uint32_t asmcode = vm2->read32(addr, nullptr);
+                    uint32_t asmcode = vm2->read32(targetAddr, nullptr);
                     uint8_t *code = (uint8_t *)&asmcode;
                     size_t count = cs_disasm(handle, code, 4, insnAddr, 0, &insn);
                     if (count == 1) {
@@ -476,20 +474,20 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
                         unsigned char *encode = nullptr;
                         if (strcmp(insn->mnemonic, "adrp") == 0) {
                             string text = StringUtils::format("%s %s", insn->mnemonic, insn->op_str);
-                            uint64_t relocPage = symtab->relocQuery(addr);
+                            uint64_t relocPage = symtab->relocQuery(targetAddr);
                             uint64_t page = (relocPage & ~0xfff);
                             string fixup = StringUtils::split(text, '#')[0];
                             fixup += StringUtils::format("0x%llx", page);
-                            if (ks_asm(ks, fixup.c_str(), addr, &encode, &size, &count) == KS_ERR_OK) {
+                            if (ks_asm(ks, fixup.c_str(), targetAddr, &encode, &size, &count) == KS_ERR_OK) {
                                 needFix = true;
                             };
                         } else if (strcmp(insn->mnemonic, "ldr") == 0) {
                             string text = StringUtils::format("%s %s", insn->mnemonic, insn->op_str);
-                            uint64_t relocPage = symtab->relocQuery(addr);
+                            uint64_t relocPage = symtab->relocQuery(targetAddr);
                             uint64_t pageoff = relocPage & 0xfff;
                             string fixup = StringUtils::split(text, ']')[0];
                             fixup += StringUtils::format(", #0x%llx]", pageoff);
-                            if (ks_asm(ks, fixup.c_str(), addr, &encode, &size, &count) == KS_ERR_OK) {
+                            if (ks_asm(ks, fixup.c_str(), targetAddr, &encode, &size, &count) == KS_ERR_OK) {
                                 needFix = true;
                             };
                         }
@@ -499,8 +497,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
                             for (size_t i = 0; i < size; i++) {
                                 fixcode += (encode[i] << (i * 8));
                             }
-                            vm2->write32(addr, fixcode);
-                            vm2->textPatch.push_back({addr, fixcode});
+                            vm2->write32(targetAddr, fixcode);
+                            vm2->textPatch.push_back({targetAddr, fixcode});
                         }
                     }
                 }

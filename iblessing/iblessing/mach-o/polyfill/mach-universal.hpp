@@ -672,11 +672,11 @@ struct ib_entry_point_command {
     uint64_t  stacksize;/* if not zero, initial stack size */
 };
 
-#define R_SCATTERED 0x80000000    /* mask to be applied to the r_address field
+#define IB_R_SCATTERED 0x80000000    /* mask to be applied to the r_address field
                    of a relocation_info structure to tell that
                    is is really a scattered_relocation_info
                    stucture */
-struct scattered_relocation_info {
+struct ib_scattered_relocation_info {
 //#ifdef __BIG_ENDIAN__
 //   uint32_t    r_scattered:1,    /* 1=scattered, 0=non-scattered (see above) */
 //        r_pcrel:1,     /* was relocated pc relative already */

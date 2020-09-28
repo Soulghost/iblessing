@@ -9,6 +9,7 @@
 #include "SymbolTable.hpp"
 #include "StringTable.hpp"
 #include "termcolor.h"
+#include "ObjcRuntime.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -159,7 +160,7 @@ void SymbolTable::buildDynamicSymbolTable(std::vector<struct ib_section_64 *> se
     }
 }
 
-bool SymbolTable::relocSymbol(uint64_t addr, uint64_t idx, string sectname) {
+bool SymbolTable::relocSymbol(uint64_t addr, uint64_t idx, ib_section_64 *section) {
     if (idx >= symbols.size()) {
         return false;
     }
@@ -171,13 +172,32 @@ bool SymbolTable::relocSymbol(uint64_t addr, uint64_t idx, string sectname) {
     
     symbolMap.insert(addr, symbol);
     name2symbol[symbol->name].pushBack(symbol);
-    relocs[addr] = {symbol, sectname};
+    
+    if (symbol->name == "_objc_msgSend") {
+        
+    }
+    
+    SymbolRelocation relocation = SymbolRelocation();
+    /**
+     ib_scattered_relocation_info *info;
+     uint64_t relocAddr;
+     uint64_t relocValue;
+     uint64_t relocSize;
+     Symbol *relocSymbol;
+     ib_section_64 *relocSection;
+     */
+    relocation.relocAddr = addr;
+    relocation.relocValue = symbol->info->n_value;
+    relocation.relocSize = 8;
+    relocation.relocSymbol = symbol;
+    relocation.relocSection = section;
+    relocs[addr] = relocation;
     return true;
 }
 
 uint64_t SymbolTable::relocQuery(uint64_t addr) {
     if (relocs.find(addr) != relocs.end()) {
-        Symbol *symbol = relocs[addr].first;
+        Symbol *symbol = relocs[addr].relocSymbol;
         return symbol->info->n_value;
     }
     
@@ -214,10 +234,10 @@ Symbol* SymbolTable::getSymbolByName(std::string name) {
     return nullptr;
 }
 
-vector<pair<pair<uint64_t, string>, pair<uint64_t, uint64_t>>> SymbolTable::getAllRelocs() {
-    vector<pair<pair<uint64_t, string>, pair<uint64_t, uint64_t>>> allRelocs;
+vector<SymbolRelocation> SymbolTable::getAllRelocs() {
+    vector<SymbolRelocation> allRelocs;
     for (auto it : relocs) {
-        allRelocs.push_back({{it.first, it.second.second}, {it.second.first->info->n_value, 8}});
+        allRelocs.push_back(it.second);
     }
     return allRelocs;
 }
