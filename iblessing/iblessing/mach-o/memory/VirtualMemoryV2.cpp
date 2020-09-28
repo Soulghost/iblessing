@@ -13,6 +13,7 @@
 #include "mach-machine.h"
 #include "ScannerContext.hpp"
 #include "SymbolTable.hpp"
+#include "ObjcRuntime.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -28,6 +29,10 @@ VirtualMemoryV2* VirtualMemoryV2::progressDefault() {
 
 uint8_t* VirtualMemoryV2::getMappedFile() {
     return VirtualMemory::progressDefault()->mappedFile;
+}
+
+uint64_t VirtualMemoryV2::getBaseAddr() {
+    return VirtualMemory::progressDefault()->vmaddr_base;
 }
 
 std::vector<struct ib_segment_command_64 *> VirtualMemoryV2::getSegmentHeaders() {
@@ -191,7 +196,6 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
             uc_mem_write(uc, patch.first, &patch.second, sizeof(uint32_t));
         }
         relocAllRegions(uc);
-        
     }
     return 0;
 }
@@ -202,14 +206,38 @@ void VirtualMemoryV2::relocAllRegions(uc_engine *target) {
     }
     // perform relocs
     SymbolTable *symtab = SymbolTable::getInstance();
-    for (pair<pair<uint64_t, string>, pair<uint64_t, uint64_t>> reloc : symtab->getAllRelocs()) {
-        if (reloc.first.second == "__text") {
+    ObjcRuntime *rt = ObjcRuntime::getInstance();
+    for (SymbolRelocation &reloc : symtab->getAllRelocs()) {
+        string relocSection = string(reloc.relocSection->sectname, std::min((int)strlen(reloc.relocSection->sectname), 16));
+        if (relocSection == "__text") {
+            // skip text reloc
             continue;
         }
-        uint64_t originAddr = reloc.first.first;
-        uint64_t relocAddr = reloc.second.first;
-        uint64_t relocSize = reloc.second.second;
-        uc_mem_write(target, originAddr, &relocAddr, relocSize);
+        
+        if (relocSection == "__objc_classrefs") {
+            Symbol *symbol = reloc.relocSymbol;
+            string symbolName = symbol->name;
+            if (symbolName.rfind("_OBJC_CLASS_$") == 0) {
+                ObjcClassRuntimeInfo *externalClassInfo = new ObjcClassRuntimeInfo();
+                externalClassInfo->isExternal = true;
+                
+                vector<string> parts = StringUtils::split(symbolName, '_');
+                if (parts.size() > 1) {
+                    externalClassInfo->className = parts[parts.size() - 1];
+                } else {
+                    externalClassInfo->className = symbolName;
+                }
+                rt->externalClassRuntimeInfo[reloc.relocAddr] = externalClassInfo;
+                rt->name2ExternalClassRuntimeInfo[externalClassInfo->className] = externalClassInfo;
+                rt->runtimeInfo2address[externalClassInfo] = reloc.relocAddr;
+                uc_mem_write(target, reloc.relocAddr, &reloc.relocAddr, 8);
+            }
+        } else {
+            uint64_t originAddr = reloc.relocAddr;
+            uint64_t relocAddr = reloc.relocValue;
+            uint64_t relocSize = reloc.relocSize;
+            uc_mem_write(target, originAddr, &relocAddr, relocSize);
+        }
     }
 }
 

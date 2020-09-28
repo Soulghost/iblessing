@@ -9,7 +9,7 @@
 #include "SymbolWrapperScanner.hpp"
 #include "ARM64Disasembler.hpp"
 #include "ARM64Runtime.hpp"
-#include "VirtualMemory.hpp"
+#include "VirtualMemoryV2.hpp"
 #include "SymbolTable.hpp"
 #include "termcolor.h"
 #include "StringUtils.h"
@@ -109,21 +109,15 @@ int SymbolWrapperScanner::start() {
     printf("\n");
     
     printf("%s  [*] Step1. find __TEXT,__text\n", prepadding);
-    VirtualMemory *vm = VirtualMemory::progressDefault();
-    struct ib_section_64 *textSect = vm->textSect;
-    struct ib_segment_command_64 *textSeg = vm->textSeg;
-    printf("%s\t[+] find __TEXT,__text at 0x%llx\n", prepadding, textSect->addr);
-    assert(UC_ERR_OK == uc_mem_map(uc, textSeg->vmaddr, textSeg->vmsize, UC_PROT_READ | UC_PROT_EXEC));
-    assert(UC_ERR_OK == uc_mem_write(uc, textSeg->vmaddr, vm->mappedFile + textSeg->fileoff, textSeg->vmsize));
-    printf("%s\t[+] mapping text segment 0x%llx ~ 0x%llx to unicorn engine\n", prepadding, textSeg->vmaddr, textSeg->vmaddr + textSeg->vmsize);
+    VirtualMemoryV2 *vm = VirtualMemoryV2::progressDefault();
+    struct ib_section_64 *textSect = vm->getTextSect();
+    vm->mappingMachOToEngine(uc, vm->getMappedFile());
     
     printf("%s  [*] Step 2. scan in __text\n", prepadding);
-    
-    
     uint64_t startAddr = textSect->addr;
     uint64_t endAddr = textSect->addr + textSect->size;
     uint64_t addrRange = endAddr - startAddr;
-    uint8_t *codeData = vm->mappedFile + textSect->offset;
+    uint8_t *codeData = vm->getMappedFile() + textSect->offset;
     printf("%s\t[*] start disassembler at 0x%llx\n", prepadding, startAddr);
     string last_mnemonic = "";
     char progressChars[] = {'\\', '|', '/', '-'};
@@ -210,7 +204,7 @@ int SymbolWrapperScanner::start() {
                         uint64_t tmpBufSize = sizeof(uint32_t) * (block.endAddr - block.startAddr);
                         void *tmpBuf = malloc(tmpBufSize);
                         if (uc_mem_read(uc, block.startAddr, tmpBuf, tmpBufSize) != UC_ERR_OK) {
-                            uc_mem_write(uc, block.startAddr, vm->mappedFile + block.startAddr - vm->vmaddr_base, tmpBufSize);
+                            uc_mem_write(uc, block.startAddr, vm->getMappedFile() + block.startAddr - vm->getBaseAddr(), tmpBufSize);
                         }
                         free(tmpBuf);
                         

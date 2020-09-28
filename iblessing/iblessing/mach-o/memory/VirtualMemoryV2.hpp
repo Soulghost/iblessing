@@ -19,6 +19,7 @@ NS_IB_BEGIN
 class VirtualMemoryV2 {
 public:
     std::vector<std::pair<uint64_t, uint32_t>> textPatch;
+    std::vector<std::pair<uint64_t, uint64_t>> dataPatch;
     
     static VirtualMemoryV2* progressDefault();
     int loadWithMachOData(uint8_t *mappedFile);
@@ -37,6 +38,7 @@ public:
     std::vector<struct ib_segment_command_64 *> getSegmentHeaders();
     struct ib_section_64* getTextSect();
     struct ib_dyld_info_command* getDyldInfo();
+    uint64_t getBaseAddr();
     
     
 private:
