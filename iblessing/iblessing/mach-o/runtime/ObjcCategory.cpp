@@ -122,5 +122,15 @@ shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(uint64_t address) {
     if (classMethodsAddr) {
         category->classMethods = loadMethodsFromAddress(classMethodsAddr, category->decoratedClass->classInfo);
     }
+    
+    if (category->decoratedClass->classInfo) {
+        ObjcClassRuntimeInfo *classInfo = category->decoratedClass->classInfo;
+        vector<shared_ptr<ObjcMethod>> allMethods(category->instanceMethods);
+        allMethods.insert(allMethods.end(), category->classMethods.begin(), category->classMethods.end());
+        for (shared_ptr<ObjcMethod> &method : allMethods) {
+            classInfo->methodList.pushBack(method.get());
+            classInfo->name2method[method->name] = method.get();
+        }
+    }
     return category;
 }
