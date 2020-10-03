@@ -157,6 +157,12 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
     }];
 }
 
+- (void)testCategoryCall {
+    CategoryObject *cate = [CategoryObject new];
+    [cate callFromInstance];
+    [CategoryObject callFromClass];
+}
+
 @end
 
 @implementation BlockSubA
@@ -216,5 +222,25 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
 @end
 
 @implementation TrapObject
+
+@end
+
+@implementation CategoryObject
+
+@end
+
+@implementation CategoryObject (Addon)
+
+- (void)callFromInstance {
+    NSLog(@"instance");
+}
+
++ (void)callFromClass {
+    NSLog(@"class");
+}
+
+- (void)cateCallToOut {
+    [IBSRoot rootClassMethodCallFromCategoryMethod];
+}
 
 @end

@@ -285,6 +285,10 @@ bool VirtualMemoryV2::write32(uint64_t address, uint32_t value) {
     return uc_mem_write(uc, address, &value, 4) == UC_ERR_OK;
 }
 
+bool VirtualMemoryV2::write64(uint64_t address, uint64_t value) {
+    return uc_mem_write(uc, address, &value, 8) == UC_ERR_OK;
+}
+
 char* VirtualMemoryV2::readString(uint64_t address, uint64_t limit) {
     char *charBuf = (char *)malloc(limit + 1);
     uint64_t offset = 0;

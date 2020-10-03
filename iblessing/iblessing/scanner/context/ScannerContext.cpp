@@ -333,8 +333,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     struct ib_section_64 *textSect = nullptr;
     struct ib_entry_point_command *mainSeg = nullptr;
     struct ib_dyld_info_command *dyld_info = nullptr;
-    uint64_t objc_classlist_addr = 0;
-    uint64_t objc_classlist_size = 0;
+    uint64_t objc_classlist_addr = 0, objc_catlist_addr = 0;
+    uint64_t objc_classlist_size = 0, objc_catlist_size = 0;
     std::vector<struct ib_section_64 *> sectionHeaders;
     std::vector<struct ib_segment_command_64 *> segmentHeaders;
     for (uint32_t i = 0; i < ncmds; i++) {
@@ -364,6 +364,10 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
                         if (strncmp(sect->sectname, "__objc_classlist", 16) == 0) {
                             objc_classlist_addr = sect->addr;
                             objc_classlist_size = sect->size;
+                        }
+                        if (strncmp(sect->sectname, "__objc_catlist", 16) == 0) {
+                            objc_catlist_addr = sect->addr;
+                            objc_catlist_size = sect->size;
                         }
                         
                         if (sect->reloff > 0 && sect->nreloc > 0) {
@@ -510,6 +514,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     
     ObjcRuntime *objcRuntime = ObjcRuntime::getInstance();
     objcRuntime->loadClassList(objc_classlist_addr, objc_classlist_size);
+    objcRuntime->catlist_addr = objc_catlist_addr;
+    objcRuntime->catlist_size = objc_catlist_size;
     
     return SC_ERR_OK;
 }

@@ -15,6 +15,7 @@
 #include "ObjcObject.hpp"
 #include "ObjcMethod.hpp"
 #include "ObjcBlock.hpp"
+#include "ObjcCategory.hpp"
 #include <set>
 
 NS_IB_BEGIN
@@ -29,6 +30,10 @@ public:
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> heapInstanceTrickAddress2RuntimeInfo;
     std::unordered_map<std::string, uint64_t> classList;
     
+    uint64_t catlist_addr;
+    uint64_t catlist_size;
+    std::vector<std::shared_ptr<ObjcCategory>> categoryList;
+    
     // block
     std::set<uint64_t> blockISAs;
     std::unordered_map<uint64_t, ObjcBlock *> invoker2block;
@@ -37,6 +42,7 @@ public:
     ObjcClassRuntimeInfo* getClassInfoByAddress(uint64_t address, bool needRealize = true);
     ObjcClassRuntimeInfo* evalReturnForIvarGetter(ObjcClassRuntimeInfo *targetClass, std::string getterSEL);
     void loadClassList(uint64_t vmaddr, uint64_t size);
+    void loadCatList(uint64_t vmaddr, uint64_t size);
     uint64_t getClassAddrByName(std::string className);
     ObjcClassRuntimeInfo* getClassInfoByName(std::string className);
     bool isClassObjectAtAddress(uint64_t address);

@@ -147,6 +147,7 @@ set(iblessing.SOURCE_LIST
     iblessing/mach-o/runtime/ObjcMethod.cpp
     iblessing/mach-o/runtime/ObjcObject.cpp
     iblessing/mach-o/runtime/ObjcRuntime.cpp
+    iblessing/mach-o/runtime/ObjcCategory.cpp
 
     iblessing/mach-o/structs/Foundation.cpp
 
