@@ -1080,15 +1080,22 @@ int ObjcMethodXrefScanner::start() {
     
     printf("  [*] Step 3. load objc categories\n");
     if (rt->catlist_addr != 0) {
+        uint64_t totalCount = 0;
         rt->loadCatList(rt->catlist_addr, rt->catlist_size);
         for (shared_ptr<ObjcCategory> category : rt->categoryList) {
             vector<shared_ptr<ObjcMethod>> allMethods(category->instanceMethods);
             allMethods.insert(allMethods.end(), category->classMethods.begin(), category->classMethods.end());
+            totalCount += allMethods.size();
             for (shared_ptr<ObjcMethod> &m : allMethods) {
                 methods.push_back(m.get());
                 impAddrs.insert(m->imp);
             }
         }
+        
+        cout << "\t[+] A total of ";
+        cout << termcolor::green << totalCount;
+        cout << termcolor::reset;
+        cout << " category methods were found" << endl;
     }
     
     printf("  [*] Step 4. Start sub-scanners\n");
@@ -1150,7 +1157,7 @@ int ObjcMethodXrefScanner::start() {
     });
 #endif
     
-    printf("  [*] Step 5. Create Common ClassInfo for subs and add to analysis list\n");
+    printf("  [*] Step 5. create common class info for subs and add to analysis list\n");
     vector<ObjcMethod *> subMethods;
     // create common classInfo for subs
     ObjcClassRuntimeInfo *subClassInfo = new ObjcClassRuntimeInfo();
@@ -1528,7 +1535,7 @@ static void trackSymbolCall(uc_engine *uc, ObjcMethod *currentMethod, Symbol *sy
 }
 
 static void storeMethodChains() {
-    printf("  [*] Step 7. serialize call chains to file\n");
+    printf("  [*] Step 8. serialize call chains to file\n");
     if (ObjcMethodChainSerializationManager::storeMethodChain(recordPath, sel2chain)) {
         printf("\t[*] saved to %s\n", recordPath.c_str());
     } else {
