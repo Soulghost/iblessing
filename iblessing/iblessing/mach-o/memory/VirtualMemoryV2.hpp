@@ -28,6 +28,7 @@ public:
     uint64_t read64(uint64_t address, bool *success);
     uint32_t read32(uint64_t address, bool *success);
     bool write32(uint64_t address, uint32_t value);
+    bool write64(uint64_t address, uint64_t value);
     void* readBySize(uint64_t address, uint64_t size);
     char* readString(uint64_t address, uint64_t limit);
     CFString* readAsCFString(uint64_t address, bool needCheck = true);

@@ -18,6 +18,7 @@
 #include <sstream>
 #include <fstream>
 #include <string>
+#include <memory>
 #include "DyldSimulator.hpp"
 #include <pthread.h>
 #include <unicorn/unicorn.h>
@@ -1034,104 +1035,16 @@ int ObjcMethodXrefScanner::start() {
     printf("\n");
     printf("\t[+] get %lu methods to analyze\n", methods.size());
     
+    printf("  [*] Step 2. dyld load non-lazy symbols\n");
     vector<uint64_t> funcAddrs(impAddrs.begin(), impAddrs.end());
-    
-    printf("  [*] Step 2. Start sub-scanners\n");
-    ScannerDisassemblyDriver *sharedDriver = new ScannerDisassemblyDriver();
-    if (shouldAntiWrapper) {
-        ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
-        options["symbols"] = "_objc_msgSend";
-        Scanner *s = dispatcher->prepareForScanner("symbol-wrapper", options, inputPath, outputPath, sharedDriver);
-        if (s) {
-            antiWrapperScanner = reinterpret_cast<SymbolWrapperScanner *>(s);
-            antiWrapperScanner->start();
-        }
-        cout << termcolor::yellow << "    [!] Warning: the anti-wrapper mode consumes a huge amount of memory,";
-        cout << " this may be related to a memory leak or emulator problem, and I haven't solved it yet";
-        cout << termcolor::reset << endl;
-    } else {
-        antiWrapperScanner = nullptr;
-    }
-    
-    recordPath = StringUtils::path_join(outputPath, fileName + "_method-xrefs.iblessing.txt");
-    
-    SymbolXREFScanner *sxrefScanner = nullptr;
-    ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
-    options["symbols"] = "_objc_msgSend";
-    Scanner *s = dispatcher->prepareForScanner("symbol-xref", options, inputPath, outputPath, sharedDriver);
-    if (s) {
-        sxrefScanner = reinterpret_cast<SymbolXREFScanner *>(s);
-        sxrefScanner->start();
-    } else {
-        cout << termcolor::red << "    [-] Error: cannot find symbol-xref scanner";
-        cout << termcolor::reset << endl;
-        return 1;
-    }
-    
-    printf("    [*] Dispatching Disassembly Driver\n");
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
-    struct ib_section_64 *textSect = vm2->getTextSect();
-    uint64_t startAddr = textSect->addr;
-    uint64_t endAddr = textSect->addr + textSect->size;
-    uint64_t addrRange = endAddr - startAddr;
-    uint8_t *codeData = vm2->getMappedFile() + textSect->offset;
-    string last_mnemonic = "";
-    char progressChars[] = {'\\', '|', '/', '-'};
-    uint8_t progressCur = 0;
-#ifndef SkipPreScannerDriver
-    sharedDriver->startDisassembly(codeData, startAddr, endAddr, [&](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
-        float progress = 100.0 * (insn->address - startAddr) / addrRange;
-#ifdef XcodeDebug
-        static long _filter = 0;
-        if (++_filter % 5000 == 0) {
-            
-#endif
-        fprintf(stdout, "\r\t[*] %c 0x%llx/0x%llx (%.2f%%)", progressChars[progressCur], insn->address, endAddr, progress);
-        fflush(stdout);
-            
-#ifdef XcodeDebug
-        }
-#endif
-        progressCur = (++progressCur) % sizeof(progressChars);
-    });
-#endif
-    
-    printf("  [*] Step 3. Create Common ClassInfo for subs and add to analysis list\n");
-    vector<ObjcMethod *> subMethods;
-    // create common classInfo for subs
-    ObjcClassRuntimeInfo *subClassInfo = new ObjcClassRuntimeInfo();
-    subClassInfo->address = SubClassDummyAddress;
-    subClassInfo->isExternal = true;
-    subClassInfo->isSub = true;
-    subClassInfo->className = StringUtils::format("iblessing_SubClass");
-    for (auto it = sxrefScanner->xrefs.begin(); it != sxrefScanner->xrefs.end(); it++) {
-        for (SymbolXREF sxref : it->second) {
-            if (impAddrs.find(sxref.startAddr) != impAddrs.end()) {
-                // skip imp
-                continue;
-            }
-            
-            // find a sub
-            ObjcMethod *subMethod = new ObjcMethod();
-            subMethod->classInfo = subClassInfo;
-            subMethod->isClassMethod = true;
-            subMethod->imp = sxref.startAddr;
-            subMethod->name = StringUtils::format("sub_0x%llx", sxref.startAddr);
-            subMethods.push_back(subMethod);
-            
-            // record function addr
-            funcAddrs.push_back(sxref.startAddr);
-        }
-    }
-    delete sxrefScanner;
-    
-    printf("  [*] Step 4. dyld load non-lazy symbols\n");
     DyldSimulator::eachBind(vm2->getMappedFile(), vm2->getSegmentHeaders(), vm2->getDyldInfo(), [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
         uint64_t symbolAddr = addr + addend;
         
         // load non-lazy symbols
         for (uc_engine *uc : engines) {
             uc_mem_write(uc, symbolAddr, &symbolAddr, 8);
+            vm2->write64(symbolAddr, symbolAddr);
         }
         
         // record class info
@@ -1165,6 +1078,107 @@ int ObjcMethodXrefScanner::start() {
         funcAddrs.push_back(symbolAddr);
     });
     
+    printf("  [*] Step 3. load objc categories\n");
+    if (rt->catlist_addr != 0) {
+        rt->loadCatList(rt->catlist_addr, rt->catlist_size);
+        for (shared_ptr<ObjcCategory> category : rt->categoryList) {
+            vector<shared_ptr<ObjcMethod>> allMethods(category->instanceMethods);
+            allMethods.insert(allMethods.end(), category->classMethods.begin(), category->classMethods.end());
+            for (shared_ptr<ObjcMethod> &m : allMethods) {
+                methods.push_back(m.get());
+                impAddrs.insert(m->imp);
+            }
+        }
+    }
+    
+    printf("  [*] Step 4. Start sub-scanners\n");
+    ScannerDisassemblyDriver *sharedDriver = new ScannerDisassemblyDriver();
+    if (shouldAntiWrapper) {
+        ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
+        options["symbols"] = "_objc_msgSend";
+        Scanner *s = dispatcher->prepareForScanner("symbol-wrapper", options, inputPath, outputPath, sharedDriver);
+        if (s) {
+            antiWrapperScanner = reinterpret_cast<SymbolWrapperScanner *>(s);
+            antiWrapperScanner->start();
+        }
+        cout << termcolor::yellow << "    [!] Warning: the anti-wrapper mode consumes a huge amount of memory,";
+        cout << " this may be related to a memory leak or emulator problem, and I haven't solved it yet";
+        cout << termcolor::reset << endl;
+    } else {
+        antiWrapperScanner = nullptr;
+    }
+    
+    recordPath = StringUtils::path_join(outputPath, fileName + "_method-xrefs.iblessing.txt");
+    
+    SymbolXREFScanner *sxrefScanner = nullptr;
+    ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
+    options["symbols"] = "_objc_msgSend";
+    Scanner *s = dispatcher->prepareForScanner("symbol-xref", options, inputPath, outputPath, sharedDriver);
+    if (s) {
+        sxrefScanner = reinterpret_cast<SymbolXREFScanner *>(s);
+        sxrefScanner->start();
+    } else {
+        cout << termcolor::red << "    [-] Error: cannot find symbol-xref scanner";
+        cout << termcolor::reset << endl;
+        return 1;
+    }
+    
+    printf("    [*] Dispatching Disassembly Driver\n");
+    struct ib_section_64 *textSect = vm2->getTextSect();
+    uint64_t startAddr = textSect->addr;
+    uint64_t endAddr = textSect->addr + textSect->size;
+    uint64_t addrRange = endAddr - startAddr;
+    uint8_t *codeData = vm2->getMappedFile() + textSect->offset;
+    string last_mnemonic = "";
+    char progressChars[] = {'\\', '|', '/', '-'};
+    uint8_t progressCur = 0;
+#ifndef SkipPreScannerDriver
+    sharedDriver->startDisassembly(codeData, startAddr, endAddr, [&](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
+        float progress = 100.0 * (insn->address - startAddr) / addrRange;
+#ifdef XcodeDebug
+        static long _filter = 0;
+        if (++_filter % 5000 == 0) {
+            
+#endif
+        fprintf(stdout, "\r\t[*] %c 0x%llx/0x%llx (%.2f%%)", progressChars[progressCur], insn->address, endAddr, progress);
+        fflush(stdout);
+            
+#ifdef XcodeDebug
+        }
+#endif
+        progressCur = (++progressCur) % sizeof(progressChars);
+    });
+#endif
+    
+    printf("  [*] Step 5. Create Common ClassInfo for subs and add to analysis list\n");
+    vector<ObjcMethod *> subMethods;
+    // create common classInfo for subs
+    ObjcClassRuntimeInfo *subClassInfo = new ObjcClassRuntimeInfo();
+    subClassInfo->address = SubClassDummyAddress;
+    subClassInfo->isExternal = true;
+    subClassInfo->isSub = true;
+    subClassInfo->className = StringUtils::format("iblessing_SubClass");
+    for (auto it = sxrefScanner->xrefs.begin(); it != sxrefScanner->xrefs.end(); it++) {
+        for (SymbolXREF sxref : it->second) {
+            if (impAddrs.find(sxref.startAddr) != impAddrs.end()) {
+                // skip imp
+                continue;
+            }
+            
+            // find a sub
+            ObjcMethod *subMethod = new ObjcMethod();
+            subMethod->classInfo = subClassInfo;
+            subMethod->isClassMethod = true;
+            subMethod->imp = sxref.startAddr;
+            subMethod->name = StringUtils::format("sub_0x%llx", sxref.startAddr);
+            subMethods.push_back(subMethod);
+            
+            // record function addr
+            funcAddrs.push_back(sxref.startAddr);
+        }
+    }
+    delete sxrefScanner;
+    
     // remove dupliate elements
     methods.erase(unique(methods.begin(), methods.end(), [](ObjcMethod *a, ObjcMethod *b) {
         return a->imp == b->imp;
@@ -1187,10 +1201,10 @@ int ObjcMethodXrefScanner::start() {
     assert(pthread_mutex_init(&counterMutex, &attr) == 0);
     assert(pthread_mutex_init(&indexMutex, &attr) == 0);
     
-    printf("  [*] Step 5. track all objc calls\n");
+    printf("  [*] Step 6. track all objc calls\n");
     trace_all_methods(engines, methods);
     
-    printf("  [*] Step 6. track all sub calls\n");
+    printf("  [*] Step 7. track all sub calls\n");
     trace_all_methods(engines, subMethods);
     
     storeMethodChains();

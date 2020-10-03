@@ -11,6 +11,7 @@
 #include "SymbolTable.hpp"
 #include "termcolor.h"
 #include "StringUtils.h"
+#include "ObjcCategory.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -32,6 +33,11 @@ ObjcClassRuntimeInfo* ObjcRuntime::getClassInfoByAddress(uint64_t address, bool 
     // check address
     if (address2RuntimeInfo.find(address) != address2RuntimeInfo.end()) {
         return address2RuntimeInfo[address];
+    }
+    
+    // check external
+    if (externalClassRuntimeInfo.find(address) != externalClassRuntimeInfo.end()) {
+        return externalClassRuntimeInfo[address];
     }
     
     if (!needRealize) {
@@ -57,6 +63,10 @@ bool ObjcRuntime::isValidClassInfo(ObjcClassRuntimeInfo *info) {
 void ObjcRuntime::loadClassList(uint64_t vmaddr, uint64_t size) {
     VirtualMemoryV2 *vm = VirtualMemoryV2::progressDefault();
     uint64_t *classAddrs = (uint64_t *)vm->readBySize(vmaddr, size);
+    if (!classAddrs) {
+        return;
+    }
+    
     uint64_t count = size / sizeof(void *);
     classList.clear();
     for (int i = 0; i < count; i++) {
@@ -67,6 +77,24 @@ void ObjcRuntime::loadClassList(uint64_t vmaddr, uint64_t size) {
         }
         classList[className] = class_addr;
         classAddrs += 1;
+    }
+}
+
+void ObjcRuntime::loadCatList(uint64_t vmaddr, uint64_t size) {
+    categoryList.clear();
+    
+    VirtualMemoryV2 *vm = VirtualMemoryV2::progressDefault();
+    uint64_t *cateAddrs = (uint64_t *)vm->readBySize(vmaddr, size);
+    if (!cateAddrs) {
+        return;
+    }
+    
+    uint64_t count = size / sizeof(void *);
+    for (int i = 0; i < count; i++) {
+        uint64_t cateAddr = *cateAddrs;
+        shared_ptr<ObjcCategory> category = ObjcCategory::loadFromAddress(cateAddr);
+        categoryList.push_back(category);
+        cateAddrs += 1;
     }
 }
 
