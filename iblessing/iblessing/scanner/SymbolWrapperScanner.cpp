@@ -108,7 +108,7 @@ int SymbolWrapperScanner::start() {
     }
     printf("\n");
     
-    printf("%s  [*] Step1. find __TEXT,__text\n", prepadding);
+    printf("%s  [*] Step 1. find __TEXT,__text\n", prepadding);
     VirtualMemoryV2 *vm = VirtualMemoryV2::progressDefault();
     struct ib_section_64 *textSect = vm->getTextSect();
     vm->mappingMachOToEngine(uc, vm->getMappedFile());
