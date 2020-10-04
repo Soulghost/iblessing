@@ -45,6 +45,10 @@ In case you need support regarding iblessing or anything associated with it, you
 - send mail to xiuyutong1994#gmail.com
 
 # Changelog
+- 2020.10.04 - Objc category list support
+- 2020.09.28 - Static library and fat mach-o support
+- 2020.09.22 - Basic program state and condition branching
+- 2020.09.04 - Method validation, infering, objc_msgSendSuper support
 - 2020.08.11 - Now iblessing is a cross-platform tool, support both macOS and Linux 😆
 - 2020.08.08 - Improve objc_msgSend xref scanner, add sub xref supoort, including block arguments and capture list
 - 2020.07.30 - Improve symbol-wrapper scanner, and add ida scripts for symbol wrapper rename and prototype modification
