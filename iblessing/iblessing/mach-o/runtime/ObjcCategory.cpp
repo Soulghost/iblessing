@@ -27,7 +27,7 @@ using namespace iblessing;
 00000030 __objc2_category ends
 */
 
-static vector<shared_ptr<ObjcMethod>> loadMethodsFromAddress(uint64_t address, ObjcClassRuntimeInfo *classInfo) {
+static vector<shared_ptr<ObjcMethod>> loadMethodsFromAddress(uint64_t address, ObjcClassRuntimeInfo *classInfo, bool classMethod) {
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     uint32_t count = vm2->read32(address + 4, nullptr);
     if (count == 0) {
@@ -68,7 +68,7 @@ static vector<shared_ptr<ObjcMethod>> loadMethodsFromAddress(uint64_t address, O
         method->name = sel_str;
         method->types = types_str;
         method->imp = imp_addr;
-        method->isClassMethod = true;
+        method->isClassMethod = classMethod;
         method->classInfo = classInfo;
         methods.push_back(method);
         
@@ -115,12 +115,13 @@ shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(uint64_t address) {
     
     uint64_t instanceMethodsAddr = vm2->read64(address, nullptr);
     if (instanceMethodsAddr) {
-        category->instanceMethods = loadMethodsFromAddress(instanceMethodsAddr, category->decoratedClass->classInfo);
+        category->instanceMethods = loadMethodsFromAddress(instanceMethodsAddr, category->decoratedClass->classInfo, false);
     }
+    address += 8;
     
     uint64_t classMethodsAddr = vm2->read64(address, nullptr);
     if (classMethodsAddr) {
-        category->classMethods = loadMethodsFromAddress(classMethodsAddr, category->decoratedClass->classInfo);
+        category->classMethods = loadMethodsFromAddress(classMethodsAddr, category->decoratedClass->classInfo, true);
     }
     
     if (category->decoratedClass->classInfo) {
