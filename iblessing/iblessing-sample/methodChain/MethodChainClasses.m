@@ -61,6 +61,10 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
     
 }
 
+- (void)rootInstanceMethodWithStaticArgSnapshot:(BOOL)a str:(NSString *)str dict:(NSDictionary *)c d:(NSInteger)d {
+    
+}
+
 @end
 
 
@@ -161,6 +165,11 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
     CategoryObject *cate = [CategoryObject new];
     [cate callFromInstance];
     [CategoryObject callFromClass];
+}
+
+- (void)testCallToCollectSnapshot {
+    IBSRoot *root = [IBSRoot new];
+    [root rootInstanceMethodWithStaticArgSnapshot:YES str:@"OK" dict:@{@"a": @"b"} d:0xfadeface];
 }
 
 @end
