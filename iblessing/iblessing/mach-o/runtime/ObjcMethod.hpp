@@ -23,6 +23,7 @@ public:
     bool isDummy;
     std::string name;
     std::string types;
+    std::vector<std::string> argTypes;
     uint64_t imp;
     ObjcClassRuntimeInfo *classInfo;
     

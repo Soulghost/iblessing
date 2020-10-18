@@ -190,6 +190,16 @@ static uint64_t curCount = 0;
 static uint64_t totalCount = 0;
 static vector<uint64_t> functionAddrs;
 
+// options
+static bool trackingCallSnapshots = true;
+
+static uc_arm64_reg getFunctionArgRegAtIndex(int index) {
+    if (index < 8) {
+        return (uc_arm64_reg)(UC_ARM64_REG_X0 + index);
+    }
+    return UC_ARM64_REG_INVALID;
+}
+
 static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
     if (!ctx->isInBlockBuilder) {
         return;
@@ -1382,6 +1392,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     }
     
     // validate class & sel or find similar one
+    ObjcMethod *calleeMethod = nullptr;
     if (!rt->isExistMethod(methodPrefix, classExpr, detectedSEL)) {
         // try to infer one
         ObjcMethod *inferredMethod = rt->inferNearestMethod(methodPrefix, classExpr, detectedSEL);
@@ -1389,8 +1400,74 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
             methodPrefix = inferredMethod->isClassMethod ? "+" : "-";
             classExpr = inferredMethod->classInfo->className;
             detectedSEL = inferredMethod->name.c_str();
+            calleeMethod = inferredMethod;
         } else {
 //            printf("    [-] Warn: skip %s[%s %s]\n", methodPrefix, classExpr.c_str(), detectedSEL);
+        }
+    } else {
+        if (trackingCallSnapshots) {
+            calleeMethod = rt->inferNearestMethod(methodPrefix, classExpr, detectedSEL);
+        }
+    }
+    
+    if (trackingCallSnapshots && calleeMethod != nullptr) {
+        vector<string> args = calleeMethod->argTypes;
+        int startPos = 0;
+        if (calleeMethod && calleeMethod->classInfo) {
+            if (calleeMethod->classInfo->isSub) {
+                // block call: (return_type, block_self, ...)
+                startPos = 2;
+            } else {
+                // objc call: (return_type, self, sel, ...)
+                startPos = 3;
+            }
+        }
+        
+        vector<pair<string, uc_arm64_reg>> keyArgs;
+        for (int i = startPos; i < args.size(); i++) {
+            keyArgs.push_back({args[i], getFunctionArgRegAtIndex(i - 1)});
+        }
+        
+        if (keyArgs.size() > 0) {
+            // dump args from regs
+            printf("\n[+] find call with args %s\n", calleeMethod->name.c_str());
+            if (calleeMethod->name == "initWithBaseViewController:browser:presentationContext:") {
+                
+            }
+            int idx = 0;
+            for (pair<string, uc_arm64_reg> &arg : keyArgs) {
+                string &argEncode = arg.first;
+                uc_arm64_reg &reg = arg.second;
+                uint64_t regValue = 0;
+                if (UC_ERR_OK == uc_reg_read(uc, reg, &regValue)) {
+                    bool resolved = false;
+                    if (argEncode == "id") {
+                        if (calleeMethod->name == "setTitleTextStyle:") {
+                            
+                        }
+                        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(regValue, false);
+                        if (classInfo) {
+                            resolved = true;
+                            printf("  [+] arg %d: %s -> %s\n", idx, argEncode.c_str(), classInfo->className.c_str());
+                        } else {
+                            char *maybeCFString = vm2->readAsCFStringContent(regValue, true);
+                            if (maybeCFString) {
+                                resolved = true;
+                                printf("  [+] arg %d: NSString -> @\"%s\"\n", idx, maybeCFString);
+                                free(maybeCFString);
+                            }
+                        }
+                    } else if (argEncode == "@?") {
+                        printf("  [+] arg %d: %s -> ObjcBlock\n", idx, argEncode.c_str());
+                    }
+                    if (!resolved) {
+                        printf("  [+] arg %d: %s -> 0x%llx\n", idx, argEncode.c_str(), regValue);
+                    }
+                } else {
+                    printf("  [+] arg %d: %s -> ?\n", idx, argEncode.c_str());
+                }
+                idx++;
+            }
         }
     }
     
