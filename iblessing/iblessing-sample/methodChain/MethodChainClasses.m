@@ -29,6 +29,10 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
     
 }
 
++ (void)rootClassMethodCallFromCategoryMethod {
+    
+}
+
 - (void)rootInstanceMethodCallFromIvar {
     
 }
@@ -61,7 +65,25 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
     
 }
 
-- (void)rootInstanceMethodWithStaticArgSnapshot:(BOOL)a str:(NSString *)str dict:(NSDictionary *)c d:(NSInteger)d {
+- (void)rootInstanceMethodWithStaticArgSnapshot:(BOOL)a str:(NSString *)str dict:(NSDictionary *)c d:(NSInteger)d f:(IBSCallTester *)f g:(InstanceObject *)g {
+    
+}
+
+struct PrimaryStruct {
+    int a;
+    int b;
+    char *c;
+};
+
+- (void)rootInstanceMethodWithOCObjectConstOCStringVal:(NSString *)constOCStringVal constOCDictVal:(NSDictionary *)constOCDictVal  dynamicOCStringVal:(NSString *)dynamicOCStringVal dynamicOCDict:(NSDictionary *)dynamicOCDictVal selfInput:(IBSCallTester *)selfInputVal localAllocate:(InstanceObject *)localAllocateVal {
+    
+}
+
+- (void)rootInstanceMethodWithPrimaryBOOL:(BOOL)boolVal primaryInt:(int)intVal primaryFloat:(float)floatVal primaryDouble:(double)doubleVal {
+    
+}
+
+- (void)rootInstanceMethodWithCTypesPrimaryStruct:(struct PrimaryStruct)structVal primaryStructPtr:(struct PrimaryStruct *)primaryStructPtrVal rawPtrVal:(void *)rawPtrVal constCString:(const char *)constCStringVal dynamicCString:(char *)dynamicCStringVal {
     
 }
 
@@ -169,7 +191,36 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
 
 - (void)testCallToCollectSnapshot {
     IBSRoot *root = [IBSRoot new];
-    [root rootInstanceMethodWithStaticArgSnapshot:YES str:@"OK" dict:@{@"a": @"b"} d:0xfadeface];
+    InstanceObject *localAllocate = [InstanceObject new];
+    NSDictionary *dict = @{@"foo": @"bar", @"type": @"immutablez"};
+    NSMutableDictionary *mutableDict = @{@"type": @"mutable"}.mutableCopy;
+    [mutableDict setObject:@"foo" forKey:@"bar"];
+    
+    NSMutableString *dynamicString = @"dynamic string".mutableCopy;
+    [dynamicString appendString:@"any"];
+    
+    char *dynamicCString = strdup("dynamic c string");
+    
+    struct PrimaryStruct primaryStruct = {.a = 0xaaaa, .b = 0xbbbb, .c = "primaryStruct"};
+    void *rawPtr = malloc(0x1024);
+    
+    [root rootInstanceMethodWithPrimaryBOOL:YES
+                                 primaryInt:0xaaaa
+                               primaryFloat:M_PI
+                              primaryDouble:M_PI_2];
+    
+    [root rootInstanceMethodWithCTypesPrimaryStruct:primaryStruct
+                                   primaryStructPtr:&primaryStruct
+                                          rawPtrVal:rawPtr
+                                       constCString:"const c string"
+                                     dynamicCString:dynamicCString];
+    
+    [root rootInstanceMethodWithOCObjectConstOCStringVal:@"const oc string"
+                                          constOCDictVal:dict
+                                      dynamicOCStringVal:dynamicString.copy
+                                           dynamicOCDict:mutableDict.copy
+                                               selfInput:self
+                                           localAllocate:localAllocate];
 }
 
 @end
@@ -251,5 +302,9 @@ typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, 
 - (void)cateCallToOut {
     [IBSRoot rootClassMethodCallFromCategoryMethod];
 }
+
+@end
+
+@implementation InstanceObject
 
 @end

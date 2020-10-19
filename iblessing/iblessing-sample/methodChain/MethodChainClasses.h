@@ -78,3 +78,7 @@
 + (void)callFromClass;
 
 @end
+
+@interface InstanceObject : NSObject
+
+@end

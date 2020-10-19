@@ -1431,9 +1431,6 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
         if (keyArgs.size() > 0) {
             // dump args from regs
             printf("\n[+] find call with args %s\n", calleeMethod->name.c_str());
-            if (calleeMethod->name == "initWithBaseViewController:browser:presentationContext:") {
-                
-            }
             int idx = 0;
             for (pair<string, uc_arm64_reg> &arg : keyArgs) {
                 string &argEncode = arg.first;
