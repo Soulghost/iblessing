@@ -32,11 +32,15 @@
 #include "ProgramStateManager.hpp"
 
 #define UnicornStackTopAddr      0x300000000
+
+// masks
 #define ClassAsInstanceTrickMask 0x0100000000000000
 #define IvarInstanceTrickMask    0x1000000000000000
 #define HeapInstanceTrickMask    0x2000000000000000
 #define SelfInstanceTrickMask    0x4000000000000000
-#define SelfSelectorTrickMask    0x8000000000000000
+
+// marks
+#define SelfSelectorMark         0x8888888888888888
 
 #define SubClassDummyAddress      0xcafecaaecaaecaae
 #define ExternalClassDummyAddress 0xfacefacefaceface
@@ -624,7 +628,6 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             // this is a trick before method emu start (x0 = &classInfo)
             pthread_mutex_lock(&indexMutex);
             if (x0 & SelfInstanceTrickMask) {
-//                    x0 = x0 & ~(SelfInstanceTrickMask);
                 // self call, write self's real class addr to x0
                 uc_reg_write(uc, UC_ARM64_REG_X0, &ctx->currentMethod->classInfo->address);
             } else if (rt->ivarInstanceTrickAddress2RuntimeInfo.find(x0) != rt->ivarInstanceTrickAddress2RuntimeInfo.end()) {
@@ -796,11 +799,11 @@ void* pthread_uc_worker(void *ctx) {
         
         if (!m->classInfo->isSub) {
             // init x0 as classref
-            uint64_t selfTrickAddr = ((uint64_t)m->classInfo) | SelfInstanceTrickMask;
+            uint64_t selfTrickAddr = (m->classInfo->address) | SelfInstanceTrickMask;
             uc_reg_write(context->engine, UC_ARM64_REG_X0, &selfTrickAddr);
             
             // init x1 as SEL, faked as self class info
-            uint64_t selfSELAddr = ((uint64_t)m->classInfo) | SelfSelectorTrickMask;
+            uint64_t selfSELAddr = SelfSelectorMark;
             uc_reg_write(context->engine, UC_ARM64_REG_X1, &selfSELAddr);
         } else {
             if (rt->invoker2block.find(m->imp) != rt->invoker2block.end()) {
@@ -817,7 +820,7 @@ void* pthread_uc_worker(void *ctx) {
                 for (int i = 0; i < std::min((int)block->args.size(), 8); i++) {
                     BlockVariable *blockVar = block->args[i];
                     if (blockVar->type == BlockVariableTypeObjcClass) {
-                        uint64_t encodedAddr = (uint64_t)blockVar->classInfo;
+                        uint64_t encodedAddr = blockVar->classInfo->address;
                         encodedAddr = encodedAddr | ClassAsInstanceTrickMask;
                         uc_reg_write(context->engine, UC_ARM64_REG_X1 + i, &encodedAddr);
                     }
@@ -1232,6 +1235,86 @@ int ObjcMethodXrefScanner::start() {
     return 0;
 }
 
+static ObjcClassRuntimeInfo* tryResolveObjcClass(uint64_t address) {
+    ObjcClassRuntimeInfo *classInfo = nullptr;
+    
+    ObjcRuntime *rt = ObjcRuntime::getInstance();
+    if (address & ClassAsInstanceTrickMask) {
+        // FIXME: unsafe convert & read
+        uint64_t classAddr = address & (~ClassAsInstanceTrickMask);
+        classInfo = rt->getClassInfoByAddress(classAddr, false);
+    } else if (address & IvarInstanceTrickMask) {
+        uint64_t classAddr = address & (~IvarInstanceTrickMask);
+        classInfo = rt->getClassInfoByAddress(classAddr, false);
+    } else if (address & HeapInstanceTrickMask) {
+        uint64_t classAddr = address & (~HeapInstanceTrickMask);
+        classInfo = rt->getClassInfoByAddress(classAddr, false);
+    } else if (address & SelfInstanceTrickMask) {
+        
+    }
+    return classInfo;
+}
+
+static void dumpInputArgs(uc_engine *uc, ObjcMethod *calleeMethod) {
+    ObjcRuntime *rt = ObjcRuntime::getInstance();
+    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+    
+    if (trackingCallSnapshots && calleeMethod != nullptr) {
+        vector<string> args = calleeMethod->argTypes;
+        int startPos = 0;
+        if (calleeMethod && calleeMethod->classInfo) {
+            if (calleeMethod->classInfo->isSub) {
+                // block call: (return_type, block_self, ...)
+                startPos = 2;
+            } else {
+                // objc call: (return_type, self, sel, ...)
+                startPos = 3;
+            }
+        }
+        
+        vector<pair<string, uc_arm64_reg>> keyArgs;
+        for (int i = startPos; i < args.size(); i++) {
+            keyArgs.push_back({args[i], getFunctionArgRegAtIndex(i - 1)});
+        }
+        
+        if (keyArgs.size() > 0) {
+            // dump args from regs
+            printf("\n[+] find call with args %s\n", calleeMethod->name.c_str());
+            int idx = 0;
+            for (pair<string, uc_arm64_reg> &arg : keyArgs) {
+                string &argEncode = arg.first;
+                uc_arm64_reg &reg = arg.second;
+                uint64_t regValue = 0;
+                if (UC_ERR_OK == uc_reg_read(uc, reg, &regValue)) {
+                    bool resolved = false;
+                    if (argEncode == "id") {
+                        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(regValue, false);
+                        if (classInfo) {
+                            resolved = true;
+                            printf("  [+] arg %d: %s -> %s\n", idx, argEncode.c_str(), classInfo->className.c_str());
+                        } else {
+                            char *maybeCFString = vm2->readAsCFStringContent(regValue, true);
+                            if (maybeCFString) {
+                                resolved = true;
+                                printf("  [+] arg %d: NSString -> @\"%s\"\n", idx, maybeCFString);
+                                free(maybeCFString);
+                            }
+                        }
+                    } else if (argEncode == "@?") {
+                        printf("  [+] arg %d: %s -> ObjcBlock\n", idx, argEncode.c_str());
+                    }
+                    if (!resolved) {
+                        printf("  [+] arg %d: %s -> 0x%llx\n", idx, argEncode.c_str(), regValue);
+                    }
+                } else {
+                    printf("  [+] arg %d: %s -> ?\n", idx, argEncode.c_str());
+                }
+                idx++;
+            }
+        }
+    }
+}
+
 static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uint64_t x1, int sendSuperType) {
     ObjcRuntime *rt = ObjcRuntime::getInstance();
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
@@ -1247,7 +1330,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     // read sel
     if (x1) {
         // FIXME: x1 trick at method prologue
-        if (x1 & SelfSelectorTrickMask) {
+        if (x1 == SelfSelectorMark) {
             detectedSEL = currentMethod->name.c_str();
         } else {
             detectedSEL = vm2->readString(x1, 255);
@@ -1290,10 +1373,10 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
         instanceAddr = addr;
         if (x0 & SelfInstanceTrickMask) {
             // self call -[self foo]
-            detectedClassInfo = reinterpret_cast<ObjcClassRuntimeInfo *>(x0 & (~SelfInstanceTrickMask));
+            detectedClassInfo = rt->getClassInfoByAddress(x0 & (~SelfInstanceTrickMask), false);
             methodPrefix = "-";
         } else if (x0 & ClassAsInstanceTrickMask) {
-            detectedClassInfo = reinterpret_cast<ObjcClassRuntimeInfo *>(x0 & (~ClassAsInstanceTrickMask));
+            detectedClassInfo = rt->getClassInfoByAddress(x0 & (~ClassAsInstanceTrickMask), false);
             methodPrefix = "-";
         } else if (rt->address2RuntimeInfo.find(addr) != rt->address2RuntimeInfo.end()) {
             // +[Class foo]
@@ -1410,63 +1493,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
         }
     }
     
-    if (trackingCallSnapshots && calleeMethod != nullptr) {
-        vector<string> args = calleeMethod->argTypes;
-        int startPos = 0;
-        if (calleeMethod && calleeMethod->classInfo) {
-            if (calleeMethod->classInfo->isSub) {
-                // block call: (return_type, block_self, ...)
-                startPos = 2;
-            } else {
-                // objc call: (return_type, self, sel, ...)
-                startPos = 3;
-            }
-        }
-        
-        vector<pair<string, uc_arm64_reg>> keyArgs;
-        for (int i = startPos; i < args.size(); i++) {
-            keyArgs.push_back({args[i], getFunctionArgRegAtIndex(i - 1)});
-        }
-        
-        if (keyArgs.size() > 0) {
-            // dump args from regs
-            printf("\n[+] find call with args %s\n", calleeMethod->name.c_str());
-            int idx = 0;
-            for (pair<string, uc_arm64_reg> &arg : keyArgs) {
-                string &argEncode = arg.first;
-                uc_arm64_reg &reg = arg.second;
-                uint64_t regValue = 0;
-                if (UC_ERR_OK == uc_reg_read(uc, reg, &regValue)) {
-                    bool resolved = false;
-                    if (argEncode == "id") {
-                        if (calleeMethod->name == "setTitleTextStyle:") {
-                            
-                        }
-                        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(regValue, false);
-                        if (classInfo) {
-                            resolved = true;
-                            printf("  [+] arg %d: %s -> %s\n", idx, argEncode.c_str(), classInfo->className.c_str());
-                        } else {
-                            char *maybeCFString = vm2->readAsCFStringContent(regValue, true);
-                            if (maybeCFString) {
-                                resolved = true;
-                                printf("  [+] arg %d: NSString -> @\"%s\"\n", idx, maybeCFString);
-                                free(maybeCFString);
-                            }
-                        }
-                    } else if (argEncode == "@?") {
-                        printf("  [+] arg %d: %s -> ObjcBlock\n", idx, argEncode.c_str());
-                    }
-                    if (!resolved) {
-                        printf("  [+] arg %d: %s -> 0x%llx\n", idx, argEncode.c_str(), regValue);
-                    }
-                } else {
-                    printf("  [+] arg %d: %s -> ?\n", idx, argEncode.c_str());
-                }
-                idx++;
-            }
-        }
-    }
+    dumpInputArgs(uc, calleeMethod);
     
 #if 0
     // 1. [methods] <-> method <-> [methods]
