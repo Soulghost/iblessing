@@ -8,14 +8,22 @@
 
 #include "ObjcMethodChainSerializationManager.hpp"
 #include <fstream>
+#include <algorithm>
 #include "StringUtils.h"
 
 using namespace std;
 using namespace iblessing;
 
-std::string ObjcMethodChainSerializationManager::currentVersion = "0.2";
+string ObjcMethodChainSerializationManager::currentVersion = "0.2";
 
-bool ObjcMethodChainSerializationManager::storeMethodChain(std::string path, std::map<std::string, MethodChain *> &sel2chain) {
+bool ObjcMethodChainSerializationManager::storeMethodChain(std::string path, std::map<string, MethodChain *> &sel2chain) {
+    vector<pair<string, MethodChain *>> chainPairs(sel2chain.begin(), sel2chain.end());
+    
+    // sort map by id
+    sort(chainPairs.begin(), chainPairs.end(), [](pair<string, MethodChain *> &a, pair<string, MethodChain *> &b) {
+        return a.second->chainId < b.second->chainId;
+    });
+    
     ofstream ss(path);
     if (!ss.is_open()) {
         return false;
@@ -24,9 +32,9 @@ bool ObjcMethodChainSerializationManager::storeMethodChain(std::string path, std
     ss.clear();
     ss << StringUtils::format("iblessing methodchains,ver:%s;", currentVersion.c_str()) << endl;
     ss << "chainId,sel,prefix,className,methodName,prevMethods,nextMethods" << endl;
-    for (auto it = sel2chain.begin(); it != sel2chain.end(); it++) {
-        string sel = it->first;
-        MethodChain *chain = it->second;
+    for (pair<string, MethodChain *> &chainPair : chainPairs) {
+        string sel = chainPair.first;
+        MethodChain *chain = chainPair.second;
         ss << StringUtils::format("%lld,0x%llx,%s,%s,%s,%s", chain->chainId,
                                                       chain->impAddr,
                                                       sel.c_str(),
