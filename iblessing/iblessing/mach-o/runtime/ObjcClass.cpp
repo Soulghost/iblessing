@@ -153,7 +153,6 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
         uint64_t imp_offset = types_offset + 8;
         uint64_t imp_addr = rf64cnt(imp_offset, objc_methods_addr += 24);
         
-        // add to class method list
         ObjcMethod *method = new ObjcMethod();
         method->name = sel_str;
         method->types = types_str;

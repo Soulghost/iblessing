@@ -11,6 +11,7 @@
 #include "SymbolTable.hpp"
 #include "termcolor.h"
 #include "StringUtils.h"
+#include "ObjcClass.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -21,4 +22,14 @@ ObjcMethod* ObjcMethod::createDummy(std::string name) {
     m->isDummy = true;
     m->classInfo = nullptr;
     return m;
+}
+
+string ObjcMethod::desc() {
+    string className;
+    if (classInfo) {
+        className = classInfo->className;
+    }
+    
+    string prefix = isClassMethod ? "+" : "-";
+    return StringUtils::format("%s[%s %s]", prefix.c_str(), className.c_str(), name.c_str());
 }
