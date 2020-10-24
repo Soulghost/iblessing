@@ -53,20 +53,21 @@ bool ObjcMethodCallSnapshotSerializationManager::storeAsJSON(string path, map<ui
     for (pair<uint64_t, set<ObjcMethodCall>> &snapshotPair : snapshotPairs) {
         uint64_t chainId = snapshotPair.first;
         set<ObjcMethodCall> &calls = snapshotPair.second;
+        if (calls.size() == 0) {
+            continue;
+        }
         
         rapidjson::Value chainObject(rapidjson::kObjectType);
         chainObject.AddMember("id", chainId, allocator);
         
+        ObjcMethodCall anyCall = *next(calls.begin(), 0);
+        chainObject.AddMember("cls", jsonString(anyCall.method->classInfo->className, allocator), allocator);
+        chainObject.AddMember("clsa", anyCall.method->classInfo->address, allocator);
+        chainObject.AddMember("m", jsonString(anyCall.method->desc(), allocator), allocator);
+        chainObject.AddMember("ma", anyCall.method->imp, allocator);
+        
         rapidjson::Value callObjects(rapidjson::kArrayType);
         for (ObjcMethodCall call : calls) {
-            rapidjson::Value callObject(rapidjson::kObjectType);
-            if (call.method->classInfo) {
-                callObject.AddMember("cls", jsonString(call.method->classInfo->className, allocator), allocator);
-                callObject.AddMember("clsa", call.method->classInfo->address, allocator);
-            }
-            callObject.AddMember("m", jsonString(call.method->desc(), allocator), allocator);
-            callObject.AddMember("ma", call.method->imp, allocator);
-            
             rapidjson::Value argsObject(rapidjson::kArrayType);
             for (ObjcMethodCallArg arg : call.args) {
                 rapidjson::Value argObject(rapidjson::kObjectType);
@@ -77,8 +78,7 @@ bool ObjcMethodCallSnapshotSerializationManager::storeAsJSON(string path, map<ui
                 argObject.AddMember("p", arg.isPrimaryType, allocator);
                 argsObject.PushBack(argObject, allocator);
             }
-            callObject.AddMember("args", argsObject, allocator);
-            callObjects.PushBack(callObject, allocator);
+            callObjects.PushBack(argsObject, allocator);
         }
         chainObject.AddMember("calls", callObjects, allocator);
         allMethodsCallSnapshots.PushBack(chainObject, allocator);
