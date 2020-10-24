@@ -17,6 +17,7 @@ NS_IB_BEGIN
 class CoreFoundation {
 public:
     static std::vector<std::string> argumentsFromSignature(const char *signaure);
+    static std::string resolveTypeEncoding(std::string &typeEncoding);
 };
 
 NS_IB_END

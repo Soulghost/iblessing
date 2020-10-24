@@ -148,3 +148,28 @@ vector<string> CoreFoundation::argumentsFromSignature(const char *signaure) {
     
     return args;
 }
+
+string CoreFoundation::resolveTypeEncoding(string &typeEncoding) {
+    static map<string, string> primaryTypes{
+        {"c", "char"},
+        {"i", "int"},
+        {"s", "short"},
+        {"l", "long"},
+        {"q", "long long"},
+        {"C", "unsigned char"},
+        {"I", "unsigned int"},
+        {"S", "unsigned short"},
+        {"L", "unsigned long"},
+        {"Q", "unsigned long long"},
+        {"f", "float"},
+        {"d", "double"},
+        {"B", "bool"},
+        {"v", "void"},
+        {"*", "char *"},
+    };
+    if (primaryTypes.find(typeEncoding) != primaryTypes.end()) {
+        return primaryTypes[typeEncoding];
+    }
+    
+    return "";
+}

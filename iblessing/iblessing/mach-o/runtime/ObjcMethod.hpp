@@ -32,6 +32,8 @@ public:
     bool operator < (ObjcMethod *other) {
         return name < other->name;
     }
+    
+    std::string desc();
 };
 
 NS_IB_END

@@ -29,7 +29,9 @@
 #include "VirtualMemoryV2.hpp"
 #include "CoreFoundation.hpp"
 #include "ObjcMethodChainSerializationManager.hpp"
+#include "ObjcMethodCallSnapshotSerializationManager.hpp"
 #include "ProgramStateManager.hpp"
+#include "ObjcMethodCall.hpp"
 
 #define UnicornStackTopAddr      0x300000000
 
@@ -59,11 +61,13 @@
 using namespace std;
 using namespace iblessing;
 
-static string recordPath;
+static string recordPath, callSnapshotPath;
 static SymbolWrapperScanner *antiWrapperScanner;
 static uc_hook insn_hook, memexp_hook;
 
 static map<string, MethodChain *> sel2chain;
+static map<uint64_t, set<ObjcMethodCall>> callSnapshots;
+
 static set<string> trackSymbolBlacklist = {
     "_objc_copyWeak", "_objc_moveWeak", "_objc_initWeak",
     "_objc_loadWeak", "_objc_loadWeakRetained", "_objc_storeWeak",
@@ -1129,6 +1133,7 @@ int ObjcMethodXrefScanner::start() {
     }
     
     recordPath = StringUtils::path_join(outputPath, fileName + "_method-xrefs.iblessing.txt");
+    callSnapshotPath = StringUtils::path_join(outputPath, fileName + "_call-snapshots.iblessing.json");
     
     SymbolXREFScanner *sxrefScanner = nullptr;
     ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
@@ -1237,7 +1242,6 @@ int ObjcMethodXrefScanner::start() {
 
 static ObjcClassRuntimeInfo* tryResolveObjcClass(uint64_t address) {
     ObjcClassRuntimeInfo *classInfo = nullptr;
-    
     ObjcRuntime *rt = ObjcRuntime::getInstance();
     if (address & ClassAsInstanceTrickMask) {
         // FIXME: unsafe convert & read
@@ -1250,16 +1254,17 @@ static ObjcClassRuntimeInfo* tryResolveObjcClass(uint64_t address) {
         uint64_t classAddr = address & (~HeapInstanceTrickMask);
         classInfo = rt->getClassInfoByAddress(classAddr, false);
     } else if (address & SelfInstanceTrickMask) {
-        
+        uint64_t classAddr = address & (~SelfInstanceTrickMask);
+        classInfo = rt->getClassInfoByAddress(classAddr, false);
     }
     return classInfo;
 }
 
-static void dumpInputArgs(uc_engine *uc, ObjcMethod *calleeMethod) {
-    ObjcRuntime *rt = ObjcRuntime::getInstance();
+static void dumpInputArgs(uint64_t chainId, uc_engine *uc, ObjcMethod *calleeMethod) {
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
-    
     if (trackingCallSnapshots && calleeMethod != nullptr) {
+        vector<ObjcMethodCallArg> callArgs;
+        
         vector<string> args = calleeMethod->argTypes;
         int startPos = 0;
         if (calleeMethod && calleeMethod->classInfo) {
@@ -1279,7 +1284,7 @@ static void dumpInputArgs(uc_engine *uc, ObjcMethod *calleeMethod) {
         
         if (keyArgs.size() > 0) {
             // dump args from regs
-            printf("\n[+] find call with args %s\n", calleeMethod->name.c_str());
+//            printf("\n[+] find call with args %s\n", calleeMethod->name.c_str());
             int idx = 0;
             for (pair<string, uc_arm64_reg> &arg : keyArgs) {
                 string &argEncode = arg.first;
@@ -1288,30 +1293,78 @@ static void dumpInputArgs(uc_engine *uc, ObjcMethod *calleeMethod) {
                 if (UC_ERR_OK == uc_reg_read(uc, reg, &regValue)) {
                     bool resolved = false;
                     if (argEncode == "id") {
-                        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(regValue, false);
+                        ObjcClassRuntimeInfo *classInfo = tryResolveObjcClass(regValue);
                         if (classInfo) {
                             resolved = true;
-                            printf("  [+] arg %d: %s -> %s\n", idx, argEncode.c_str(), classInfo->className.c_str());
+//                            printf("  [+] arg %d: %s -> %s\n", idx, argEncode.c_str(), classInfo->className.c_str());
+                            callArgs.push_back(ObjcMethodCallArg(argEncode,
+                                                                 classInfo->className.c_str(),
+                                                                 "",
+                                                                 false,
+                                                                 false));
                         } else {
                             char *maybeCFString = vm2->readAsCFStringContent(regValue, true);
                             if (maybeCFString) {
                                 resolved = true;
-                                printf("  [+] arg %d: NSString -> @\"%s\"\n", idx, maybeCFString);
+//                                printf("  [+] arg %d: NSString -> @\"%s\"\n", idx, maybeCFString);
+                                callArgs.push_back(ObjcMethodCallArg(argEncode,
+                                                                     "NSString",
+                                                                     string(maybeCFString),
+                                                                     false,
+                                                                     true));
                                 free(maybeCFString);
                             }
                         }
                     } else if (argEncode == "@?") {
-                        printf("  [+] arg %d: %s -> ObjcBlock\n", idx, argEncode.c_str());
+                        resolved = true;
+//                        printf("  [+] arg %d: %s -> ObjcBlock\n", idx, argEncode.c_str());
+                        callArgs.push_back(ObjcMethodCallArg(argEncode,
+                                                             "ObjcBlock",
+                                                             "",
+                                                             false,
+                                                             false));
                     }
                     if (!resolved) {
-                        printf("  [+] arg %d: %s -> 0x%llx\n", idx, argEncode.c_str(), regValue);
+                        bool isPrimary = (argEncode.length() == 1 && argEncode != "*");
+                        bool resolved = false;
+                        string typeName = CoreFoundation::resolveTypeEncoding(argEncode);
+                        if (typeName.length() > 0) {
+                            if (isPrimary) {
+                                if (typeName == "float"  ||
+                                    typeName == "double" ||
+                                    typeName == "char *") {
+                                    // FIXME: resolve SIMD types and C pointers
+                                    resolved = false;
+                                } else {
+                                    // FIXME: we can only resolve primary types now
+                                    resolved = true;
+                                }
+                            }
+//                            printf("  [+] arg %d: %s -> 0x%llx\n", idx, typeName.c_str(), regValue);
+                        } else {
+//                            printf("  [+] arg %d: %s -> 0x%llx\n", idx, argEncode.c_str(), regValue);
+                        }
+                        callArgs.push_back(ObjcMethodCallArg(argEncode,
+                                                             typeName,
+                                                             StringUtils::format("0x%llx", regValue),
+                                                             isPrimary,
+                                                             resolved));
                     }
                 } else {
-                    printf("  [+] arg %d: %s -> ?\n", idx, argEncode.c_str());
+                    string typeName = CoreFoundation::resolveTypeEncoding(argEncode);
+//                    printf("  [+] arg %d: %s -> ?\n", idx, argEncode.c_str());
+                    callArgs.push_back(ObjcMethodCallArg(argEncode,
+                                                         typeName,
+                                                         "",
+                                                         false,
+                                                         false));
                 }
                 idx++;
             }
-        }
+            
+            ObjcMethodCall methodCall = ObjcMethodCall(calleeMethod, callArgs);
+            callSnapshots[chainId].insert(methodCall);
+        } // end of for keyArgs
     }
 }
 
@@ -1493,8 +1546,6 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
         }
     }
     
-    dumpInputArgs(uc, calleeMethod);
-    
 #if 0
     // 1. [methods] <-> method <-> [methods]
     struct method_chain {
@@ -1579,6 +1630,8 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     currentChain->nextMethods.insert({followingChain, pc});
     followingChain->prevMethods.insert({currentChain, pc});
     
+    dumpInputArgs(followingChain->chainId, uc, calleeMethod);
+    
 #if ShowFullLog
     printf("[+] find trace %s (0x%llx) -> %s (0x%llx)\n", currentMethodExpr.c_str(), currentChain->impAddr, followingMethodExpr.c_str(), followingChain->impAddr);
 #endif
@@ -1641,6 +1694,13 @@ static void storeMethodChains() {
         printf("\t[*] saved to %s\n", recordPath.c_str());
     } else {
         printf("\t[*] error: cannot save to path %s\n", recordPath.c_str());
+    }
+    
+    printf("  [*] Step 9. store call snapshots to file\n");
+    if (ObjcMethodCallSnapshotSerializationManager::storeAsJSON(callSnapshotPath, callSnapshots)) {
+        printf("\t[*] saved to %s\n", callSnapshotPath.c_str());
+    } else {
+        printf("\t[*] error: cannot save to path %s\n", callSnapshotPath.c_str());
     }
 }
 
