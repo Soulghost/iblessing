@@ -23,6 +23,7 @@
 		6829633524D2838500EF9251 /* IDASymbolWrapperNamingScriptGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6829633324D2838500EF9251 /* IDASymbolWrapperNamingScriptGenerator.cpp */; };
 		684458C025432D5B00A9D441 /* ObjcMethodCall.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 684458BE25432D5B00A9D441 /* ObjcMethodCall.cpp */; };
 		684458C32543E14400A9D441 /* ObjcMethodCallSnapshotSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 684458C12543E14400A9D441 /* ObjcMethodCallSnapshotSerializationManager.cpp */; };
+		68445903257271F900A9D441 /* ObjcReflectionInfoManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68445901257271F900A9D441 /* ObjcReflectionInfoManager.cpp */; };
 		6856E6E324E7C4370050DA19 /* IDASymbolicScriptGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6856E6E124E7C4370050DA19 /* IDASymbolicScriptGenerator.cpp */; };
 		685B5B8E24D6711E00C30CFD /* SymbolXREFScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685B5B8C24D6711E00C30CFD /* SymbolXREFScanner.cpp */; };
 		685CE7DB24C56E8B002CC5E8 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7DA24C56E8B002CC5E8 /* main.cpp */; };
@@ -114,6 +115,9 @@
 		684458BF25432D5B00A9D441 /* ObjcMethodCall.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMethodCall.hpp; sourceTree = "<group>"; };
 		684458C12543E14400A9D441 /* ObjcMethodCallSnapshotSerializationManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMethodCallSnapshotSerializationManager.cpp; sourceTree = "<group>"; };
 		684458C22543E14400A9D441 /* ObjcMethodCallSnapshotSerializationManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMethodCallSnapshotSerializationManager.hpp; sourceTree = "<group>"; };
+		684458FF257270D300A9D441 /* ObjcReflectionInfo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcReflectionInfo.hpp; sourceTree = "<group>"; };
+		68445901257271F900A9D441 /* ObjcReflectionInfoManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcReflectionInfoManager.cpp; sourceTree = "<group>"; };
+		68445902257271F900A9D441 /* ObjcReflectionInfoManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcReflectionInfoManager.hpp; sourceTree = "<group>"; };
 		6856E6E124E7C4370050DA19 /* IDASymbolicScriptGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IDASymbolicScriptGenerator.cpp; sourceTree = "<group>"; };
 		6856E6E224E7C4370050DA19 /* IDASymbolicScriptGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IDASymbolicScriptGenerator.hpp; sourceTree = "<group>"; };
 		685B5B8C24D6711E00C30CFD /* SymbolXREFScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SymbolXREFScanner.cpp; sourceTree = "<group>"; };
@@ -353,6 +357,24 @@
 			path = structs;
 			sourceTree = "<group>";
 		};
+		684458FC2572709800A9D441 /* sub-scanner */ = {
+			isa = PBXGroup;
+			children = (
+				684458FD257270A100A9D441 /* objc-msg-xref */,
+			);
+			path = "sub-scanner";
+			sourceTree = "<group>";
+		};
+		684458FD257270A100A9D441 /* objc-msg-xref */ = {
+			isa = PBXGroup;
+			children = (
+				684458FF257270D300A9D441 /* ObjcReflectionInfo.hpp */,
+				68445901257271F900A9D441 /* ObjcReflectionInfoManager.cpp */,
+				68445902257271F900A9D441 /* ObjcReflectionInfoManager.hpp */,
+			);
+			path = "objc-msg-xref";
+			sourceTree = "<group>";
+		};
 		685CE7C624C55309002CC5E8 = {
 			isa = PBXGroup;
 			children = (
@@ -577,6 +599,7 @@
 		685CE83524C572A0002CC5E8 /* scanner */ = {
 			isa = PBXGroup;
 			children = (
+				684458FC2572709800A9D441 /* sub-scanner */,
 				6877B77D251454C900227CFF /* assistance */,
 				68A028D324DE8F3600077CE0 /* driver */,
 				68A028C824DE894B00077CE0 /* dispatcher */,
@@ -1028,6 +1051,7 @@
 				68770C9124E1118D003F9652 /* CocoaAppInfoScanner.cpp in Sources */,
 				685CE85324C57309002CC5E8 /* ObjcMethodChain.cpp in Sources */,
 				685CE84824C572A0002CC5E8 /* Scanner.cpp in Sources */,
+				68445903257271F900A9D441 /* ObjcReflectionInfoManager.cpp in Sources */,
 				6861982A24E9645D003AB00A /* ObjcUnserializationScanner.cpp in Sources */,
 				685CE7DB24C56E8B002CC5E8 /* main.cpp in Sources */,
 				68666DB225288E370014BC91 /* ObjcCategory.cpp in Sources */,

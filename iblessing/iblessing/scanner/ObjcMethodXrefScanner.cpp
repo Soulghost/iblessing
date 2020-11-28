@@ -32,6 +32,7 @@
 #include "ObjcMethodCallSnapshotSerializationManager.hpp"
 #include "ProgramStateManager.hpp"
 #include "ObjcMethodCall.hpp"
+#include "ObjcReflectionInfoManager.hpp"
 
 #define UnicornStackTopAddr      0x300000000
 
@@ -67,6 +68,7 @@ static uc_hook insn_hook, memexp_hook;
 
 static map<string, MethodChain *> sel2chain;
 static map<uint64_t, set<ObjcMethodCall>> callSnapshots;
+static ObjcReflectionInfoManager reflectionManager = ObjcReflectionInfoManager();
 
 static set<string> trackSymbolBlacklist = {
     "_objc_copyWeak", "_objc_moveWeak", "_objc_initWeak",
@@ -540,6 +542,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         
         // string to class
         if (symbol && strcmp(symbol->name.c_str(), "_NSClassFromString") == 0) {
+            // record call
+            ObjcReflectionCall call = ObjcReflectionCall();
+            call.pc = address;
+            
             // parse CFString
             uint64_t x0 = 0;
             uc_err err = uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
@@ -547,13 +553,27 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                 char *className = vm2->readAsCFStringContent(x0);
                 if (className) {
                     uint64_t classAddr = rt->getClassAddrByName(className);
+                    call.args.push_back(ObjcReflectionCallArg("NSString",
+                                                              className,
+                                                              true));
+                    call.resolved = true;
+                    
                     free(className);
                     if (classAddr) {
                         // write class addr to x0
                         uc_reg_write(uc, UC_ARM64_REG_X0, &classAddr);
                     }
+                } else {
+                    call.args.push_back(ObjcReflectionCallArg("NSString",
+                                                              "",
+                                                              false));
                 }
+            } else {
+                call.args.push_back(ObjcReflectionCallArg("NSString",
+                                                          "",
+                                                          false));
             }
+            reflectionManager.info.addCall("NSClassFromString", call);
         }
         
         // simulate runtime functions
@@ -1134,6 +1154,7 @@ int ObjcMethodXrefScanner::start() {
     
     recordPath = StringUtils::path_join(outputPath, fileName + "_method-xrefs.iblessing.txt");
     callSnapshotPath = StringUtils::path_join(outputPath, fileName + "_call-snapshots.iblessing.json");
+    reflectionManager.reportPath = StringUtils::path_join(outputPath, fileName + "_objc-reflections.iblessing.json");
     
     SymbolXREFScanner *sxrefScanner = nullptr;
     ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
@@ -1701,6 +1722,13 @@ static void storeMethodChains() {
         printf("\t[*] saved to %s\n", callSnapshotPath.c_str());
     } else {
         printf("\t[*] error: cannot save to path %s\n", callSnapshotPath.c_str());
+    }
+    
+    printf("  [*] Step 10. store reflection infos to file\n");
+    if (reflectionManager.syncToDisk()) {
+        printf("\t[*] saved to %s\n", reflectionManager.reportPath.c_str());
+    } else {
+        printf("\t[*] error: cannot save to path %s\n", reflectionManager.reportPath.c_str());
     }
 }
 
