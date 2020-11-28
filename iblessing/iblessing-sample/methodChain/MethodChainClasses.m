@@ -92,6 +92,24 @@ struct PrimaryStruct {
 
 @implementation IBSCallTester
 
++ (Class)constReflection {
+    return NSClassFromString(@"NSString");
+}
+
++ (Class)staticStringReflection {
+    NSString *className = @"NSString";
+    return NSClassFromString(className);
+}
+
++ (Class)dynamicStringReflection {
+    NSString *className = [NSString stringWithFormat:@"NSString"];
+    return NSClassFromString(className);
+}
+
++ (Class)inputStringReflection:(NSString *)string {
+    return NSClassFromString(string);
+}
+
 + (void)testPrimaryCallToRootClassMethodAncestor {
     [IBSRoot rootClassMethodCallFromPrimary];
 }

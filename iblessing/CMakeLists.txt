@@ -98,6 +98,8 @@ set(iblessing.SOURCE_INCLUDES
     iblessing/scanner/dispatcher
     iblessing/scanner/driver
     iblessing/scanner/assistance/state
+    iblessing/scanner/sub-scanner
+    iblessing/scanner/sub-scanner/objc-msg-xref
 
     # generator
     iblessing/generator
@@ -175,6 +177,8 @@ set(iblessing.SOURCE_LIST
     iblessing/scanner/ObjcUnserializationScanner.cpp
     iblessing/scanner/assistance/state/ProgramState.cpp
     iblessing/scanner/assistance/state/ProgramStateManager.cpp
+
+    iblessing/scanner/sub-scanner/objc-msg-xref/ObjcReflectionInfoManager.cpp
 
     # generator
     iblessing/generator/Generator.cpp
