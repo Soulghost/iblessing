@@ -6,7 +6,7 @@
            ██║██████╔╝███████╗███████╗███████║███████║██║██║ ╚████║╚██████╔╝
            ╚═╝╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝
 
-[![Build Status](https://travis-ci.org/aquynh/capstone.svg?branch=master)](https://travis-ci.org/Soulghost/iblessing)
+[![Build Status](https://api.travis-ci.org/Soulghost/iblessing.svg?branch=master)](https://travis-ci.org/Soulghost/iblessing)
 [![Releases](https://img.shields.io/github/v/release/Soulghost/iblessing?include_prereleases)](https://github.com/Soulghost/iblessing/releases)
 
 # iblessing
