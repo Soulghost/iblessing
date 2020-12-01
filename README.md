@@ -45,6 +45,8 @@ In case you need support regarding iblessing or anything associated with it, you
 - send mail to xiuyutong1994#gmail.com
 
 # Changelog
+- 2020.11.30 - Objc reflection info (https://github.com/Soulghost/iblessing/wiki/Objc-Reflection-Info)
+- 2020.10.24 - Objc call snapshots (https://github.com/Soulghost/iblessing/wiki/Objc-Call-Snapshots)
 - 2020.10.04 - Objc category list support
 - 2020.09.28 - Static library and fat mach-o support
 - 2020.09.22 - Basic program state and condition branching
