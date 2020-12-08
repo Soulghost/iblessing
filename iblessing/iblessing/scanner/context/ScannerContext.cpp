@@ -404,6 +404,10 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
         cmds += lc->cmdsize;
     }
     
+    if (!textSect) {
+        return SC_ERR_INVALID_BINARY;
+    }
+    
     VirtualMemory *vm = VirtualMemory::progressDefault();
     vm->vmaddr_base = vmaddr_base;
     vm->linkedit_base = linkedit_base;

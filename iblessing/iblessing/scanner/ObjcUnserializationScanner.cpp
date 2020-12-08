@@ -51,13 +51,14 @@ int ObjcUnserializationScanner::start() {
     printf("  [*] Step 2. find __TEXT,__text\n");
     struct ib_section_64 *textSect = nullptr;
     for (struct ib_segment_command_64 *seg : vm->segmentHeaders) {
-        if (strncmp(seg->segname, "__TEXT", 16) == 0) {
-            struct ib_section_64 *sect = (struct ib_section_64 *)((uint8_t *)seg + sizeof(struct ib_segment_command_64));
-            if (strncmp(sect->sectname, "__text", 16) == 0) {
-                textSect = sect;
-                break;
-            }
+        // FIX: https://github.com/Soulghost/iblessing/issues/5
+//        if (strncmp(seg->segname, "__TEXT", 16) == 0) {
+        struct ib_section_64 *sect = (struct ib_section_64 *)((uint8_t *)seg + sizeof(struct ib_segment_command_64));
+        if (strncmp(sect->sectname, "__text", 16) == 0) {
+            textSect = sect;
+            break;
         }
+//        }
     }
     if (!textSect) {
         cout << "\t" << termcolor::red << "[-] Error: cannot find __TEXT,__text section";
@@ -157,7 +158,7 @@ int ObjcUnserializationScanner::start() {
         for (uint64_t xref : xrefs) {
             Symbol *symbol = symtab->getSymbolNearByAddress(xref);
             if (symbol) {
-                cout << "\t[+] find " << className << " ref";
+                cout << "\t[+] find " << className << " ref ";
                 cout << termcolor::green << symbol->name << termcolor::reset;
                 cout << StringUtils::format(" at 0x%llx\n", xref);
             } else {
