@@ -11,6 +11,7 @@
 #include "ObjcRuntime.hpp"
 #include "SymbolTable.hpp"
 #include "StringUtils.h"
+#include "CoreFoundation.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -67,6 +68,7 @@ static vector<shared_ptr<ObjcMethod>> loadMethodsFromAddress(uint64_t address, O
         shared_ptr<ObjcMethod> method = make_shared<ObjcMethod>();
         method->name = sel_str;
         method->types = types_str;
+        method->argTypes = CoreFoundation::argumentsFromSignature(types_ptr);
         method->imp = imp_addr;
         method->isClassMethod = classMethod;
         method->classInfo = classInfo;
