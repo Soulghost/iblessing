@@ -112,6 +112,10 @@ uint64_t ObjcRuntime::getClassAddrByName(string className) {
 ObjcClassRuntimeInfo* ObjcRuntime::getClassInfoByName(std::string className) {
     uint64_t addr = getClassAddrByName(className);
     if (!addr) {
+        // try get external class info
+        if (name2ExternalClassRuntimeInfo.find(className) != name2ExternalClassRuntimeInfo.end()) {
+            return name2ExternalClassRuntimeInfo[className];
+        }
         return nullptr;
     }
     return getClassInfoByAddress(addr);
@@ -147,7 +151,7 @@ bool ObjcRuntime::isExistMethod(string methodPrefix, string classExpr, string de
 
 ObjcMethod* ObjcRuntime::inferNearestMethod(string methodPrefix, string classExpr, string detectedSEL) {
     ObjcClassRuntimeInfo *classInfo = getClassInfoByName(classExpr);
-    if (!classInfo || classInfo->isExternal) {
+    if (!classInfo) {
         return nullptr;
     }
     

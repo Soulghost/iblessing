@@ -1023,7 +1023,11 @@ int ObjcMethodXrefScanner::start() {
         findAllPathLevel = atoi(options["findAllPath"].c_str());
     }
     
-    printf("  [*] Status: Track C Symbols: %d, Anti Wrapper: %d, Find All Path Level: %d\n", shouldTrackSymbols, shouldAntiWrapper, findAllPathLevel);
+    if (options.find("trackCallSnapshots") != options.end()) {
+        trackingCallSnapshots = atoi(options["trackCallSnapshots"].c_str()) != 0;
+    }
+    
+    printf("  [*] Status: Track C Symbols: %d, Anti Wrapper: %d, Find All Path Level: %d, Track Call Snapshots: %d\n", shouldTrackSymbols, shouldAntiWrapper, findAllPathLevel, trackingCallSnapshots);
     
     printf("  [*] Step 1. realize all app classes\n");
     ObjcRuntime *rt = ObjcRuntime::getInstance();
@@ -1086,18 +1090,25 @@ int ObjcMethodXrefScanner::start() {
         
         // record class info
         if (string(symbolName).rfind("_OBJC_CLASS_$") == 0) {
-            ObjcClassRuntimeInfo *externalClassInfo = new ObjcClassRuntimeInfo();
-            externalClassInfo->isExternal = true;
-            
+            string className;
             vector<string> parts = StringUtils::split(symbolName, '_');
             if (parts.size() > 1) {
-                externalClassInfo->className = parts[parts.size() - 1];
+                className = parts[parts.size() - 1];
             } else {
-                externalClassInfo->className = symbolName;
+                className = symbolName;
+            }
+            
+            ObjcClassRuntimeInfo *externalClassInfo = rt->getClassInfoByName(className);
+            if (!externalClassInfo) {
+                externalClassInfo = new ObjcClassRuntimeInfo();
+                externalClassInfo->className = className;
+                externalClassInfo->isExternal = true;
+                externalClassInfo->address = symbolAddr;
+                rt->name2ExternalClassRuntimeInfo[externalClassInfo->className] = externalClassInfo;
+                rt->runtimeInfo2address[externalClassInfo] = symbolAddr;
             }
             rt->externalClassRuntimeInfo[symbolAddr] = externalClassInfo;
-            rt->name2ExternalClassRuntimeInfo[externalClassInfo->className] = externalClassInfo;
-            rt->runtimeInfo2address[externalClassInfo] = symbolAddr;
+            
         } else if (strcmp(symbolName, "__NSConcreteGlobalBlock") == 0 ||
                    strcmp(symbolName, "__NSConcreteStackBlock") == 0) {
             rt->blockISAs.insert(symbolAddr);
@@ -1472,16 +1483,40 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
         } else {
             // try to reveal in symbol table (x0 = class-ref, class method call)
             // +[unknown_class foo]
+            ObjcClassRuntimeInfo *externalInfo = nullptr;
             Symbol *sym = SymbolTable::getInstance()->getSymbolByAddress(addr);
             if (sym &&
                 sym->name.rfind("_OBJC_") != -1 &&
                 sym->name.rfind("_$_") != -1) {
-                ObjcClassRuntimeInfo *externalInfo = new ObjcClassRuntimeInfo();
-                externalInfo->address = ExternalClassDummyAddress;
-                externalInfo->isExternal = true;
-                externalInfo->className = StringUtils::split(sym->name, '$')[1].substr(1);
-                detectedClassInfo = externalInfo;
+                string className = StringUtils::split(sym->name, '$')[1].substr(1);;
+                externalInfo = rt->getClassInfoByName(className);
+                if (!externalInfo) {
+                    externalInfo = new ObjcClassRuntimeInfo();
+                    rt->runtimeInfo2address[externalInfo] = externalInfo->address;
+                    externalInfo->address = ExternalClassDummyAddress;
+                    externalInfo->isExternal = true;
+                    externalInfo->className = className;
+                }
                 methodPrefix = "+";
+            } else if (sym && sym->name.rfind("___CF") != -1) {
+                string className = sym->name.substr(3);
+                // FIXME: cf tricky
+                if (className == "CFConstantStringClassReference") {
+                    className = "NSString";
+                    externalInfo = rt->getClassInfoByName(className);
+                    methodPrefix = "+";
+                }
+                if (!externalInfo) {
+                    externalInfo = new ObjcClassRuntimeInfo();
+                    rt->runtimeInfo2address[externalInfo] = externalInfo->address;
+                    externalInfo->address = ExternalClassDummyAddress;
+                    externalInfo->isExternal = true;
+                    externalInfo->className = sym->name.substr(3);
+                    methodPrefix = "+";
+                }
+            }
+            if (externalInfo) {
+                detectedClassInfo = externalInfo;
             }
         }
     }
@@ -1651,7 +1686,9 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     currentChain->nextMethods.insert({followingChain, pc});
     followingChain->prevMethods.insert({currentChain, pc});
     
-    dumpInputArgs(followingChain->chainId, uc, calleeMethod);
+    if (trackingCallSnapshots) {
+        dumpInputArgs(followingChain->chainId, uc, calleeMethod);
+    }
     
 #if ShowFullLog
     printf("[+] find trace %s (0x%llx) -> %s (0x%llx)\n", currentMethodExpr.c_str(), currentChain->impAddr, followingMethodExpr.c_str(), followingChain->impAddr);
