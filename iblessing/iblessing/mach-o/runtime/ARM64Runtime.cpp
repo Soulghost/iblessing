@@ -8,6 +8,7 @@
 
 #include "ARM64Runtime.hpp"
 #include "VirtualMemory.hpp"
+#include "VirtualMemoryV2.hpp"
 #include "ARM64ThreadState.hpp"
 #include "StringUtils.h"
 #include "SymbolTable.hpp"
@@ -273,6 +274,7 @@ bool ARM64Runtime::handleLDR(cs_insn *insn, std::string *insnDesc, std::string *
     uint8_t opcount = detail.op_count;
     
     VirtualMemory *vm = VirtualMemory::progressDefault();
+    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     ARM64ThreadState *state = ARM64ThreadState::mainThreadState();
     
     ARM64Register *dst = state->getRegisterFromOprand(detail.operands[0]);
@@ -324,7 +326,7 @@ bool ARM64Runtime::handleLDR(cs_insn *insn, std::string *insnDesc, std::string *
     // load uint64 data
     uint64_t readSize = swMode ? 4 : 8;
     if (available) {
-        void *valuePtr = (void *)vm->readBySize(addr, readSize, fatal);
+        void *valuePtr = (void *)vm2->readBySize(addr, readSize);
         if (valuePtr != nullptr) {
             dst->setValue(valuePtr, readSize);
         } else {
