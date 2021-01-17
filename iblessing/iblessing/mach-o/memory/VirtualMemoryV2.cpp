@@ -142,6 +142,10 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
                 if (seg64->nsects > 0) {
                     struct ib_section_64 *sect = (struct ib_section_64 *)((uint8_t *)seg64 + sizeof(struct ib_segment_command_64));
                     for (uint32_t i = 0; i < seg64->nsects; i++) {
+                        char *sectname = (char *)malloc(16);
+                        memcpy(sectname, sect->sectname, 16);
+                        addr2segInfo[sect->addr] = {string(sect->segname), string(sectname)};
+                        free(sectname);
                         if (strcmp(sect->sectname, "__text") == 0) {
                             textSects.push_back({sect->addr, sect->size});
                         }
@@ -372,4 +376,16 @@ char* VirtualMemoryV2::readAsCFStringContent(uint64_t address, bool needCheck) {
     }
     free(cfstr);
     return content;
+}
+
+uc_engine* VirtualMemoryV2::getEngine() {
+    return this->uc;
+}
+
+pair<std::string, std::string> VirtualMemoryV2::querySegInfo(uint64_t address) {
+    auto it = addr2segInfo.lower_bound(address);
+    if (it->first == address) {
+        return it->second;
+    }
+    return (--it)->second;
 }

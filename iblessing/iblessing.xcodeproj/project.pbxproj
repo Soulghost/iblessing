@@ -72,6 +72,7 @@
 		68A028CB24DE897F00077CE0 /* ScannerDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028C924DE897F00077CE0 /* ScannerDispatcher.cpp */; };
 		68A028D624DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028D424DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp */; };
 		68AE3B1224EB9CFE003E25EF /* InsecureUnSerialization.m in Sources */ = {isa = PBXBuildFile; fileRef = 68AE3B1124EB9CFE003E25EF /* InsecureUnSerialization.m */; };
+		68B173A425B2E6AA0070C6E5 /* ObjDumpTool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B173A225B2E6AA0070C6E5 /* ObjDumpTool.cpp */; };
 		68BE8A8724E904AF00A534DB /* TestManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8524E904AF00A534DB /* TestManager.cpp */; };
 		68BE8A8A24E9052200A534DB /* Tester.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8824E9052200A534DB /* Tester.cpp */; };
 		68BE8A8D24E9056900A534DB /* TestObjcMethodXrefs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8B24E9056900A534DB /* TestObjcMethodXrefs.cpp */; };
@@ -262,6 +263,8 @@
 		68A028D524DE8F5400077CE0 /* ScannerDisassemblyDriver.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScannerDisassemblyDriver.hpp; sourceTree = "<group>"; };
 		68AE3B1024EB9CFE003E25EF /* InsecureUnSerialization.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = InsecureUnSerialization.h; sourceTree = "<group>"; };
 		68AE3B1124EB9CFE003E25EF /* InsecureUnSerialization.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = InsecureUnSerialization.m; sourceTree = "<group>"; };
+		68B173A225B2E6AA0070C6E5 /* ObjDumpTool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjDumpTool.cpp; sourceTree = "<group>"; };
+		68B173A325B2E6AA0070C6E5 /* ObjDumpTool.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjDumpTool.hpp; sourceTree = "<group>"; };
 		68BE8A8524E904AF00A534DB /* TestManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TestManager.cpp; sourceTree = "<group>"; };
 		68BE8A8624E904AF00A534DB /* TestManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestManager.hpp; sourceTree = "<group>"; };
 		68BE8A8824E9052200A534DB /* Tester.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Tester.cpp; sourceTree = "<group>"; };
@@ -399,6 +402,7 @@
 		685CE7D124C55309002CC5E8 /* iblessing */ = {
 			isa = PBXGroup;
 			children = (
+				68B173A025B2E6730070C6E5 /* tools */,
 				68BE8A8124E8F15A00A534DB /* tests */,
 				6800875E24CAD5D100853E04 /* iblessing.entitlements */,
 				68C362FB24C9CA2E00441950 /* platform */,
@@ -855,6 +859,23 @@
 			path = insecureUnserialization;
 			sourceTree = "<group>";
 		};
+		68B173A025B2E6730070C6E5 /* tools */ = {
+			isa = PBXGroup;
+			children = (
+				68B173A125B2E68C0070C6E5 /* otool */,
+			);
+			path = tools;
+			sourceTree = "<group>";
+		};
+		68B173A125B2E68C0070C6E5 /* otool */ = {
+			isa = PBXGroup;
+			children = (
+				68B173A225B2E6AA0070C6E5 /* ObjDumpTool.cpp */,
+				68B173A325B2E6AA0070C6E5 /* ObjDumpTool.hpp */,
+			);
+			path = otool;
+			sourceTree = "<group>";
+		};
 		68BE8A8124E8F15A00A534DB /* tests */ = {
 			isa = PBXGroup;
 			children = (
@@ -1092,6 +1113,7 @@
 				685CE81224C57079002CC5E8 /* ARM64Runtime.cpp in Sources */,
 				685CE82424C57131002CC5E8 /* StringUtils.cpp in Sources */,
 				685CE80A24C57079002CC5E8 /* StringTable.cpp in Sources */,
+				68B173A425B2E6AA0070C6E5 /* ObjDumpTool.cpp in Sources */,
 				6866173B24DFF93A00C4FBB3 /* mach-universal.cpp in Sources */,
 				68770C7124DAD45C003F9652 /* ObjcBlock.cpp in Sources */,
 			);

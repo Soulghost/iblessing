@@ -11,7 +11,7 @@
 using namespace iblessing;
 
 Symbol::Symbol() {
-    
+    isStub = false;
 }
 
 Symbol::~Symbol() {

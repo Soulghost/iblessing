@@ -76,6 +76,7 @@ void ObjcRuntime::loadClassList(uint64_t vmaddr, uint64_t size) {
             continue;
         }
         classList[className] = class_addr;
+        address2className[class_addr] = className;
         classAddrs += 1;
     }
 }

@@ -13,6 +13,7 @@
 #include "mach-universal.hpp"
 #include <unicorn/unicorn.h>
 #include <vector>
+#include <map>
 
 NS_IB_BEGIN
 
@@ -33,6 +34,7 @@ public:
     char* readString(uint64_t address, uint64_t limit);
     CFString* readAsCFString(uint64_t address, bool needCheck = true);
     char* readAsCFStringContent(uint64_t address, bool needCheck = true);
+    std::pair<std::string, std::string> querySegInfo(uint64_t address);
     
     // shortcuts
     uint8_t* getMappedFile();
@@ -40,10 +42,12 @@ public:
     struct ib_section_64* getTextSect();
     struct ib_dyld_info_command* getDyldInfo();
     uint64_t getBaseAddr();
+    uc_engine* getEngine();
     
     
 private:
     static VirtualMemoryV2 *_instance;
+    std::map<uint64_t, std::pair<std::string, std::string>> addr2segInfo;
     uc_engine *uc;
 };
 

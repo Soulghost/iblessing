@@ -104,6 +104,10 @@ set(iblessing.SOURCE_INCLUDES
     # generator
     iblessing/generator
 
+    # tools
+    iblessing/tools
+    iblessing/tools/otool
+
     # serialization
     iblessing/serialization
 
@@ -189,6 +193,9 @@ set(iblessing.SOURCE_LIST
     iblessing/generator/ObjcMsgXREFStatisticsGenerator.cpp
     iblessing/generator/ObjcMsgXREFReportGenerator.cpp
     iblessing/generator/IDASymbolicScriptGenerator.cpp
+
+    # tools
+    iblessing/tools/otool/ObjDumpTool.cpp
 
     # serialization
     iblessing/serialization/ObjcMethodChainSerializationManager.cpp

@@ -29,6 +29,7 @@ public:
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> ivarInstanceTrickAddress2RuntimeInfo;
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> heapInstanceTrickAddress2RuntimeInfo;
     std::unordered_map<std::string, uint64_t> classList;
+    std::unordered_map<uint64_t, std::string> address2className;
     
     uint64_t catlist_addr;
     uint64_t catlist_size;

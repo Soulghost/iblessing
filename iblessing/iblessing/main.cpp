@@ -14,6 +14,9 @@
 #include "GeneratorDispatcher.hpp"
 #include "TestManager.hpp"
 
+// tools
+#include "ObjDumpTool.hpp"
+
 #ifdef IB_CSR_ENABLED
 #include "csrutil.hpp"
 #endif
@@ -35,7 +38,7 @@ int main(int argc, const char *argv[]) {
            \n");
     
     // hello text
-    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.5.2 (http://blog.asm.im)\n");
+    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.6 (http://blog.asm.im)\n");
     printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
 
 #ifdef IB_CSR_ENABLED
@@ -50,6 +53,7 @@ int main(int argc, const char *argv[]) {
     ArgumentParser parser("iblessing", "iblessing iOS security toolkit");
     parser.add_argument()
     .names({"-m", "--mode"})
+    .count(1)
     .description("mode selection:\n\
                                 * scan:      use scanner\n\
                                 * generator: use generator\n\
@@ -57,28 +61,34 @@ int main(int argc, const char *argv[]) {
     
     parser.add_argument()
     .names({"-i", "--identifier"})
+    .count(1)
     .description("choose module by identifier:\n\
                                 * <scanner-id>:   use specific scanner\n\
                                 * <generator-id>: use specific generator");
     
     parser.add_argument()
     .names({"-f", "--file"})
+    .count(1)
     .description("input file path");
     
     parser.add_argument()
     .names({"-o", "--output"})
+    .count(1)
     .description("output file path");
     
     parser.add_argument()
     .names({"-l", "--list"})
+    .count(1)
     .description("list available scanners");
     
     parser.add_argument()
     .names({"-d", "--data"})
+    .count(1)
     .description("extra data");
     
     parser.add_argument()
     .names({"-j", "--jobs"})
+    .count(1)
     .description("specifies the number of jobs to run simultaneously");
     
     parser.enable_help();
@@ -118,16 +128,21 @@ int main(int argc, const char *argv[]) {
         return 0;
     }
     
+    string filePath;
+    if (!parser.exists("file")) {
+        filePath = argv[argc - 1];
+    } else {
+        filePath = parser.get<string>("file");
+    }
+    if (filePath.length() == 0) {
+        cout << "[-] Error: please use -f to set the input file path or put it at the end";
+        return 1;
+    }
+    printf("[*] input file is %s\n", filePath.c_str());
+    
     // handle info mode
     string mode = parser.get<string>("mode");
     if (mode == "generator") {
-        if (!parser.exists("file")) {
-            cout << termcolor::red;
-            cout << "[-] Error: please use -f to set the input file";
-            cout << termcolor::reset << endl;
-            return 1;
-        }
-        
         string outputFilePath;
         if (parser.exists("output")) {
             outputFilePath = parser.get<string>("output");
@@ -165,20 +180,11 @@ int main(int argc, const char *argv[]) {
             }
         }
         
-        string filePath = parser.get<string>("file");
-        printf("[*] input file is %s\n", filePath.c_str());
         GeneratorDispatcher *generator = new GeneratorDispatcher();
         int ret = generator->start(generatorId, options, filePath, outputFilePath);
         delete generator;
         return ret;
     } else if (mode == "scan") {
-        if (!parser.exists("file")) {
-            cout << termcolor::red;
-            cout << "[-] Error: please use -f to set the input file";
-            cout << termcolor::reset << endl;
-            return 1;
-        }
-        
         string outputFilePath;
         if (parser.exists("output")) {
             outputFilePath = parser.get<string>("output");
@@ -228,14 +234,15 @@ int main(int argc, const char *argv[]) {
             }
         }
         printf("[*] set jobs count to %d\n", jobs);
-        
-        string filePath = parser.get<string>("file");
-        printf("[*] input file is %s\n", filePath.c_str());
         ScannerDispatcher *dispatcher = new ScannerDispatcher();
         dispatcher->jobs = jobs;
         int ret = dispatcher->start(scannerId, options, filePath, outputFilePath);
         delete dispatcher;
         return ret;
+    } else if (mode == "otool") {
+        printf("[*] otool mode\n");
+        ObjDumpTool otool;
+        return otool.dumpTextSection(filePath);
     } else if (mode == "test") {
         printf("[*] test mode\n");
         bool success = TestManager::testAll();

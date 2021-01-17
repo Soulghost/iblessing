@@ -20,6 +20,7 @@ public:
     virtual ~Symbol();
     
     std::string name;
+    bool isStub;
     struct ib_nlist_64 *info;
 };
 

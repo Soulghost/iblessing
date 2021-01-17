@@ -65,19 +65,19 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "scan"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "generator"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "test"
-            isEnabled = "NO">
+            argument = "otool"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-i"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "ida-symbolic"
@@ -85,23 +85,27 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref-json"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
+            argument = "-tV"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
             argument = "-f"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/opt/one-btn/tmp/apps/Chrome/Payload/stable.app/Chrome"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug/iblessing-sample_method-xrefs.iblessing.txt"
@@ -117,7 +121,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;delimiter=|;addrIdx=0;nameIdx=1&apos;"
@@ -125,7 +129,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;mode=jtool2&apos;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;diff=/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug/new1/Chrome_method-xrefs.iblessing.txt&apos;"

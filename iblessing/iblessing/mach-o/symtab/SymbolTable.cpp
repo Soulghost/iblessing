@@ -120,6 +120,7 @@ void SymbolTable::buildDynamicSymbolTable(std::vector<struct ib_section_64 *> se
         
         // build symbol
         Symbol *lazySymbol = new Symbol();
+        lazySymbol->isStub = true;
         if ((symIdx & (IB_INDIRECT_SYMBOL_LOCAL | IB_INDIRECT_SYMBOL_ABS)) == 0) {
             // stubs
             if (symIdx >= symbolTable.size()) {
