@@ -11,6 +11,31 @@
 typedef void (^BlockWithMixedArgsV1)(NSString *a, BOOL b, id c, IBSRoot *d, BlockSubA *e, BlockSubB *f);
 typedef NSString* (^BlockWithMixedArgsV2)(int a, BlockSubB *b, BOOL c, BOOL *d, int *e, Class f, BlockSubA *g);
 
+@interface NSData (Encrypt)
+
+- (NSData *)dataUsingAES256EncryptionWithKey:(NSString *)key;
+
+@end
+
+@implementation NSData (Encrypt)
+
+- (NSData *)dataUsingAES256EncryptionWithKey:(NSString *)key {
+    return [[key stringByAppendingFormat:@"xx"] dataUsingEncoding:NSUTF8StringEncoding];
+}
+
+@end
+
+@implementation IBImportTest
+
+- (void)testSysClasses {
+    NSString *input = @"hello string";
+    NSData *data = [input dataUsingEncoding:NSUTF8StringEncoding];
+    NSData *entryptedData = [data dataUsingAES256EncryptionWithKey:@"hehe"];
+    NSLog(@"final data is %@", entryptedData);
+}
+
+@end
+
 @implementation IBSRoot
 
 + (void)rootClassMethodCallFromPrimary {

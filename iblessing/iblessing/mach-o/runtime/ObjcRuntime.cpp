@@ -12,6 +12,7 @@
 #include "termcolor.h"
 #include "StringUtils.h"
 #include "ObjcCategory.hpp"
+#include "SimpleSimProcedure.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -150,6 +151,44 @@ bool ObjcRuntime::isExistMethod(string methodPrefix, string classExpr, string de
     return validMethodPrefix == methodPrefix;
 }
 
+static string encodeArg(string argName) {
+    static map<string, string> typeMapping{
+        {"SEL", ":"},
+        {"void", "v"},
+        {"NSTimeInterval", "d"},
+        {"int", "i"},
+        {"unsignedint", "I"},
+        {"NSInteger", "q"},
+        {"int64_t", "q"},
+        {"uint64_t", "Q"},
+        {"unsignedchar", ""},
+        {"char", "c"},
+        {"short", "s"},
+        {"unsignedshort", "S"},
+        {"long", "l"},
+        {"longlong", "q"},
+        {"unsignedlonglong", "Q"},
+        {"NSUInteger", "Q"},
+        {"NSStringEncoding", "Q"},
+        {"float", "f"},
+        {"double", "d"},
+        {"BOOL", "B"},
+        {"char*", "*"},
+        {"constchar*", "*"},
+        {"unichar*", "*"},
+        {"constunichar*", "*"}
+    };
+    if (typeMapping.find(argName) != typeMapping.end()) {
+        return typeMapping[argName];
+    }
+    
+    if (argName[argName.length() - 1] == '*') {
+//        return argName.substr(0, argName.length() - 1);
+        return "id";
+    }
+    return argName;
+}
+
 ObjcMethod* ObjcRuntime::inferNearestMethod(string methodPrefix, string classExpr, string detectedSEL) {
     ObjcClassRuntimeInfo *classInfo = getClassInfoByName(classExpr);
     if (!classInfo) {
@@ -158,7 +197,28 @@ ObjcMethod* ObjcRuntime::inferNearestMethod(string methodPrefix, string classExp
     
     ObjcMethod *method = classInfo->getMethodBySEL(detectedSEL);
     if (!method || !method->classInfo) {
-        return nullptr;
+        // try eval it
+        SimProcedureEvalResult res = SimpleSimProcedure::getInstance()->evalMethod(classExpr, detectedSEL);
+        if (res.success && res.isObjc) {
+            ObjcMethod *m = new ObjcMethod();
+            m->name = detectedSEL;
+            m->isClassMethod = (res.prefix == "+");
+            m->classInfo = classInfo;
+            
+            // return type
+            m->argTypes.push_back(encodeArg(res.rawValue));
+            // self + sel
+            m->argTypes.push_back("@");
+            m->argTypes.push_back(":");
+            for (string argType : res.argTypes) {
+                m->argTypes.push_back(encodeArg(argType));
+            }
+            classInfo->methodList.pushBack(m);
+            classInfo->name2method[detectedSEL] = m;
+            return m;
+        } else {
+            return nullptr;
+        }
     }
     
     return method;

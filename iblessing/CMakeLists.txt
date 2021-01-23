@@ -154,6 +154,7 @@ set(iblessing.SOURCE_LIST
     iblessing/mach-o/runtime/ObjcObject.cpp
     iblessing/mach-o/runtime/ObjcRuntime.cpp
     iblessing/mach-o/runtime/ObjcCategory.cpp
+    iblessing/mach-o/runtime/SimpleSimProcedure.cpp
 
     iblessing/mach-o/structs/Foundation.cpp
 

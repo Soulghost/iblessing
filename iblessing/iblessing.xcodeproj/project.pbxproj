@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6817507125BA7B920046328F /* SimpleSimProcedure.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6817506F25BA7B920046328F /* SimpleSimProcedure.cpp */; };
 		68192CC0251F359500EB867C /* libkeystone.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68192CBF251F359500EB867C /* libkeystone.a */; };
 		6829627A24CBEE4A00EF9251 /* Tests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829627924CBEE4A00EF9251 /* Tests.m */; };
 		6829628724CBEEA300EF9251 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829628624CBEEA300EF9251 /* AppDelegate.m */; };
@@ -86,6 +87,8 @@
 
 /* Begin PBXFileReference section */
 		6800875E24CAD5D100853E04 /* iblessing.entitlements */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.entitlements; path = iblessing.entitlements; sourceTree = "<group>"; };
+		6817506F25BA7B920046328F /* SimpleSimProcedure.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SimpleSimProcedure.cpp; sourceTree = "<group>"; };
+		6817507025BA7B920046328F /* SimpleSimProcedure.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SimpleSimProcedure.hpp; sourceTree = "<group>"; };
 		68192CBF251F359500EB867C /* libkeystone.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libkeystone.a; sourceTree = "<group>"; };
 		6829627724CBEE4A00EF9251 /* Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6829627924CBEE4A00EF9251 /* Tests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Tests.m; sourceTree = "<group>"; };
@@ -538,6 +541,8 @@
 				68770C7024DAD45C003F9652 /* ObjcBlock.hpp */,
 				68666DB025288E370014BC91 /* ObjcCategory.cpp */,
 				68666DB125288E370014BC91 /* ObjcCategory.hpp */,
+				6817506F25BA7B920046328F /* SimpleSimProcedure.cpp */,
+				6817507025BA7B920046328F /* SimpleSimProcedure.hpp */,
 			);
 			path = runtime;
 			sourceTree = "<group>";
@@ -1106,6 +1111,7 @@
 				685CE81824C57079002CC5E8 /* UnicornARM64Runtime.cpp in Sources */,
 				68A028D624DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp in Sources */,
 				685CE84A24C572A0002CC5E8 /* PredicateScanner.cpp in Sources */,
+				6817507125BA7B920046328F /* SimpleSimProcedure.cpp in Sources */,
 				68C3630024C9CA7200441950 /* csrutil.cpp in Sources */,
 				685CE84924C572A0002CC5E8 /* SymbolWrapperScanner.cpp in Sources */,
 				68D4E852251D993A0090D5AA /* ScannerWorkDirManager.cpp in Sources */,

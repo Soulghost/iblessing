@@ -65,7 +65,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "scan"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "generator"
@@ -73,11 +73,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "otool"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-i"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "ida-symbolic"
@@ -85,7 +85,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref-json"
@@ -108,7 +108,7 @@
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/soulghost/Desktop/git/iblessing-public/iblessing/build/Debug/iblessing-sample_method-xrefs.iblessing.txt"
+            argument = "/Users/soulghost/Downloads/Payload/SSSKeychainDemo.app/SSSKeychainDemo"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
