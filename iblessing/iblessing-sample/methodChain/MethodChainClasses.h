@@ -8,6 +8,10 @@
 
 #import <Foundation/Foundation.h>
 
+@interface IBImportTest : NSObject
+
+@end
+
 @interface IBSRoot : NSObject
 
 + (void)rootClassMethodCallFromPrimary;

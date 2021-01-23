@@ -369,7 +369,7 @@ ObjcMethod* ObjcClassRuntimeInfo::getMethodBySEL(string sel, bool fatal) {
     if (fatal) {
         assert(false);
     }
-    return ObjcMethod::createDummy(sel);
+    return nullptr;
 }
 
 std::string ObjcClassRuntimeInfo::classNameAtAddress(uint64_t address) {

@@ -33,6 +33,7 @@
 #include "ProgramStateManager.hpp"
 #include "ObjcMethodCall.hpp"
 #include "ObjcReflectionInfoManager.hpp"
+#include "SimpleSimProcedure.hpp"
 
 #define UnicornStackTopAddr      0x300000000
 
@@ -1005,6 +1006,8 @@ uc_engine* createEngine(int identifier) {
 
 int ObjcMethodXrefScanner::start() {
     printf("[*] start ObjcMethodXrefScanner Exploit Scanner\n");
+    
+    SimpleSimProcedure::getInstance()->load();
     vector<uc_engine *> engines;
     for (int i = 0; i < jobs; i++) {
         engines.push_back(createEngine(i));
@@ -1403,6 +1406,7 @@ static void dumpInputArgs(uint64_t chainId, uc_engine *uc, ObjcMethod *calleeMet
 static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uint64_t x1, int sendSuperType) {
     ObjcRuntime *rt = ObjcRuntime::getInstance();
     VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+    SimpleSimProcedure *simpleSimProcedure = SimpleSimProcedure::getInstance();
     
     uint64_t instanceAddr = 0;
     const char *methodPrefix = "?";
@@ -1504,7 +1508,11 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
                 if (className == "CFConstantStringClassReference") {
                     className = "NSString";
                     externalInfo = rt->getClassInfoByName(className);
-                    methodPrefix = "+";
+                    
+                    SimProcedureEvalResult res = simpleSimProcedure->evalMethod(className, detectedSEL);
+                    if (res.success && res.isObjc) {
+                        methodPrefix = res.prefix == "-" ? "-" : "+";
+                    }
                 }
                 if (!externalInfo) {
                     externalInfo = new ObjcClassRuntimeInfo();
@@ -1573,6 +1581,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     }
     
     // eval ivar method
+    bool resolved = false;
     if (detectedClassInfo && isValidClassInfo(detectedClassInfo) && detectedSEL) {
         ObjcClassRuntimeInfo *ivarClassInfo = rt->evalReturnForIvarGetter(detectedClassInfo, detectedSEL);
         if (ivarClassInfo) {
@@ -1580,6 +1589,22 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
             uint64_t encodedTrickAddr = ivarClassInfo->address | IvarInstanceTrickMask;
             rt->ivarInstanceTrickAddress2RuntimeInfo[encodedTrickAddr] = ivarClassInfo;
             uc_reg_write(uc, UC_ARM64_REG_X0, &encodedTrickAddr);
+            resolved = true;
+        }
+    }
+    
+    // system method mapping
+    if (!resolved && detectedClassInfo && isValidClassInfo(detectedClassInfo) && detectedSEL) {
+        // try to find in map
+        SimProcedureEvalResult res = simpleSimProcedure->evalMethod(detectedClassInfo->className, detectedSEL);
+        if (res.success && res.isObjc) {
+            ObjcClassRuntimeInfo *returnClassInfo = rt->getClassInfoByName(res.value);
+            if (returnClassInfo) {
+                uint64_t encodedTrickAddr = returnClassInfo->address | IvarInstanceTrickMask;
+                rt->ivarInstanceTrickAddress2RuntimeInfo[encodedTrickAddr] = returnClassInfo;
+                uc_reg_write(uc, UC_ARM64_REG_X0, &encodedTrickAddr);
+                resolved = true;
+            }
         }
     }
     
