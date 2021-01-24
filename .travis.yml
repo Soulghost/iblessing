@@ -30,6 +30,7 @@ deploy:
   file: 
     - cmake-build/iblessing-darwin
     - cmake-build/iblessing-linux
+    - iblessing/plugins/simprocedure/iblessing-simple-simprocedure.json
   skip_cleanup: true
   on:
     tags: true
