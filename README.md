@@ -45,6 +45,7 @@ In case you need support regarding iblessing or anything associated with it, you
 - send mail to xiuyutong1994#gmail.com
 
 # Changelog
+- 2021.01.23 - Add method signatures for system libraries (Foundation, UIKit), further enhanced analytical capabilities
 - 2020.11.30 - Objc reflection info (https://github.com/Soulghost/iblessing/wiki/Objc-Reflection-Info)
 - 2020.10.24 - Objc call snapshots (https://github.com/Soulghost/iblessing/wiki/Objc-Call-Snapshots)
 - 2020.10.04 - Objc category list support
