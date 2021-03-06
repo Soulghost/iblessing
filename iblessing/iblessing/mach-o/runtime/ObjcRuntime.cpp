@@ -95,7 +95,9 @@ void ObjcRuntime::loadCatList(uint64_t vmaddr, uint64_t size) {
     for (int i = 0; i < count; i++) {
         uint64_t cateAddr = *cateAddrs;
         shared_ptr<ObjcCategory> category = ObjcCategory::loadFromAddress(cateAddr);
-        categoryList.push_back(category);
+        if (category != nullptr) {
+            categoryList.push_back(category);
+        }
         cateAddrs += 1;
     }
 }
