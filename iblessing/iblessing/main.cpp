@@ -38,7 +38,7 @@ int main(int argc, const char *argv[]) {
            \n");
     
     // hello text
-    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.6.1 (http://blog.asm.im)\n");
+    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.6.3 (http://blog.asm.im)\n");
     printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
 
 #ifdef IB_CSR_ENABLED
@@ -96,7 +96,11 @@ int main(int argc, const char *argv[]) {
     // hanle parse error
     auto err = parser.parse(argc, argv);
     if (err) {
-        parser.print_help();
+        if (parser.exists("list")) {
+            goto print_list;
+        } else {
+            parser.print_help();
+        }
         return 1;
     }
     
@@ -108,6 +112,7 @@ int main(int argc, const char *argv[]) {
     
     // handle scanner list
     if (parser.exists("list")) {
+print_list:
         ScannerDispatcher *sd = new ScannerDispatcher();
         vector<Scanner *> scanners = sd->allScanners();
         printf("[*] Scanner List:\n");
