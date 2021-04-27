@@ -100,12 +100,11 @@ shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(uint64_t address) {
     category->name = name;
     address += 8;
     
-    uint64_t classPtr = vm2->read64(address, nullptr);
-    if (!classPtr) {
+    uint64_t classAddr = vm2->read64(address, nullptr);
+    if (!classAddr) {
         return nullptr;
     }
     category->decoratedClass = make_shared<ObjcCategoryDecoratedClass>();
-    uint64_t classAddr = vm2->read64(classPtr, nullptr);
     category->decoratedClass->address = classAddr;
     if (classAddr) {
         ObjcClassRuntimeInfo *classInfo = ObjcRuntime::getInstance()->getClassInfoByAddress(classAddr);
