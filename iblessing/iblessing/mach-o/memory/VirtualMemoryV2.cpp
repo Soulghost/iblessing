@@ -22,29 +22,29 @@ VirtualMemoryV2* VirtualMemoryV2::_instance = nullptr;
 
 VirtualMemoryV2* VirtualMemoryV2::progressDefault() {
     if (VirtualMemoryV2::_instance == nullptr) {
-        VirtualMemoryV2::_instance = new VirtualMemoryV2();
+        VirtualMemoryV2::_instance = nullptr;
     }
     return VirtualMemoryV2::_instance;
 }
 
 uint8_t* VirtualMemoryV2::getMappedFile() {
-    return VirtualMemory::progressDefault()->mappedFile;
+    return fileMemory->mappedFile;
 }
 
 uint64_t VirtualMemoryV2::getBaseAddr() {
-    return VirtualMemory::progressDefault()->vmaddr_base;
+    return fileMemory->vmaddr_base;
 }
 
 std::vector<struct ib_segment_command_64 *> VirtualMemoryV2::getSegmentHeaders() {
-    return VirtualMemory::progressDefault()->segmentHeaders;
+    return fileMemory->segmentHeaders;
 }
 
 struct ib_section_64* VirtualMemoryV2::getTextSect() {
-    return VirtualMemory::progressDefault()->textSect;
+    return fileMemory->textSect;
 }
 
 struct ib_dyld_info_command* VirtualMemoryV2::getDyldInfo() {
-    return VirtualMemory::progressDefault()->dyldinfo;
+    return fileMemory->dyldinfo;
 }
 
 int VirtualMemoryV2::loadWithMachOData(uint8_t *mappedFile) {
@@ -67,34 +67,24 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
         return 1;
     }
     
-    VirtualMemory *vm = VirtualMemory::progressDefault();
-    if (!mappedFile) {
-        mappedFile = vm->mappedFile;
-        if (!mappedFile) {
-            cout << termcolor::red << "[-] VirtualMemoryV2 - Error: cannot get mappedFile from VirtualMemory ";
-            cout << termcolor::reset << endl;
-            return 1;
-        }
-    }
-    
     // mach-o mapping start from 0x100000000 (app), 0x0 (dylib)
     // heap using vm_base ~ vmbase + 12G
     // stack using vmbase + 12G ~ .
     uint64_t unicorn_vm_size = 12UL * 1024 * 1024 * 1024;
-    uint64_t unicorn_vm_start = vm->vmaddr_base;
+    uint64_t unicorn_vm_start = fileMemory->vmaddr_base;
     uc_err err = uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size, UC_PROT_ALL);
     if (err != UC_ERR_OK) {
         cout << termcolor::red << "[-] VirtualMemoryV2 - Error: unicorn error: " << uc_strerror(err);
         cout << termcolor::reset << endl;
-        return 1;
+        return 2;
     }
     
     // first of all, mapping the whole file
-    err = uc_mem_write(uc, vm->vmaddr_base, mappedFile, vm->mappedSize);
+    err = uc_mem_write(uc, fileMemory->vmaddr_base, mappedFile, fileMemory->mappedSize);
     if (err != UC_ERR_OK) {
         cout << termcolor::red << "[-] VirtualMemoryV2 - Error: cannot map mach-o file: " << uc_strerror(err);
         cout << termcolor::reset << endl;
-        return 1;
+        return 3;
     }
     
     // mapping file
@@ -102,7 +92,7 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
     if (ScannerContext::headerDetector(mappedFile, &hdr) != SC_ERR_OK) {
         cout << termcolor::red << "[-] VirtualMemoryV2 - cannot extract aarch64 header from binary file";;
         cout << termcolor::reset << endl;
-        return 1;
+        return 4;
     }
     
     // parse section headers
@@ -130,7 +120,7 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
                                                                   seg64->vmaddr + std::min(seg64->vmsize, seg64->filesize));
                     cout << ", error " << uc_strerror(err);
                     cout << termcolor::reset << endl;
-                    return 1;
+                    return 5;
                 }
                 
                 if (strncmp(seg64->segname, "__TEXT", 6) == 0) {

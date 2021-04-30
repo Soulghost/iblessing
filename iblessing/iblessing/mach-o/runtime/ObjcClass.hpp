@@ -14,8 +14,13 @@
 #include <unordered_map>
 #include "ObjcMethod.hpp"
 #include "ObjcIvar.hpp"
+#include "VirtualMemoryV2.hpp"
+#include "SymbolTable.hpp"
+//#include <iblessing/memory/memory.hpp>
 
 NS_IB_BEGIN
+
+class ObjcRuntime;
 
 class ObjcClassRuntimeInfo {
 public:
@@ -37,7 +42,9 @@ public:
     std::unordered_map<uint64_t, ObjcIvar *> offset2ivar;
     
     static ObjcClassRuntimeInfo* realizeFromAddress(uint64_t address);
+    static ObjcClassRuntimeInfo* realizeFromAddress(ObjcRuntime *runtime , std::shared_ptr<SymbolTable> symtab, std::shared_ptr<VirtualMemoryV2> virtualMemory, uint64_t address);
     static std::string classNameAtAddress(uint64_t address);
+    static std::string classNameAtAddress(std::shared_ptr<VirtualMemoryV2> virtualMemory, uint64_t address);
     static uint64_t trickAlignForClassRO(uint64_t address);
     ObjcMethod* getMethodBySEL(std::string sel, bool fatal = false);
     Vector<ObjcMethod *> getAllMethods();

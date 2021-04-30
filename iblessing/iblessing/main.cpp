@@ -21,11 +21,14 @@
 #include "csrutil.hpp"
 #endif
 
+#include "classdump.hpp"
+
 using namespace std;
 using namespace argparse;
 using namespace iblessing;
 
 int main(int argc, const char *argv[]) {
+    return classdump_main(argc, argv);
     // ascii art
     printf("\n\
            ☠️\n\

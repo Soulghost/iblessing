@@ -13,8 +13,10 @@
 #include "Symbol.hpp"
 #include "Vector.hpp"
 #include "Map.hpp"
+#include <memory>
 #include "mach-universal.hpp"
 #include "mach-machine.h"
+#include "StringTable.hpp"
 #include <map>
 
 NS_IB_BEGIN
@@ -30,6 +32,7 @@ typedef struct SymbolRelocation {
 
 class SymbolTable : public Object {
 public:
+    SymbolTable(std::shared_ptr<StringTable> strtab) : strtab(strtab) {};
     virtual ~SymbolTable();
     static SymbolTable* getInstance();
     
@@ -43,6 +46,7 @@ public:
     Symbol* getSymbolNearByAddress(uint64_t address);
     Symbol* getSymbolByAddress(uint64_t address);
     Symbol* getSymbolByName(std::string name);
+    std::shared_ptr<StringTable> strtab;
     std::vector<SymbolRelocation> getAllRelocs();
     
 private:

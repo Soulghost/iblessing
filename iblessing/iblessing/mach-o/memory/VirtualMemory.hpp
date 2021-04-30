@@ -64,12 +64,18 @@ public:
     // bss
     uint64_t vmaddr_bss_start;
     uint64_t vmaddr_bss_end;
+    // objc
+    uint64_t objc_classlist_addr;
+    uint64_t objc_classlist_size;
+    uint64_t objc_catlist_addr;
+    uint64_t objc_catlist_size;
     
     // extra info
     std::vector<struct ib_segment_command_64 *> segmentHeaders;
     ib_dyld_info_command *dyldinfo;
     struct ib_segment_command_64 *textSeg;
     struct ib_section_64 *textSect;
+    std::vector<std::pair<std::pair<uint64_t, uint64_t>, std::pair<uint64_t, ib_section_64 *>>> allRelocs;
     
     void storeRegister(ARM64Register *reg, uint64_t address);
     uint64_t storeObject(void *data, uint64_t size, MemoryUnit::MemoryType type);
@@ -86,7 +92,6 @@ public:
     bool isRealHeapCopyForAddress(uint64_t address);
     bool isValidAddress(uint64_t address);
     
-protected:
     VirtualMemory();
     
 private:

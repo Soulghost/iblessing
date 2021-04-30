@@ -14,6 +14,7 @@
 #include "VirtualMemoryV2.hpp"
 #include "CoreFoundation.hpp"
 #include <stack>
+#include "ObjcRuntime.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -41,11 +42,14 @@ if (!memOK) { \
 
 // TODO: add ivar type parsing
 // TODO: add ivar call xref
-
 ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address) {
+    assert(false);
+    return nullptr;
+}
+
+ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runtime, shared_ptr<SymbolTable> symtab, shared_ptr<VirtualMemoryV2> vm2, uint64_t address) {
     // FIXME: external class realize
     // FIXME: unsafe when address is invalid
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     ObjcClassRuntimeInfo *info = new ObjcClassRuntimeInfo();
     info->address = address;
     // __DATA,__objc_data
@@ -123,7 +127,6 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
     }
     
     uint64_t objc_methods_addr = objc_methodlist_addr + 8;
-    SymbolTable *symtab = SymbolTable::getInstance();
     for (uint32_t i = 0; i < objc_methodlist_count; i++) {
         uint64_t sel_offset = objc_methods_addr;
         uint64_t sel_addr = vm2->read64(sel_offset, &memOK);
@@ -303,15 +306,14 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(uint64_t address)
     uint64_t objc_superclass_offset = objc_data_addr + 8;
     uint64_t objc_superclass_addr = rf64rn(objc_superclass_offset);
     if (objc_superclass_addr != 0 && objc_superclass_addr != address) {
-        info->superClassInfo = ObjcClassRuntimeInfo::realizeFromAddress(objc_superclass_addr);
+        info->superClassInfo = ObjcClassRuntimeInfo::realizeFromAddress(runtime, symtab, vm2, objc_superclass_addr);
     } else {
         info->superClassInfo = nullptr;
     }
     
-    ObjcRuntime *rt = ObjcRuntime::getInstance();
-    rt->address2RuntimeInfo[address] = info;
-    rt->runtimeInfo2address[info] = address;
-
+    runtime->address2RuntimeInfo[address] = info;
+    runtime->runtimeInfo2address[info] = address;
+    
     return info;
 }
 
@@ -372,8 +374,7 @@ ObjcMethod* ObjcClassRuntimeInfo::getMethodBySEL(string sel, bool fatal) {
     return nullptr;
 }
 
-std::string ObjcClassRuntimeInfo::classNameAtAddress(uint64_t address) {
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+std::string ObjcClassRuntimeInfo::classNameAtAddress(shared_ptr<VirtualMemoryV2> vm2, uint64_t address) {
     uint64_t objc_class_ro_offset = address + 32;
     
     bool memOK;
@@ -392,6 +393,11 @@ std::string ObjcClassRuntimeInfo::classNameAtAddress(uint64_t address) {
     
     const char *className = vm2->readString(objc_classname_addr, 1000);
     return className ? className : "";
+}
+
+std::string ObjcClassRuntimeInfo::classNameAtAddress(uint64_t address) {
+    assert(false);
+    return "";
 }
 
 uint64_t ObjcClassRuntimeInfo::trickAlignForClassRO(uint64_t objc_class_ro_addr) {

@@ -19,13 +19,9 @@ using namespace iblessing;
 
 ObjcRuntime* ObjcRuntime::_instance = nullptr;
 
-ObjcRuntime::ObjcRuntime() {
-    
-}
-
 ObjcRuntime* ObjcRuntime::getInstance() {
     if (ObjcRuntime::_instance == nullptr) {
-        ObjcRuntime::_instance = new ObjcRuntime();
+        ObjcRuntime::_instance = nullptr;
     }
     return ObjcRuntime::_instance;
 }
@@ -45,7 +41,7 @@ ObjcClassRuntimeInfo* ObjcRuntime::getClassInfoByAddress(uint64_t address, bool 
         return nullptr;
     }
     
-    ObjcClassRuntimeInfo *info = ObjcClassRuntimeInfo::realizeFromAddress(address);
+    ObjcClassRuntimeInfo *info = ObjcClassRuntimeInfo::realizeFromAddress(this, symtab, vm2, address);
     if (!info) {
         return nullptr;
     }
@@ -62,8 +58,7 @@ bool ObjcRuntime::isValidClassInfo(ObjcClassRuntimeInfo *info) {
 }
 
 void ObjcRuntime::loadClassList(uint64_t vmaddr, uint64_t size) {
-    VirtualMemoryV2 *vm = VirtualMemoryV2::progressDefault();
-    uint64_t *classAddrs = (uint64_t *)vm->readBySize(vmaddr, size);
+    uint64_t *classAddrs = (uint64_t *)vm2->readBySize(vmaddr, size);
     if (!classAddrs) {
         return;
     }
@@ -72,7 +67,7 @@ void ObjcRuntime::loadClassList(uint64_t vmaddr, uint64_t size) {
     classList.clear();
     for (int i = 0; i < count; i++) {
         uint64_t class_addr = *classAddrs;
-        std::string className = ObjcClassRuntimeInfo::classNameAtAddress(class_addr);
+        std::string className = ObjcClassRuntimeInfo::classNameAtAddress(vm2, class_addr);
         if (className.length() == 0) {
             continue;
         }
@@ -85,8 +80,7 @@ void ObjcRuntime::loadClassList(uint64_t vmaddr, uint64_t size) {
 void ObjcRuntime::loadCatList(uint64_t vmaddr, uint64_t size) {
     categoryList.clear();
     
-    VirtualMemoryV2 *vm = VirtualMemoryV2::progressDefault();
-    uint64_t *cateAddrs = (uint64_t *)vm->readBySize(vmaddr, size);
+    uint64_t *cateAddrs = (uint64_t *)vm2->readBySize(vmaddr, size);
     if (!cateAddrs) {
         return;
     }
@@ -94,7 +88,7 @@ void ObjcRuntime::loadCatList(uint64_t vmaddr, uint64_t size) {
     uint64_t count = size / sizeof(void *);
     for (int i = 0; i < count; i++) {
         uint64_t cateAddr = *cateAddrs;
-        shared_ptr<ObjcCategory> category = ObjcCategory::loadFromAddress(cateAddr);
+        shared_ptr<ObjcCategory> category = ObjcCategory::loadFromAddress(vm2, cateAddr);
         if (category != nullptr) {
             categoryList.push_back(category);
         }
