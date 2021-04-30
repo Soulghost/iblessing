@@ -17,8 +17,8 @@ using namespace std;
 using namespace iblessing;
 
 int classdump_main(int argc, const char **argv) {
-//    string filePath = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample";
-    string filePath = "/opt/one-btn/tmp/apps/WeChat/Payload/WeChat";
+    string filePath = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample";
+//    string filePath = "/opt/one-btn/tmp/apps/WeChat/Payload/WeChat";
     shared_ptr<MachO> macho = MachO::createFromFile(filePath);
     assert(macho->loadSync() == IB_SUCCESS);
     
