@@ -307,6 +307,11 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
     uint64_t objc_superclass_addr = rf64rn(objc_superclass_offset);
     if (objc_superclass_addr != 0 && objc_superclass_addr != address) {
         info->superClassInfo = ObjcClassRuntimeInfo::realizeFromAddress(runtime, symtab, vm2, objc_superclass_addr);
+        if (!info->superClassInfo && runtime->externalClassRuntimeInfo.find(objc_superclass_addr) != runtime->externalClassRuntimeInfo.end()) {
+            info->superClassInfo = runtime->externalClassRuntimeInfo[objc_superclass_addr];
+        } else {
+            info->superClassInfo = nullptr;
+        }
     } else {
         info->superClassInfo = nullptr;
     }
