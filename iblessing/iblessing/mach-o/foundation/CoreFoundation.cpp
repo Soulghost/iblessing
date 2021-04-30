@@ -171,5 +171,5 @@ string CoreFoundation::resolveTypeEncoding(string &typeEncoding) {
         return primaryTypes[typeEncoding];
     }
     
-    return "";
+    return typeEncoding;
 }

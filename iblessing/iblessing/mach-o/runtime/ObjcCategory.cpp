@@ -28,8 +28,7 @@ using namespace iblessing;
 00000030 __objc2_category ends
 */
 
-static vector<shared_ptr<ObjcMethod>> loadMethodsFromAddress(uint64_t address, ObjcClassRuntimeInfo *classInfo, bool classMethod) {
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+static vector<shared_ptr<ObjcMethod>> loadMethodsFromAddress(shared_ptr<VirtualMemoryV2> vm2, uint64_t address, ObjcClassRuntimeInfo *classInfo, bool classMethod) {
     uint32_t count = vm2->read32(address + 4, nullptr);
     if (count == 0) {
         return {};
@@ -94,7 +93,7 @@ shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(uint64_t address) {
     return nullptr;
 }
 
-shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(shared_ptr<VirtualMemoryV2> vm2, uint64_t address) {
+shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(ObjcRuntime *runtime, shared_ptr<VirtualMemoryV2> vm2, uint64_t address) {
     shared_ptr<ObjcCategory> category = make_shared<ObjcCategory>();
     uint64_t namePtr = vm2->read64(address, nullptr);
     if (!namePtr) {
@@ -111,7 +110,7 @@ shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(shared_ptr<VirtualMemoryV
     category->decoratedClass = make_shared<ObjcCategoryDecoratedClass>();
     category->decoratedClass->address = classAddr;
     if (classAddr) {
-        ObjcClassRuntimeInfo *classInfo = ObjcRuntime::getInstance()->getClassInfoByAddress(classAddr);
+        ObjcClassRuntimeInfo *classInfo = runtime->getClassInfoByAddress(classAddr);
         category->decoratedClass->classInfo = classInfo;
     } else {
         category->decoratedClass->classInfo = nullptr;
@@ -120,13 +119,13 @@ shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(shared_ptr<VirtualMemoryV
     
     uint64_t instanceMethodsAddr = vm2->read64(address, nullptr);
     if (instanceMethodsAddr) {
-        category->instanceMethods = loadMethodsFromAddress(instanceMethodsAddr, category->decoratedClass->classInfo, false);
+        category->instanceMethods = loadMethodsFromAddress(vm2, instanceMethodsAddr, category->decoratedClass->classInfo, false);
     }
     address += 8;
     
     uint64_t classMethodsAddr = vm2->read64(address, nullptr);
     if (classMethodsAddr) {
-        category->classMethods = loadMethodsFromAddress(classMethodsAddr, category->decoratedClass->classInfo, true);
+        category->classMethods = loadMethodsFromAddress(vm2, classMethodsAddr, category->decoratedClass->classInfo, true);
     }
     
     if (category->decoratedClass->classInfo) {

@@ -16,6 +16,8 @@
 
 NS_IB_BEGIN
 
+class ObjcRuntime;
+
 class ObjcCategoryDecoratedClass {
 public:
     bool isExternal;
@@ -31,7 +33,7 @@ public:
     std::vector<std::shared_ptr<ObjcMethod>> classMethods;
     
     static std::shared_ptr<ObjcCategory> loadFromAddress(uint64_t address);
-    static std::shared_ptr<ObjcCategory> loadFromAddress(std::shared_ptr<VirtualMemoryV2> vm2, uint64_t address);
+    static std::shared_ptr<ObjcCategory> loadFromAddress(ObjcRuntime *runtime, std::shared_ptr<VirtualMemoryV2> vm2, uint64_t address);
 };
 
 NS_IB_END
