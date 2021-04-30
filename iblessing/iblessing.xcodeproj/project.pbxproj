@@ -68,6 +68,11 @@
 		68770C9C24E17212003F9652 /* ObjcMsgXREFReportGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68770C9A24E17212003F9652 /* ObjcMsgXREFReportGenerator.cpp */; };
 		6877B7832514913000227CFF /* ProgramState.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6877B7812514913000227CFF /* ProgramState.cpp */; };
 		6877B786251492C500227CFF /* ProgramStateManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6877B784251492C500227CFF /* ProgramStateManager.cpp */; };
+		6894E0E3263BA97C000642F5 /* mach-o.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E0E1263BA97C000642F5 /* mach-o.cpp */; };
+		6894E0F1263BAB51000642F5 /* classdump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E0EF263BAB51000642F5 /* classdump.cpp */; };
+		6894E10B263BD0DF000642F5 /* memory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E109263BD0DE000642F5 /* memory.cpp */; };
+		6894E115263BDF20000642F5 /* objc.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E113263BDF20000642F5 /* objc.cpp */; };
+		6894E12B263BE5AB000642F5 /* dyld.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E129263BE5AB000642F5 /* dyld.cpp */; };
 		68A028C024DE7F9300077CE0 /* ScannerContextManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028BE24DE7F9300077CE0 /* ScannerContextManager.cpp */; };
 		68A028C324DE80AB00077CE0 /* ScannerContext.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028C124DE80AB00077CE0 /* ScannerContext.cpp */; };
 		68A028CB24DE897F00077CE0 /* ScannerDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028C924DE897F00077CE0 /* ScannerDispatcher.cpp */; };
@@ -255,6 +260,18 @@
 		6877B7822514913000227CFF /* ProgramState.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramState.hpp; sourceTree = "<group>"; };
 		6877B784251492C500227CFF /* ProgramStateManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProgramStateManager.cpp; sourceTree = "<group>"; };
 		6877B785251492C500227CFF /* ProgramStateManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramStateManager.hpp; sourceTree = "<group>"; };
+		6894E0E1263BA97C000642F5 /* mach-o.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "mach-o.cpp"; sourceTree = "<group>"; };
+		6894E0E2263BA97C000642F5 /* mach-o.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "mach-o.hpp"; sourceTree = "<group>"; };
+		6894E0EF263BAB51000642F5 /* classdump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = classdump.cpp; sourceTree = "<group>"; };
+		6894E0F0263BAB51000642F5 /* classdump.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = classdump.hpp; sourceTree = "<group>"; };
+		6894E0FC263BABC8000642F5 /* iblessing.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = iblessing.hpp; sourceTree = "<group>"; };
+		6894E101263BAE3B000642F5 /* ibtypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ibtypes.h; sourceTree = "<group>"; };
+		6894E109263BD0DE000642F5 /* memory.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = memory.cpp; sourceTree = "<group>"; };
+		6894E10A263BD0DE000642F5 /* memory.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = memory.hpp; sourceTree = "<group>"; };
+		6894E113263BDF20000642F5 /* objc.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = objc.cpp; sourceTree = "<group>"; };
+		6894E114263BDF20000642F5 /* objc.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = objc.hpp; sourceTree = "<group>"; };
+		6894E129263BE5AB000642F5 /* dyld.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = dyld.cpp; sourceTree = "<group>"; };
+		6894E12A263BE5AB000642F5 /* dyld.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = dyld.hpp; sourceTree = "<group>"; };
 		68A028BE24DE7F9300077CE0 /* ScannerContextManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScannerContextManager.cpp; sourceTree = "<group>"; };
 		68A028BF24DE7F9300077CE0 /* ScannerContextManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScannerContextManager.hpp; sourceTree = "<group>"; };
 		68A028C124DE80AB00077CE0 /* ScannerContext.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScannerContext.cpp; sourceTree = "<group>"; };
@@ -405,6 +422,7 @@
 		685CE7D124C55309002CC5E8 /* iblessing */ = {
 			isa = PBXGroup;
 			children = (
+				6894E0E0263BA963000642F5 /* v2 */,
 				68B173A025B2E6730070C6E5 /* tools */,
 				68BE8A8124E8F15A00A534DB /* tests */,
 				6800875E24CAD5D100853E04 /* iblessing.entitlements */,
@@ -816,6 +834,81 @@
 			path = state;
 			sourceTree = "<group>";
 		};
+		6894E0E0263BA963000642F5 /* v2 */ = {
+			isa = PBXGroup;
+			children = (
+				6894E0F8263BAB7E000642F5 /* iblessing */,
+				6894E0EE263BAB37000642F5 /* example */,
+			);
+			path = v2;
+			sourceTree = "<group>";
+		};
+		6894E0EA263BA989000642F5 /* mach-o */ = {
+			isa = PBXGroup;
+			children = (
+				6894E0E1263BA97C000642F5 /* mach-o.cpp */,
+				6894E0E2263BA97C000642F5 /* mach-o.hpp */,
+			);
+			path = "mach-o";
+			sourceTree = "<group>";
+		};
+		6894E0EE263BAB37000642F5 /* example */ = {
+			isa = PBXGroup;
+			children = (
+				6894E0EF263BAB51000642F5 /* classdump.cpp */,
+				6894E0F0263BAB51000642F5 /* classdump.hpp */,
+			);
+			path = example;
+			sourceTree = "<group>";
+		};
+		6894E0F8263BAB7E000642F5 /* iblessing */ = {
+			isa = PBXGroup;
+			children = (
+				6894E11C263BE57C000642F5 /* dyld */,
+				6894E112263BDF13000642F5 /* objc */,
+				6894E108263BD0D2000642F5 /* memory */,
+				6894E100263BAE20000642F5 /* common */,
+				6894E0EA263BA989000642F5 /* mach-o */,
+				6894E0FC263BABC8000642F5 /* iblessing.hpp */,
+			);
+			path = iblessing;
+			sourceTree = "<group>";
+		};
+		6894E100263BAE20000642F5 /* common */ = {
+			isa = PBXGroup;
+			children = (
+				6894E101263BAE3B000642F5 /* ibtypes.h */,
+			);
+			path = common;
+			sourceTree = "<group>";
+		};
+		6894E108263BD0D2000642F5 /* memory */ = {
+			isa = PBXGroup;
+			children = (
+				6894E109263BD0DE000642F5 /* memory.cpp */,
+				6894E10A263BD0DE000642F5 /* memory.hpp */,
+			);
+			path = memory;
+			sourceTree = "<group>";
+		};
+		6894E112263BDF13000642F5 /* objc */ = {
+			isa = PBXGroup;
+			children = (
+				6894E113263BDF20000642F5 /* objc.cpp */,
+				6894E114263BDF20000642F5 /* objc.hpp */,
+			);
+			path = objc;
+			sourceTree = "<group>";
+		};
+		6894E11C263BE57C000642F5 /* dyld */ = {
+			isa = PBXGroup;
+			children = (
+				6894E129263BE5AB000642F5 /* dyld.cpp */,
+				6894E12A263BE5AB000642F5 /* dyld.hpp */,
+			);
+			path = dyld;
+			sourceTree = "<group>";
+		};
 		68A028BD24DE7F8000077CE0 /* context */ = {
 			isa = PBXGroup;
 			children = (
@@ -1070,11 +1163,14 @@
 				685CE85D24C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp in Sources */,
 				685CE81324C57079002CC5E8 /* ObjcClass.cpp in Sources */,
 				685CE84624C572A0002CC5E8 /* ObjcMethodXrefScanner.cpp in Sources */,
+				6894E0F1263BAB51000642F5 /* classdump.cpp in Sources */,
 				684458C32543E14400A9D441 /* ObjcMethodCallSnapshotSerializationManager.cpp in Sources */,
 				6829632324D052AF00EF9251 /* SymbolWrapperSerializationManager.cpp in Sources */,
 				682962E424CD490E00EF9251 /* Foundation.cpp in Sources */,
+				6894E0E3263BA97C000642F5 /* mach-o.cpp in Sources */,
 				685CE81724C57079002CC5E8 /* ObjcObject.cpp in Sources */,
 				68770C9124E1118D003F9652 /* CocoaAppInfoScanner.cpp in Sources */,
+				6894E115263BDF20000642F5 /* objc.cpp in Sources */,
 				685CE85324C57309002CC5E8 /* ObjcMethodChain.cpp in Sources */,
 				685CE84824C572A0002CC5E8 /* Scanner.cpp in Sources */,
 				68445903257271F900A9D441 /* ObjcReflectionInfoManager.cpp in Sources */,
@@ -1103,6 +1199,7 @@
 				6877B786251492C500227CFF /* ProgramStateManager.cpp in Sources */,
 				68BE8A8724E904AF00A534DB /* TestManager.cpp in Sources */,
 				68BE8A8A24E9052200A534DB /* Tester.cpp in Sources */,
+				6894E12B263BE5AB000642F5 /* dyld.cpp in Sources */,
 				6877B7832514913000227CFF /* ProgramState.cpp in Sources */,
 				685CE85C24C57360002CC5E8 /* GeneratorDispatcher.cpp in Sources */,
 				68770C9424E1130A003F9652 /* AppInfoScanner.mm in Sources */,
@@ -1113,6 +1210,7 @@
 				685CE84A24C572A0002CC5E8 /* PredicateScanner.cpp in Sources */,
 				6817507125BA7B920046328F /* SimpleSimProcedure.cpp in Sources */,
 				68C3630024C9CA7200441950 /* csrutil.cpp in Sources */,
+				6894E10B263BD0DF000642F5 /* memory.cpp in Sources */,
 				685CE84924C572A0002CC5E8 /* SymbolWrapperScanner.cpp in Sources */,
 				68D4E852251D993A0090D5AA /* ScannerWorkDirManager.cpp in Sources */,
 				685CE84524C572A0002CC5E8 /* ObjcClassXrefScanner.cpp in Sources */,
@@ -1360,6 +1458,7 @@
 					"${SRCROOT}/../submodules/capstone/include",
 					"${SRCROOT}/../submodules/unicorn/include",
 					"${SRCROOT}/../submodules/keystone/include",
+					"${SRCROOT}/iblessing/v2",
 				);
 			};
 			name = Debug;
@@ -1391,6 +1490,7 @@
 					"${SRCROOT}/../submodules/capstone/include",
 					"${SRCROOT}/../submodules/unicorn/include",
 					"${SRCROOT}/../submodules/keystone/include",
+					"${SRCROOT}/iblessing/v2",
 				);
 			};
 			name = Release;

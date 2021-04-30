@@ -15,6 +15,12 @@
 #include "mach-universal.hpp"
 #include "mach-machine.h"
 #include <string>
+#include <memory>
+#include "VirtualMemory.hpp"
+#include "VirtualMemoryV2.hpp"
+#include "StringTable.hpp"
+#include "SymbolTable.hpp"
+#include "ObjcRuntime.hpp"
 
 NS_IB_BEGIN
 
@@ -33,6 +39,12 @@ public:
                                       uint64_t *archSizeOut = nullptr    /** OUT */);
     scanner_err archiveStaticLibraryAndRetry(std::string binaryPath, scanner_err analyzeError);
     scanner_err setupWithBinaryPath(std::string binaryPath, bool reentry = false);
+    
+    std::shared_ptr<VirtualMemory> fileMemory;
+    std::shared_ptr<VirtualMemoryV2> readonlyMemory;
+    std::shared_ptr<StringTable> strtab;
+    std::shared_ptr<SymbolTable> symtab;
+    std::shared_ptr<ObjcRuntime> objcRuntime;
     
 private:
     std::string binaryPath;

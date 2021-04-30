@@ -14,11 +14,15 @@
 #include <unicorn/unicorn.h>
 #include <vector>
 #include <map>
+#include "VirtualMemory.hpp"
 
 NS_IB_BEGIN
 
 class VirtualMemoryV2 {
 public:
+    VirtualMemoryV2(std::shared_ptr<VirtualMemory> fileMemory) : fileMemory(fileMemory) {
+        uc = nullptr;
+    }
     std::vector<std::pair<uint64_t, uint32_t>> textPatch;
     std::vector<std::pair<uint64_t, uint64_t>> dataPatch;
     
@@ -44,11 +48,11 @@ public:
     uint64_t getBaseAddr();
     uc_engine* getEngine();
     
-    
-private:
+protected:
     static VirtualMemoryV2 *_instance;
     std::map<uint64_t, std::pair<std::string, std::string>> addr2segInfo;
     uc_engine *uc;
+    std::shared_ptr<VirtualMemory> fileMemory;
 };
 
 NS_IB_END

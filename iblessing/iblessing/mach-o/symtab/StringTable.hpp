@@ -30,7 +30,7 @@ private:
     static StringTable *_instance;
     std::map<uint64_t, std::string> index2Names;
     
-    StringTable();
+//    StringTable();
 };
 
 NS_IB_END

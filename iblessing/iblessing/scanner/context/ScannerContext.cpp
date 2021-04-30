@@ -18,11 +18,6 @@
 #include <capstone/capstone.h>
 
 #include "termcolor.h"
-#include "VirtualMemory.hpp"
-#include "VirtualMemoryV2.hpp"
-#include "ObjcRuntime.hpp"
-#include "StringTable.hpp"
-#include "SymbolTable.hpp"
 #include "StringUtils.h"
 
 using namespace std;
@@ -408,7 +403,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
         return SC_ERR_INVALID_BINARY;
     }
     
-    VirtualMemory *vm = VirtualMemory::progressDefault();
+    shared_ptr<VirtualMemory> vm = make_shared<VirtualMemory>();
+    this->fileMemory = vm;
     vm->vmaddr_base = vmaddr_base;
     vm->linkedit_base = linkedit_base;
     vm->vmaddr_bss_start = vmaddr_bss_start;
@@ -419,7 +415,12 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     vm->dyldinfo = dyld_info;
     vm->textSect = textSect;
     vm->textSeg = textSeg64;
-
+    vm->allRelocs = allRelocs;
+    vm->objc_classlist_addr = objc_classlist_addr;
+    vm->objc_classlist_size = objc_classlist_size;
+    vm->objc_catlist_addr = objc_catlist_addr;
+    vm->objc_catlist_size = objc_catlist_size;
+    
     // sort sectionHeaders by offset
     sort(sectionHeaders.begin(), sectionHeaders.end(), [&](struct ib_section_64 *a, struct ib_section_64 *b) {
         return a->offset < b->offset;
@@ -430,106 +431,25 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
         return SC_ERR_MACHO_MISSING_SEGMENT_SYMTAB;
     }
     
-    StringTable *strtab = StringTable::getInstance();
+    shared_ptr<StringTable> strtab = make_shared<StringTable>();
+    this->strtab = strtab;
     uint64_t strtab_vmaddr = linkedit_base + symtab_cmd->stroff;
     strtab->buildStringTable(strtab_vmaddr, mappedFile + symtab_cmd->stroff, symtab_cmd->strsize);
     
     // symtab vmaddr will be loaded base on linkedit_base
-    SymbolTable *symtab = SymbolTable::getInstance();
+    shared_ptr<SymbolTable> symtab = make_shared<SymbolTable>(strtab);
+    this->symtab = symtab;
     symtab->buildSymbolTable(mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
         symtab->buildDynamicSymbolTable(sectionHeaders, mappedFile + dysymtab_cmd->indirectsymoff, dysymtab_cmd->nindirectsyms, mappedFile);
     }
-    
-    // load vm-v2
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
-    if (vm2->loadWithMachOData(mappedFile) != 0) {
-        return SC_ERR_UNSUPPORT_ARCH;
-    }
-    
-    uint64_t textStart = textSect->addr;
-    uint64_t textEnd = textStart + textSect->size;
-    if (allRelocs.size() > 0) {
-        ks_engine *ks;
-        assert(ks_open(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN, &ks) == KS_ERR_OK);
-        
-        csh handle;
-        assert(cs_open(CS_ARCH_ARM64, CS_MODE_ARM, &handle) == CS_ERR_OK);
-        cs_option(handle, CS_OPT_DETAIL, CS_OPT_ON);
-        
-        for (pair<pair<uint64_t, uint64_t>, pair<uint64_t, ib_section_64 *>> &reloc : allRelocs) {
-            uint64_t relocInfoAddr = reloc.first.first;
-            uint64_t relocInfoCount = reloc.first.second;
-            uint64_t relocInfoBase = reloc.second.first;
-            ib_section_64 *relocSection = reloc.second.second;
-            
-            struct ib_scattered_relocation_info *reloc_info = (struct ib_scattered_relocation_info *)(mappedFile + relocInfoAddr);
-            while (relocInfoCount--) {
-                uint64_t targetAddr = relocInfoBase + (reloc_info->r_address & 0x00ffffff);
-                uint64_t symbolNum = (reloc_info->r_value & 0x00ffffff);
-                symtab->relocSymbol(targetAddr, symbolNum, relocSection);
-                reloc_info++;
-                
-                if (targetAddr >= textStart && targetAddr <= textEnd) {
-                    uint64_t insnAddr = targetAddr;
-                    cs_insn *insn = nullptr;
-                    uint32_t asmcode = vm2->read32(targetAddr, nullptr);
-                    uint8_t *code = (uint8_t *)&asmcode;
-                    size_t count = cs_disasm(handle, code, 4, insnAddr, 0, &insn);
-                    if (count == 1) {
-                        bool needFix = false;
-                        size_t size = 0, count = 0;
-                        unsigned char *encode = nullptr;
-                        if (strcmp(insn->mnemonic, "adrp") == 0) {
-                            string text = StringUtils::format("%s %s", insn->mnemonic, insn->op_str);
-                            uint64_t relocPage = symtab->relocQuery(targetAddr);
-                            uint64_t page = (relocPage & ~0xfff);
-                            string fixup = StringUtils::split(text, '#')[0];
-                            fixup += StringUtils::format("0x%llx", page);
-                            if (ks_asm(ks, fixup.c_str(), targetAddr, &encode, &size, &count) == KS_ERR_OK) {
-                                needFix = true;
-                            };
-                        } else if (strcmp(insn->mnemonic, "ldr") == 0) {
-                            string text = StringUtils::format("%s %s", insn->mnemonic, insn->op_str);
-                            uint64_t relocPage = symtab->relocQuery(targetAddr);
-                            uint64_t pageoff = relocPage & 0xfff;
-                            string fixup = StringUtils::split(text, ']')[0];
-                            fixup += StringUtils::format(", #0x%llx]", pageoff);
-                            if (ks_asm(ks, fixup.c_str(), targetAddr, &encode, &size, &count) == KS_ERR_OK) {
-                                needFix = true;
-                            };
-                        } else if (strcmp(insn->mnemonic, "add") == 0) {
-                            string text = StringUtils::format("%s %s", insn->mnemonic, insn->op_str);
-                            uint64_t relocPage = symtab->relocQuery(targetAddr);
-                            uint64_t pageoff = relocPage & 0xfff;
-                            vector<string> parts = StringUtils::split(text, ',');
-                            string fixup = parts[0] + ", " + parts[1];
-                            fixup += StringUtils::format(", #0x%llx", pageoff);
-                            if (ks_asm(ks, fixup.c_str(), targetAddr, &encode, &size, &count) == KS_ERR_OK) {
-                                needFix = true;
-                            };
-                        }
-                        
-                        if (needFix) {
-                            uint32_t fixcode = 0;
-                            for (size_t i = 0; i < size; i++) {
-                                fixcode += (encode[i] << (i * 8));
-                            }
-                            vm2->write32(targetAddr, fixcode);
-                            vm2->textPatch.push_back({targetAddr, fixcode});
-                        }
-                    }
-                }
-            }
-        }
-    }
     symtab->sync();
-    vm2->relocAllRegions();
     
-    ObjcRuntime *objcRuntime = ObjcRuntime::getInstance();
-    objcRuntime->loadClassList(objc_classlist_addr, objc_classlist_size);
-    objcRuntime->catlist_addr = objc_catlist_addr;
-    objcRuntime->catlist_size = objc_catlist_size;
+//    shared_ptr<ObjcRuntime> objcRuntime = make_shared<ObjcRuntime>(vm2);
+//    this->objcRuntime = objcRuntime;
+//    objcRuntime->loadClassList(objc_classlist_addr, objc_classlist_size);
+//    objcRuntime->catlist_addr = objc_catlist_addr;
+//    objcRuntime->catlist_size = objc_catlist_size;
     
     return SC_ERR_OK;
 }

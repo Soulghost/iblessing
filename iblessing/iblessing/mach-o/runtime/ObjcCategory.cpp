@@ -90,8 +90,12 @@ static vector<shared_ptr<ObjcMethod>> loadMethodsFromAddress(uint64_t address, O
 }
 
 shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(uint64_t address) {
+    assert(false);
+    return nullptr;
+}
+
+shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(shared_ptr<VirtualMemoryV2> vm2, uint64_t address) {
     shared_ptr<ObjcCategory> category = make_shared<ObjcCategory>();
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
     uint64_t namePtr = vm2->read64(address, nullptr);
     if (!namePtr) {
         return nullptr;

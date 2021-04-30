@@ -12,6 +12,7 @@
 #include "Object.hpp"
 #include "ObjcClass.hpp"
 #include <vector>
+#include "VirtualMemoryV2.hpp"
 
 NS_IB_BEGIN
 
@@ -30,6 +31,7 @@ public:
     std::vector<std::shared_ptr<ObjcMethod>> classMethods;
     
     static std::shared_ptr<ObjcCategory> loadFromAddress(uint64_t address);
+    static std::shared_ptr<ObjcCategory> loadFromAddress(std::shared_ptr<VirtualMemoryV2> vm2, uint64_t address);
 };
 
 NS_IB_END

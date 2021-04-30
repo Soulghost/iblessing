@@ -17,11 +17,15 @@
 #include "ObjcBlock.hpp"
 #include "ObjcCategory.hpp"
 #include <set>
+#include <memory>
+#include "VirtualMemoryV2.hpp"
 
 NS_IB_BEGIN
 
 class ObjcRuntime {
 public:
+    ObjcRuntime(std::shared_ptr<SymbolTable> symtab, std::shared_ptr<VirtualMemoryV2> vm2) : symtab(symtab), vm2(vm2) {}
+    
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> address2RuntimeInfo;
     std::unordered_map<ObjcClassRuntimeInfo *, uint64_t> runtimeInfo2address;
     std::unordered_map<uint64_t, ObjcClassRuntimeInfo *> externalClassRuntimeInfo;
@@ -31,6 +35,8 @@ public:
     std::unordered_map<std::string, uint64_t> classList;
     std::unordered_map<uint64_t, std::string> address2className;
     
+    uint64_t classlist_addr;
+    uint64_t classlist_size;
     uint64_t catlist_addr;
     uint64_t catlist_size;
     std::vector<std::shared_ptr<ObjcCategory>> categoryList;
@@ -51,8 +57,9 @@ public:
     bool isExistMethod(std::string methodPrefix, std::string classExpr, std::string detectedSEL);
     ObjcMethod* inferNearestMethod(std::string methodPrefix, std::string classExpr, std::string detectedSEL);
     
-private:
-    ObjcRuntime();
+protected:
+    std::shared_ptr<VirtualMemoryV2> vm2;
+    std::shared_ptr<SymbolTable> symtab;
     static ObjcRuntime *_instance;
 };
 
