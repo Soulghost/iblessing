@@ -22,6 +22,7 @@
 #endif
 
 #include "classdump.hpp"
+#include "otool.hpp"
 
 using namespace std;
 using namespace argparse;
@@ -29,6 +30,7 @@ using namespace iblessing;
 
 int main(int argc, const char *argv[]) {
     return classdump_main(argc, argv);
+//    return otool_main(argc, argv);
     // ascii art
     printf("\n\
            ☠️\n\
