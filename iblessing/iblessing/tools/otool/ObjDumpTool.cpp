@@ -24,21 +24,6 @@
 using namespace std;
 using namespace iblessing;
 
-//static uc_hook insn_hook, memexp_hook;
-
-static cs_insn* copy_insn(cs_insn *insn) {
-    cs_insn *buffer = (cs_insn *)malloc(sizeof(cs_insn));
-    memcpy(buffer, insn, sizeof(cs_insn));
-    buffer->detail = (cs_detail *)malloc(sizeof(cs_detail));
-    memcpy(buffer->detail, insn->detail, sizeof(cs_detail));
-    return buffer;
-}
-
-static void free_insn(cs_insn *insn) {
-    free(insn->detail);
-    free(insn);
-}
-
 class EngineContext {
 public:
     int identifer;
