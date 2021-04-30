@@ -12,10 +12,6 @@ using namespace iblessing;
 
 StringTable* StringTable::_instance = nullptr;
 
-StringTable::StringTable() {
-    
-}
-
 StringTable::~StringTable() {
     
 }

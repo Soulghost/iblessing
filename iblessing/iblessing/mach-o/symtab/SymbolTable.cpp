@@ -9,7 +9,6 @@
 #include "SymbolTable.hpp"
 #include "StringTable.hpp"
 #include "termcolor.h"
-#include "ObjcRuntime.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -17,10 +16,7 @@ using namespace iblessing;
 SymbolTable* SymbolTable::_instance = nullptr;
 
 SymbolTable::SymbolTable() {
-    Symbol *sym = new Symbol();
-    sym->name = "_test";
-    symbolMap.insert(0x1040143D0, sym);
-    sym->release();
+    
 }
 
 SymbolTable::~SymbolTable() {
@@ -47,7 +43,6 @@ void SymbolTable::buildSymbolTable(uint8_t *data, uint64_t nSymbols) {
     symbolTable.clear();
     
     struct ib_nlist_64 *li = (struct ib_nlist_64 *)data;
-    StringTable *strtab = StringTable::getInstance();
     
     for (uint64_t i = 0; i < nSymbols; i++) {
         uint32_t strIdx = li->n_un.n_strx;
@@ -173,10 +168,6 @@ bool SymbolTable::relocSymbol(uint64_t addr, uint64_t idx, ib_section_64 *sectio
     
     symbolMap.insert(addr, symbol);
     name2symbol[symbol->name].pushBack(symbol);
-    
-    if (symbol->name == "_objc_msgSend") {
-        
-    }
     
     SymbolRelocation relocation = SymbolRelocation();
     /**
