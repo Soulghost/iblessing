@@ -134,8 +134,9 @@ int SymbolWrapperScanner::start() {
 #endif
     
     funcStartCursor = startAddr;
+    
+    shared_ptr<SymbolTable> symtab = macho->context->symtab;
     disasmDriver->subscribeDisassemblyEvent(this, [=](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
-        SymbolTable *symtab = SymbolTable::getInstance();
 #if 0
         if (!success) {
             cout << "\t[-]" << termcolor::yellow;
