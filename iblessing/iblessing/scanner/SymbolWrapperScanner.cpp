@@ -66,6 +66,8 @@ void SymbolWrapperScanner::init() {
 }
 
 int SymbolWrapperScanner::start() {
+    assert(macho != nullptr);
+    
     ScannerDisassemblyDriver *disasmDriver = this->driver;
     bool localDriver = false;
     if (!disasmDriver) {
@@ -109,15 +111,19 @@ int SymbolWrapperScanner::start() {
     printf("\n");
     
     printf("%s  [*] Step 1. find __TEXT,__text\n", prepadding);
-    VirtualMemoryV2 *vm = VirtualMemoryV2::progressDefault();
-    struct ib_section_64 *textSect = vm->getTextSect();
-    vm->mappingMachOToEngine(uc, vm->getMappedFile());
+    shared_ptr<Memory> memory = Memory::createFromMachO(macho);
+    assert(memory->loadSync() == IB_SUCCESS);
+    
+    uint8_t *mappedFile = memory->fileMemory->mappedFile;
+    struct ib_section_64 *textSect = memory->fileMemory->textSect;
+    memory->copyToUCEngine(uc);
     
     printf("%s  [*] Step 2. scan in __text\n", prepadding);
+    uint64_t vmbase = memory->fileMemory->vmaddr_base;
     uint64_t startAddr = textSect->addr;
     uint64_t endAddr = textSect->addr + textSect->size;
     uint64_t addrRange = endAddr - startAddr;
-    uint8_t *codeData = vm->getMappedFile() + textSect->offset;
+    uint8_t *codeData = mappedFile + textSect->offset;
     printf("%s\t[*] start disassembler at 0x%llx\n", prepadding, startAddr);
     string last_mnemonic = "";
     char progressChars[] = {'\\', '|', '/', '-'};
@@ -204,7 +210,7 @@ int SymbolWrapperScanner::start() {
                         uint64_t tmpBufSize = sizeof(uint32_t) * (block.endAddr - block.startAddr);
                         void *tmpBuf = malloc(tmpBufSize);
                         if (uc_mem_read(uc, block.startAddr, tmpBuf, tmpBufSize) != UC_ERR_OK) {
-                            uc_mem_write(uc, block.startAddr, vm->getMappedFile() + block.startAddr - vm->getBaseAddr(), tmpBufSize);
+                            uc_mem_write(uc, block.startAddr, mappedFile + block.startAddr - vmbase, tmpBufSize);
                         }
                         free(tmpBuf);
                         

@@ -120,6 +120,10 @@ set(iblessing.SOURCE_INCLUDES
 
     # tests
     iblessing/tests
+
+    # v2
+    iblessing/v2
+    iblessing/v2/example
 )
 
 if (iblessing.CSR_ENABLED)
@@ -215,6 +219,16 @@ set(iblessing.SOURCE_LIST
     iblessing/tests/Tester.cpp
     iblessing/tests/TestManager.cpp
     iblessing/tests/TestObjcMethodXrefs.cpp
+
+    # v2
+    iblessing/v2/iblessing/mach-o/mach-o.cpp
+    iblessing/v2/iblessing/memory/memory.cpp
+    iblessing/v2/iblessing/dyld/dyld.cpp
+    iblessing/v2/iblessing/objc/objc.cpp
+
+    # examples
+    iblessing/v2/example/otool.cpp
+    iblessing/v2/example/classdump.cpp
 )
 
 if (iblessing.CSR_ENABLED)
