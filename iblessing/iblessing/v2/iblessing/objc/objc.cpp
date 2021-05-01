@@ -40,7 +40,9 @@ ib_return_t Objc::loadClassList() {
 
 ib_return_t Objc::loadCategoryList() {
     shared_ptr<ObjcRuntime> rt = this->runtime;
-    rt->loadCatList(rt->catlist_addr, rt->catlist_size);
+    if (rt->catlist_addr != 0 && rt->catlist_size != 0) {
+        rt->loadCatList(rt->catlist_addr, rt->catlist_size);
+    }
     return IB_SUCCESS;
 }
 
