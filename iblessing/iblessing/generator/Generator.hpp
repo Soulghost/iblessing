@@ -9,7 +9,7 @@
 #ifndef Generator_hpp
 #define Generator_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include <map>
 #include <string>
 

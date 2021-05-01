@@ -9,7 +9,7 @@
 #ifndef ARM64Registers_hpp
 #define ARM64Registers_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 
 NS_IB_BEGIN
 

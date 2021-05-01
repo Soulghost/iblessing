@@ -9,7 +9,7 @@
 #ifndef ObjcMethodChain_hpp
 #define ObjcMethodChain_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include <unistd.h>
 #include <set>
 #include <string>

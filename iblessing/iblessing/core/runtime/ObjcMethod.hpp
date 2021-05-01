@@ -9,8 +9,8 @@
 #ifndef ObjcMethod_hpp
 #define ObjcMethod_hpp
 
-#include "Object.hpp"
-#include "Vector.hpp"
+#include <iblessing/infra/Object.hpp>
+#include <iblessing/infra/Vector.hpp>
 #include <unordered_map>
 
 NS_IB_BEGIN

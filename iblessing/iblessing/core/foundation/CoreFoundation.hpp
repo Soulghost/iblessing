@@ -9,7 +9,7 @@
 #ifndef CoreFoundation_hpp
 #define CoreFoundation_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include <vector>
 
 NS_IB_BEGIN

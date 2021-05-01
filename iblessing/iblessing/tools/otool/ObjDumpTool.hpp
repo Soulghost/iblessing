@@ -9,7 +9,7 @@
 #ifndef ObjDumpTool_hpp
 #define ObjDumpTool_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 
 NS_IB_BEGIN
 

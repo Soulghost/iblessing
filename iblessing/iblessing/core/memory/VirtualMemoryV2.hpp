@@ -9,12 +9,12 @@
 #ifndef VirtualMemoryV2_hpp
 #define VirtualMemoryV2_hpp
 
-#include "Foundation.hpp"
-#include "mach-universal.hpp"
-#include <unicorn/unicorn.h>
 #include <vector>
 #include <map>
-#include "VirtualMemory.hpp"
+#include <unicorn/unicorn.h>
+#include <iblessing/core/structs/Foundation.hpp>
+#include <iblessing/core/polyfill/mach-universal.hpp>
+#include <iblessing/core/memory/VirtualMemory.hpp>
 
 NS_IB_BEGIN
 

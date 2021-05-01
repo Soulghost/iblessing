@@ -34,13 +34,22 @@ endif()
 # main executable
 add_executable(iblessing iblessing/main.cpp)
 
+# library
+add_library(iblessing-core SHARED iblessing/v2/iblessing/iblessing-core.cpp)
+
 # vendor libs
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/capstone/libcapstone.a)
+target_link_libraries(iblessing-core ${CMAKE_SOURCE_DIR}/../submodules/capstone/libcapstone.a)
+
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/unicorn/libunicorn.a)
+target_link_libraries(iblessing-core ${CMAKE_SOURCE_DIR}/../submodules/unicorn/libunicorn.a)
+
 target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/keystone/build/llvm/lib/libkeystone.a)
+target_link_libraries(iblessing-core ${CMAKE_SOURCE_DIR}/../submodules/keystone/build/llvm/lib/libkeystone.a)
 
 if ((iblessing.PLATFORM STREQUAL "linux")) 
     target_link_libraries(iblessing stdc++fs)
+    target_link_libraries(iblessing-core stdc++fs)
 endif()
 
 # macro inject
@@ -82,14 +91,14 @@ set(iblessing.SOURCE_INCLUDES
     iblessing/common/macro
 
     # mach-o
-    iblessing/mach-o/polyfill
-    iblessing/mach-o/disasm
-    iblessing/mach-o/dyld
-    iblessing/mach-o/memory
-    iblessing/mach-o/runtime
-    iblessing/mach-o/structs
-    iblessing/mach-o/symtab
-    iblessing/mach-o/foundation
+    iblessing/core/polyfill
+    iblessing/core/disasm
+    iblessing/core/dyld
+    iblessing/core/memory
+    iblessing/core/runtime
+    iblessing/core/structs
+    iblessing/core/symtab
+    iblessing/core/foundation
 
     # scanner
     iblessing/scanner
@@ -140,33 +149,33 @@ set(iblessing.SOURCE_LIST
     iblessing/infra/Object.cpp
 
     # mach-o
-    iblessing/mach-o/polyfill/mach-universal.cpp
-    iblessing/mach-o/disasm/ARM64Disasembler.cpp
-    iblessing/mach-o/disasm/ARM64Registers.cpp
-    iblessing/mach-o/disasm/ARM64ThreadState.cpp
+    iblessing/core/polyfill/mach-universal.cpp
+    iblessing/core/disasm/ARM64Disasembler.cpp
+    iblessing/core/disasm/ARM64Registers.cpp
+    iblessing/core/disasm/ARM64ThreadState.cpp
 
-    iblessing/mach-o/dyld/DyldSimulator.cpp
+    iblessing/core/dyld/DyldSimulator.cpp
 
-    iblessing/mach-o/memory/VirtualMemory.cpp
-    iblessing/mach-o/memory/VirtualMemoryV2.cpp
+    iblessing/core/memory/VirtualMemory.cpp
+    iblessing/core/memory/VirtualMemoryV2.cpp
 
-    iblessing/mach-o/runtime/ARM64Runtime.cpp
-    iblessing/mach-o/runtime/ObjcBlock.cpp
-    iblessing/mach-o/runtime/ObjcClass.cpp
-    iblessing/mach-o/runtime/ObjcIvar.cpp
-    iblessing/mach-o/runtime/ObjcMethod.cpp
-    iblessing/mach-o/runtime/ObjcObject.cpp
-    iblessing/mach-o/runtime/ObjcRuntime.cpp
-    iblessing/mach-o/runtime/ObjcCategory.cpp
-    iblessing/mach-o/runtime/SimpleSimProcedure.cpp
+    iblessing/core/runtime/ARM64Runtime.cpp
+    iblessing/core/runtime/ObjcBlock.cpp
+    iblessing/core/runtime/ObjcClass.cpp
+    iblessing/core/runtime/ObjcIvar.cpp
+    iblessing/core/runtime/ObjcMethod.cpp
+    iblessing/core/runtime/ObjcObject.cpp
+    iblessing/core/runtime/ObjcRuntime.cpp
+    iblessing/core/runtime/ObjcCategory.cpp
+    iblessing/core/runtime/SimpleSimProcedure.cpp
 
-    iblessing/mach-o/structs/Foundation.cpp
+    iblessing/core/structs/Foundation.cpp
 
-    iblessing/mach-o/symtab/StringTable.cpp
-    iblessing/mach-o/symtab/Symbol.cpp
-    iblessing/mach-o/symtab/SymbolTable.cpp
+    iblessing/core/symtab/StringTable.cpp
+    iblessing/core/symtab/Symbol.cpp
+    iblessing/core/symtab/SymbolTable.cpp
 
-    iblessing/mach-o/foundation/CoreFoundation.cpp
+    iblessing/core/foundation/CoreFoundation.cpp
 
     # scanner
     iblessing/scanner/context/ScannerContext.cpp
@@ -231,6 +240,64 @@ set(iblessing.SOURCE_LIST
     iblessing/v2/example/classdump.cpp
 )
 
+set(iblessing-core.SOURCE_LIST
+    # utils
+    iblessing/util/StringUtils.cpp
+
+    # infra
+    iblessing/infra/Object.cpp
+
+    # mach-o
+    iblessing/core/polyfill/mach-universal.cpp
+    iblessing/core/disasm/ARM64Disasembler.cpp
+    iblessing/core/disasm/ARM64Registers.cpp
+    iblessing/core/disasm/ARM64ThreadState.cpp
+
+    iblessing/core/dyld/DyldSimulator.cpp
+
+    iblessing/core/memory/VirtualMemory.cpp
+    iblessing/core/memory/VirtualMemoryV2.cpp
+
+    iblessing/core/runtime/ARM64Runtime.cpp
+    iblessing/core/runtime/ObjcBlock.cpp
+    iblessing/core/runtime/ObjcClass.cpp
+    iblessing/core/runtime/ObjcIvar.cpp
+    iblessing/core/runtime/ObjcMethod.cpp
+    iblessing/core/runtime/ObjcObject.cpp
+    iblessing/core/runtime/ObjcRuntime.cpp
+    iblessing/core/runtime/ObjcCategory.cpp
+    iblessing/core/runtime/SimpleSimProcedure.cpp
+
+    iblessing/core/structs/Foundation.cpp
+
+    iblessing/core/symtab/StringTable.cpp
+    iblessing/core/symtab/Symbol.cpp
+    iblessing/core/symtab/SymbolTable.cpp
+
+    iblessing/core/foundation/CoreFoundation.cpp
+
+    # scanner
+    iblessing/scanner/context/ScannerContext.cpp
+    iblessing/scanner/context/ScannerContextManager.cpp
+    iblessing/scanner/context/ScannerWorkDirManager.cpp
+    iblessing/scanner/dispatcher/ScannerDispatcher.cpp
+    iblessing/scanner/driver/ScannerDisassemblyDriver.cpp
+
+    # analyzer
+    iblessing/analyzer/deobfuscator/AntiWrapper.cpp
+    iblessing/analyzer/deobfuscator/FunctionPrototype.cpp
+
+    # domain
+    iblessing/domain/ObjcMethodChain.cpp
+    iblessing/domain/ObjcMethodCall.cpp
+
+    # v2
+    iblessing/v2/iblessing/mach-o/mach-o.cpp
+    iblessing/v2/iblessing/memory/memory.cpp
+    iblessing/v2/iblessing/dyld/dyld.cpp
+    iblessing/v2/iblessing/objc/objc.cpp
+)
+
 if (iblessing.CSR_ENABLED)
     set(iblessing.SOURCE_LIST ${iblessing.SOURCE_LIST}
         iblessing/platform/macos/csrutil.cpp
@@ -250,4 +317,11 @@ target_include_directories(iblessing PRIVATE
                            ${iblessing.SOURCE_INCLUDES}
                            ${iblessing.VENDOR_INCLUDES}
                            )
+
+target_include_directories(iblessing-core PRIVATE 
+                           ${iblessing.SOURCE_INCLUDES}
+                           ${iblessing.VENDOR_INCLUDES}
+                           )
+
 target_sources(iblessing PRIVATE ${iblessing.SOURCE_LIST})
+target_sources(iblessing-core PRIVATE ${iblessing-core.SOURCE_LIST})

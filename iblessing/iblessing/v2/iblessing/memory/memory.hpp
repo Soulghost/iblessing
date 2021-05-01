@@ -10,8 +10,8 @@
 #define memory_hpp
 
 #include <iblessing/mach-o/mach-o.hpp>
-#include "VirtualMemory.hpp"
-#include "VirtualMemoryV2.hpp"
+#include <iblessing/core/memory/VirtualMemory.hpp>
+#include <iblessing/core/memory/VirtualMemoryV2.hpp>
 
 namespace iblessing {
 

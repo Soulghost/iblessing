@@ -9,7 +9,7 @@
 #ifndef PredicateScanner_hpp
 #define PredicateScanner_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include <vector>
 #include "Scanner.hpp"
 

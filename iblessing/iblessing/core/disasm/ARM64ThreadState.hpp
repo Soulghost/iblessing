@@ -9,7 +9,7 @@
 #ifndef ARM64ThreadState_hpp
 #define ARM64ThreadState_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include "ARM64Registers.hpp"
 #include <vector>
 #include <capstone/capstone.h>

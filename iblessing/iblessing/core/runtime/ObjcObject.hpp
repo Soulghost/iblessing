@@ -9,10 +9,10 @@
 #ifndef ObjcObject_hpp
 #define ObjcObject_hpp
 
-#include "Object.hpp"
-#include "Vector.hpp"
 #include <unordered_map>
-#include "ObjcClass.hpp"
+#include <iblessing/infra/Object.hpp>
+#include <iblessing/infra/Vector.hpp>
+#include <iblessing/core/runtime/ObjcClass.hpp>
 
 NS_IB_BEGIN
 

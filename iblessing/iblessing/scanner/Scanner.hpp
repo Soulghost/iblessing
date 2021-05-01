@@ -9,7 +9,7 @@
 #ifndef Scanner_hpp
 #define Scanner_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include "ScannerDisassemblyDriver.hpp"
 #include <map>
 #include <string>
