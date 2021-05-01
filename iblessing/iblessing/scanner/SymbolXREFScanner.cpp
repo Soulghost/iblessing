@@ -19,6 +19,8 @@ using namespace std;
 using namespace iblessing;
 
 int SymbolXREFScanner::start() {
+    assert(macho != nullptr);
+    
     ScannerDisassemblyDriver *disasmDriver = this->driver;
     bool localDriver = false;
     if (!disasmDriver) {
@@ -54,8 +56,10 @@ int SymbolXREFScanner::start() {
     printf("\n");
     
     printf("%s  [*] Step 1. find __TEXT,__text\n", prepadding);
-    VirtualMemory *vm = VirtualMemory::progressDefault();
-    struct ib_section_64 *textSect = vm->textSect;
+    shared_ptr<Memory> memory = Memory::createFromMachO(macho);
+    assert(memory->loadSync() == IB_SUCCESS);
+    
+    struct ib_section_64 *textSect = memory->fileMemory->textSect;
     printf("%s\t[+] find __TEXT,__text at 0x%llx\n", prepadding, textSect->addr);
     
     printf("%s  [*] Step 2. scan in __text\n", prepadding);
@@ -64,7 +68,7 @@ int SymbolXREFScanner::start() {
     uint64_t startAddr = textSect->addr;
     uint64_t endAddr = textSect->addr + textSect->size;
     uint64_t addrRange = endAddr - startAddr;
-    uint8_t *codeData = vm->mappedFile + textSect->offset;
+    uint8_t *codeData = memory->fileMemory->mappedFile + textSect->offset;
     printf("%s\t[*] start disassembler at 0x%llx\n", prepadding, startAddr);
     string last_mnemonic = "";
     char progressChars[] = {'\\', '|', '/', '-'};
@@ -76,8 +80,9 @@ int SymbolXREFScanner::start() {
 #endif
     
     funcStartCursor = startAddr;
+    
+    shared_ptr<SymbolTable> symtab = macho->context->symtab;
     disasmDriver->subscribeDisassemblyEvent(this, [=](bool success, cs_insn *insn, bool *stop, ARM64PCRedirect **redirect) {
-        SymbolTable *symtab = SymbolTable::getInstance();
 #if 0
         if (!success) {
             cout << "\t[-]" << termcolor::yellow;

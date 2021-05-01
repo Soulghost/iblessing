@@ -13,6 +13,10 @@
 #include "ScannerDisassemblyDriver.hpp"
 #include <map>
 #include <string>
+#include <iblessing/mach-o/mach-o.hpp>
+#include <iblessing/memory/memory.hpp>
+#include <iblessing/objc/objc.hpp>
+#include <iblessing/dyld/dyld.hpp>
 
 NS_IB_BEGIN
 
@@ -33,7 +37,13 @@ public:
     std::string identifier;
     std::string desc;
     int jobs;
+    
+    // Binary Scanner
     bool isBinaryScanner;
+    std::shared_ptr<MachO> macho;
+    std::shared_ptr<Memory> memory;
+    std::shared_ptr<Objc> objc;
+    std::shared_ptr<Dyld> dyld;
     
     // FIXME: buggy design pattern
     void *dispatcher;

@@ -35,6 +35,11 @@
 #include "ObjcReflectionInfoManager.hpp"
 #include "SimpleSimProcedure.hpp"
 
+#include <iblessing/mach-o/mach-o.hpp>
+#include <iblessing/memory/memory.hpp>
+#include <iblessing/objc/objc.hpp>
+#include <iblessing/dyld/dyld.hpp>
+
 #define UnicornStackTopAddr      0x300000000
 
 // masks
@@ -92,10 +97,6 @@ static bool shouldTrackSymbols = true;
 static int findAllPathLevel = 0;
 static void storeMethodChains();
 
-static bool isValidClassInfo(ObjcClassRuntimeInfo *info) {
-    return ObjcRuntime::getInstance()->isValidClassInfo(info);
-}
-
 static cs_insn* copy_insn(cs_insn *insn) {
     cs_insn *buffer = (cs_insn *)malloc(sizeof(cs_insn));
     memcpy(buffer, insn, sizeof(cs_insn));
@@ -111,6 +112,9 @@ static void free_insn(cs_insn *insn) {
 
 class EngineContext {
 public:
+    // self
+    Scanner *scanner;
+    
     int identifer;
     uc_engine *engine;
     uint64_t lastPc;
@@ -227,7 +231,6 @@ static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
         return;
     }
     
-    ObjcRuntime *rt = ObjcRuntime::getInstance();
     ObjcBlock *block = new ObjcBlock();
     block->stack = blockBuffer;
     block->stackSize = ctx->blockSize;
@@ -262,7 +265,8 @@ static void finishBlockSession(EngineContext *ctx, uc_engine *uc) {
         }
     }
     
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+    shared_ptr<VirtualMemoryV2> vm2 = ctx->scanner->memory->virtualMemory;
+    shared_ptr<ObjcRuntime> rt = ctx->scanner->objc->getRuntime();
     if (signatureOffsetInDesc > 0) {
         uint64_t sigAddr = 0;
         if (UC_ERR_OK == uc_mem_read(uc, ctx->blockDescAddr + signatureOffsetInDesc, &sigAddr, 8)) {
@@ -375,10 +379,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         return;
     }
     
-    SymbolTable *symtab = SymbolTable::getInstance();
-    ObjcRuntime *rt = ObjcRuntime::getInstance();
     EngineContext *ctx = engineContexts[uc];
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+    shared_ptr<SymbolTable> symtab = ctx->scanner->macho->context->symtab;
+    shared_ptr<ObjcRuntime> rt = ctx->scanner->objc->getRuntime();
+    shared_ptr<VirtualMemoryV2> vm2 = ctx->scanner->memory->virtualMemory;
     
     bool reachToEnd = false;
     cs_insn *insn = nullptr;
@@ -803,7 +807,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 
 void* pthread_uc_worker(void *ctx) {
     EngineContext *context = reinterpret_cast<EngineContext *>(ctx);
-    ObjcRuntime *rt = ObjcRuntime::getInstance();
+    shared_ptr<ObjcRuntime> rt = context->scanner->objc->getRuntime();
     for (size_t i = 0; i < context->methods.size(); i++) {
 #if ShowFullLog
         printf("\t[*] thread %d: current method index %zu / %zu\n", context->identifer, i, context->methods.size() - 1);
@@ -952,7 +956,7 @@ void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &method
     printf("\n");
 }
 
-uc_engine* createEngine(int identifier) {
+uc_engine* createEngine(Scanner *scanner, int identifier) {
     uc_engine *uc;
     uc_context *ctx;
     uc_err err = uc_open(UC_ARCH_ARM64, UC_MODE_ARM, &uc);
@@ -965,8 +969,6 @@ uc_engine* createEngine(int identifier) {
     uc_hook_add(uc, &insn_hook, UC_HOOK_CODE, (void *)insn_hook_callback, NULL, 1, 0);
 //    uc_hook_add(uc, &mem_hook, UC_HOOK_MEM_VALID, (void *)mem_hook_callback, NULL, 1, 0);
     uc_hook_add(uc, &memexp_hook, UC_HOOK_MEM_INVALID, (void *)mem_exception_hook_callback, NULL, 1, 0);
-    
-    VirtualMemoryV2::progressDefault()->mappingMachOToEngine(uc, nullptr);
     
     // setup default thread state
     assert(uc_context_alloc(uc, &ctx) == UC_ERR_OK);
@@ -992,6 +994,7 @@ uc_engine* createEngine(int identifier) {
     
     // build context
     EngineContext *engineCtx = new EngineContext();
+    engineCtx->scanner = scanner;
     engineCtx->identifer = identifier;
     engineCtx->engine = uc;
     engineCtx->disasmHandler = handle;
@@ -1006,11 +1009,18 @@ uc_engine* createEngine(int identifier) {
 
 int ObjcMethodXrefScanner::start() {
     printf("[*] start ObjcMethodXrefScanner Exploit Scanner\n");
+    assert(macho != nullptr);
+    
+    shared_ptr<Memory> memory = Memory::createFromMachO(macho);
+    assert(memory->loadSync() == IB_SUCCESS);
+    this->memory = memory;
     
     SimpleSimProcedure::getInstance()->load();
     vector<uc_engine *> engines;
     for (int i = 0; i < jobs; i++) {
-        engines.push_back(createEngine(i));
+        uc_engine *uc = createEngine(this, i);
+        memory->copyToUCEngine(uc);
+        engines.push_back(uc);
     }
     
     bool shouldAntiWrapper = false;
@@ -1033,106 +1043,51 @@ int ObjcMethodXrefScanner::start() {
     printf("  [*] Status: Track C Symbols: %d, Anti Wrapper: %d, Find All Path Level: %d, Track Call Snapshots: %d\n", shouldTrackSymbols, shouldAntiWrapper, findAllPathLevel, trackingCallSnapshots);
     
     printf("  [*] Step 1. realize all app classes\n");
-    ObjcRuntime *rt = ObjcRuntime::getInstance();
-    SymbolTable *symtab = SymbolTable::getInstance();
-    unordered_map<string, uint64_t> &classList = rt->classList;
-    uint64_t count = 0, total = classList.size();
-#if TinyTest
-    uint64_t realize_limit = std::min((uint64_t)classList.size(), (uint64_t)TinyTest);
-#endif
+    shared_ptr<Objc> objc = Objc::create(macho, memory);
+    this->objc = objc;
+    objc->loadClassList();
     vector<ObjcMethod *> methods;
     set<uint64_t> impAddrs;
-    for (auto it = classList.begin(); it != classList.end(); it++) {
-#if TinyTest
-        if (realize_limit-- == 0) {
-            break;
-        }
-#endif
-        if (it->second == 0) {
-            printf("\t[+] skip bad class %s\n", it->first.c_str());
-        }
-        ObjcClassRuntimeInfo *classInfo = rt->getClassInfoByAddress(it->second);
-//        printf("\t[+] realize class %s, method count %lu\n", classInfo->className.c_str(), classInfo->methodList.size());
-#ifdef DebugClass
-        if (classInfo->className != DebugClass) {
-            continue;
-        } else {
-            printf("\t[++] find debug class %s\n", DebugClass);
-        }
-#endif
+    objc->realizeClasses([&](ObjcClassRuntimeInfo *classInfo, uint64_t current, uint64_t total) {
         Vector<ObjcMethod *> allMethods = classInfo->getAllMethods();
         methods.insert(methods.end(), allMethods.begin(), allMethods.end());
         for (ObjcMethod *m : allMethods) {
             impAddrs.insert(m->imp);
         }
-        count++;
 #ifndef XcodeDebug
-        fprintf(stdout, "\r\t[*] realize classes %lld/%lld (%.2f%%)", count, total, 100.0 * count / total);
+        fprintf(stdout, "\r\t[*] realize classes %lld/%lld (%.2f%%)", current, total, 100.0 * current / total);
         fflush(stdout);
 #else
-        if (count % 1000 == 0) {
-            fprintf(stdout, "\r\t[*] realize classes %lld/%lld (%.2f%%)", count, total, 100.0 * count / total);
+        if (current % 1000 == 0) {
+            fprintf(stdout, "\r\t[*] realize classes %lld/%lld (%.2f%%)", current, total, 100.0 * current / total);
             fflush(stdout);
         }
 #endif
-    }
+    });
     printf("\n");
     printf("\t[+] get %lu methods to analyze\n", methods.size());
     
     printf("  [*] Step 2. dyld load non-lazy symbols\n");
+    shared_ptr<Dyld> dyld = Dyld::create(macho, memory, objc);
+    this->dyld = dyld;
     vector<uint64_t> funcAddrs(impAddrs.begin(), impAddrs.end());
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
-    DyldSimulator::eachBind(vm2->getMappedFile(), vm2->getSegmentHeaders(), vm2->getDyldInfo(), [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
+    dyld->doBindAll([&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
         uint64_t symbolAddr = addr + addend;
         
         // load non-lazy symbols
         for (uc_engine *uc : engines) {
             uc_mem_write(uc, symbolAddr, &symbolAddr, 8);
-            vm2->write64(symbolAddr, symbolAddr);
         }
-        
-        // record class info
-        if (string(symbolName).rfind("_OBJC_CLASS_$") == 0) {
-            string className;
-            vector<string> parts = StringUtils::split(symbolName, '_');
-            if (parts.size() > 1) {
-                className = parts[parts.size() - 1];
-            } else {
-                className = symbolName;
-            }
-            
-            ObjcClassRuntimeInfo *externalClassInfo = rt->getClassInfoByName(className);
-            if (!externalClassInfo) {
-                externalClassInfo = new ObjcClassRuntimeInfo();
-                externalClassInfo->className = className;
-                externalClassInfo->isExternal = true;
-                externalClassInfo->address = symbolAddr;
-                rt->name2ExternalClassRuntimeInfo[externalClassInfo->className] = externalClassInfo;
-                rt->runtimeInfo2address[externalClassInfo] = symbolAddr;
-            }
-            rt->externalClassRuntimeInfo[symbolAddr] = externalClassInfo;
-            
-        } else if (strcmp(symbolName, "__NSConcreteGlobalBlock") == 0 ||
-                   strcmp(symbolName, "__NSConcreteStackBlock") == 0) {
-            rt->blockISAs.insert(symbolAddr);
-        }
-        
-        // record symbol
-        Symbol *sym = new Symbol();
-        sym->name = symbolName;
-        struct ib_nlist_64 *nl = (struct ib_nlist_64 *)calloc(1, sizeof(ib_nlist_64));
-        nl->n_value = symbolAddr;
-        sym->info = nl;
-        symtab->insertSymbol(sym);
         
         // record symbol addr
         funcAddrs.push_back(symbolAddr);
     });
     
     printf("  [*] Step 3. load objc categories\n");
-    if (rt->catlist_addr != 0) {
+    objc->loadCategoryList();
+    shared_ptr<ObjcRuntime> rt = objc->getRuntime();
+    if (rt->categoryList.size() > 0) {
         uint64_t totalCount = 0;
-        rt->loadCatList(rt->catlist_addr, rt->catlist_size);
         for (shared_ptr<ObjcCategory> category : rt->categoryList) {
             vector<shared_ptr<ObjcMethod>> allMethods(category->instanceMethods);
             allMethods.insert(allMethods.end(), category->classMethods.begin(), category->classMethods.end());
@@ -1184,11 +1139,11 @@ int ObjcMethodXrefScanner::start() {
     }
     
     printf("    [*] Dispatching Disassembly Driver\n");
-    struct ib_section_64 *textSect = vm2->getTextSect();
+    struct ib_section_64 *textSect = memory->fileMemory->textSect;
     uint64_t startAddr = textSect->addr;
     uint64_t endAddr = textSect->addr + textSect->size;
     uint64_t addrRange = endAddr - startAddr;
-    uint8_t *codeData = vm2->getMappedFile() + textSect->offset;
+    uint8_t *codeData = memory->fileMemory->mappedFile + textSect->offset;
     string last_mnemonic = "";
     char progressChars[] = {'\\', '|', '/', '-'};
     uint8_t progressCur = 0;
@@ -1275,9 +1230,8 @@ int ObjcMethodXrefScanner::start() {
     return 0;
 }
 
-static ObjcClassRuntimeInfo* tryResolveObjcClass(uint64_t address) {
+static ObjcClassRuntimeInfo* tryResolveObjcClass(shared_ptr<ObjcRuntime> rt, uint64_t address) {
     ObjcClassRuntimeInfo *classInfo = nullptr;
-    ObjcRuntime *rt = ObjcRuntime::getInstance();
     if (address & ClassAsInstanceTrickMask) {
         // FIXME: unsafe convert & read
         uint64_t classAddr = address & (~ClassAsInstanceTrickMask);
@@ -1295,8 +1249,7 @@ static ObjcClassRuntimeInfo* tryResolveObjcClass(uint64_t address) {
     return classInfo;
 }
 
-static void dumpInputArgs(uint64_t chainId, uc_engine *uc, ObjcMethod *calleeMethod) {
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+static void dumpInputArgs(shared_ptr<VirtualMemoryV2> vm2, shared_ptr<ObjcRuntime> rt, uint64_t chainId, uc_engine *uc, ObjcMethod *calleeMethod) {
     if (trackingCallSnapshots && calleeMethod != nullptr) {
         vector<ObjcMethodCallArg> callArgs;
         
@@ -1328,7 +1281,7 @@ static void dumpInputArgs(uint64_t chainId, uc_engine *uc, ObjcMethod *calleeMet
                 if (UC_ERR_OK == uc_reg_read(uc, reg, &regValue)) {
                     bool resolved = false;
                     if (argEncode == "id") {
-                        ObjcClassRuntimeInfo *classInfo = tryResolveObjcClass(regValue);
+                        ObjcClassRuntimeInfo *classInfo = tryResolveObjcClass(rt, regValue);
                         if (classInfo) {
                             resolved = true;
 //                            printf("  [+] arg %d: %s -> %s\n", idx, argEncode.c_str(), classInfo->className.c_str());
@@ -1404,8 +1357,11 @@ static void dumpInputArgs(uint64_t chainId, uc_engine *uc, ObjcMethod *calleeMet
 }
 
 static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uint64_t x1, int sendSuperType) {
-    ObjcRuntime *rt = ObjcRuntime::getInstance();
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+    EngineContext *ctx = engineContexts[uc];
+    shared_ptr<ObjcRuntime> rt = ctx->scanner->objc->getRuntime();
+    shared_ptr<VirtualMemoryV2> vm2 = ctx->scanner->memory->virtualMemory;
+    shared_ptr<SymbolTable> symtab = ctx->scanner->macho->context->symtab;
+    
     SimpleSimProcedure *simpleSimProcedure = SimpleSimProcedure::getInstance();
     
     uint64_t instanceAddr = 0;
@@ -1488,7 +1444,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
             // try to reveal in symbol table (x0 = class-ref, class method call)
             // +[unknown_class foo]
             ObjcClassRuntimeInfo *externalInfo = nullptr;
-            Symbol *sym = SymbolTable::getInstance()->getSymbolByAddress(addr);
+            Symbol *sym = symtab->getSymbolByAddress(addr);
             if (sym &&
                 sym->name.rfind("_OBJC_") != -1 &&
                 sym->name.rfind("_$_") != -1) {
@@ -1530,7 +1486,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     }
     
     // detected classInfo validation
-    if (detectedClassInfo && !isValidClassInfo(detectedClassInfo)) {
+    if (detectedClassInfo && !rt->isValidClassInfo(detectedClassInfo)) {
         detectedClassInfo = nullptr;
     }
     
@@ -1582,7 +1538,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     
     // eval ivar method
     bool resolved = false;
-    if (detectedClassInfo && isValidClassInfo(detectedClassInfo) && detectedSEL) {
+    if (detectedClassInfo && rt->isValidClassInfo(detectedClassInfo) && detectedSEL) {
         ObjcClassRuntimeInfo *ivarClassInfo = rt->evalReturnForIvarGetter(detectedClassInfo, detectedSEL);
         if (ivarClassInfo) {
             // FIXME: ivar class addr trick mask
@@ -1594,7 +1550,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     }
     
     // system method mapping
-    if (!resolved && detectedClassInfo && isValidClassInfo(detectedClassInfo) && detectedSEL) {
+    if (!resolved && detectedClassInfo && rt->isValidClassInfo(detectedClassInfo) && detectedSEL) {
         // try to find in map
         SimProcedureEvalResult res = simpleSimProcedure->evalMethod(detectedClassInfo->className, detectedSEL);
         if (res.success && res.isObjc) {
@@ -1712,7 +1668,7 @@ static void trackCall(uc_engine *uc, ObjcMethod *currentMethod, uint64_t x0, uin
     followingChain->prevMethods.insert({currentChain, pc});
     
     if (trackingCallSnapshots) {
-        dumpInputArgs(followingChain->chainId, uc, calleeMethod);
+        dumpInputArgs(vm2, rt, followingChain->chainId, uc, calleeMethod);
     }
     
 #if ShowFullLog

@@ -28,6 +28,11 @@
 #include "SymbolXREFScanner.hpp"
 #include "ObjcUnserializationScanner.hpp"
 
+#include <iblessing/mach-o/mach-o.hpp>
+#include <iblessing/memory/memory.hpp>
+#include <iblessing/objc/objc.hpp>
+#include <iblessing/dyld/dyld.hpp>
+
 #ifdef IB_COCOA_FOUNDATION_ENABLED
 #include "AppInfoScanner.hpp"
 #endif
@@ -117,14 +122,24 @@ Scanner* ScannerDispatcher::prepareForScanner(std::string scannerId, std::map<st
     
     // open file
     if (s->isBinaryScanner) {
-        // load binary context
-        ScannerContextManager *contextMgr = ScannerContextManager::globalManager();
-        ScannerContext *context = contextMgr->getContextByBinaryPath(inputPath);
-        if (!context) {
-            cout << termcolor::red << "[-] ScannerDispatcher Error: cannot load binary context for file " << inputPath;
-            cout << termcolor::reset << endl;
-            return nullptr;
-        }
+        shared_ptr<MachO> macho = MachO::createFromFile(inputPath);
+        assert(macho->loadSync() == IB_SUCCESS);
+        s->macho = macho;
+//
+//        shared_ptr<Memory> memory = Memory::createFromMachO(macho);
+//        assert(memory->loadSync() == IB_SUCCESS);
+        
+//        s->macho = macho;
+//        s->memory = memory;
+        
+//        // load binary context
+//        ScannerContextManager *contextMgr = ScannerContextManager::globalManager();
+//        ScannerContext *context = contextMgr->getContextByBinaryPath(inputPath);
+//        if (!context) {
+//            cout << termcolor::red << "[-] ScannerDispatcher Error: cannot load binary context for file " << inputPath;
+//            cout << termcolor::reset << endl;
+//            return nullptr;
+//        }
         
         // load driver
         if (driver) {

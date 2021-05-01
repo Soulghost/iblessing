@@ -29,7 +29,7 @@ using namespace argparse;
 using namespace iblessing;
 
 int main(int argc, const char *argv[]) {
-    return classdump_main(argc, argv);
+//    return classdump_main(argc, argv);
 //    return otool_main(argc, argv);
     // ascii art
     printf("\n\
@@ -43,7 +43,7 @@ int main(int argc, const char *argv[]) {
            \n");
     
     // hello text
-    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 0.6.4 (http://blog.asm.im)\n");
+    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 1.0.0 (http://blog.asm.im)\n");
     printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
 
 #ifdef IB_CSR_ENABLED
