@@ -9,7 +9,7 @@
 #ifndef StringTable_hpp
 #define StringTable_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include <map>
 
 NS_IB_BEGIN

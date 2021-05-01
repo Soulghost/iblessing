@@ -9,7 +9,7 @@
 #ifndef AntiWrapper_hpp
 #define AntiWrapper_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include <capstone/capstone.h>
 #include "StringUtils.h"
 #include <map>

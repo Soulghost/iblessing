@@ -9,9 +9,9 @@
 #ifndef DyldSimulator_hpp
 #define DyldSimulator_hpp
 
-#include "Object.hpp"
 #include <vector>
-#include "mach-universal.hpp"
+#include <iblessing/infra/Object.hpp>
+#include <iblessing/core/polyfill/mach-universal.hpp>
 
 typedef std::function<void (uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg)> DyldBindHandler;
 

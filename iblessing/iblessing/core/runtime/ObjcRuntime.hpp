@@ -9,16 +9,16 @@
 #ifndef ObjcRuntime_hpp
 #define ObjcRuntime_hpp
 
-#include "Object.hpp"
-#include "Vector.hpp"
 #include <unordered_map>
-#include "ObjcObject.hpp"
-#include "ObjcMethod.hpp"
-#include "ObjcBlock.hpp"
-#include "ObjcCategory.hpp"
 #include <set>
-#include <memory>
-#include "VirtualMemoryV2.hpp"
+
+#include <iblessing/infra/Object.hpp>
+#include <iblessing/infra/Vector.hpp>
+#include <iblessing/core/runtime/ObjcObject.hpp>
+#include <iblessing/core/runtime/ObjcMethod.hpp>
+#include <iblessing/core/runtime/ObjcBlock.hpp>
+#include <iblessing/core/runtime/ObjcCategory.hpp>
+#include <iblessing/core/memory/VirtualMemoryV2.hpp>
 
 NS_IB_BEGIN
 

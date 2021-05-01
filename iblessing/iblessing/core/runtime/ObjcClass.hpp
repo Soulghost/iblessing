@@ -9,14 +9,14 @@
 #ifndef ObjcClass_hpp
 #define ObjcClass_hpp
 
-#include "Object.hpp"
-#include "Vector.hpp"
 #include <unordered_map>
-#include "ObjcMethod.hpp"
-#include "ObjcIvar.hpp"
-#include "VirtualMemoryV2.hpp"
-#include "SymbolTable.hpp"
-//#include <iblessing/memory/memory.hpp>
+
+#include <iblessing/infra/Object.hpp>
+#include <iblessing/infra/Vector.hpp>
+#include <iblessing/core/runtime/ObjcMethod.hpp>
+#include <iblessing/core/runtime/ObjcIvar.hpp>
+#include <iblessing/core/memory/VirtualMemoryV2.hpp>
+#include <iblessing/core/symtab/SymbolTable.hpp>
 
 NS_IB_BEGIN
 

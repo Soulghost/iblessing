@@ -12,7 +12,7 @@
 #include <map>
 #include <vector>
 #include <string>
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include "Scanner.hpp"
 
 NS_IB_BEGIN;

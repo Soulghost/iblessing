@@ -9,7 +9,7 @@
 #ifndef ObjcIvar_hpp
 #define ObjcIvar_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include <string>
 
 NS_IB_BEGIN

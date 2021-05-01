@@ -9,7 +9,7 @@
 #ifndef ARM64Disasembler_hpp
 #define ARM64Disasembler_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include <capstone/capstone.h>
 #include <functional>
 

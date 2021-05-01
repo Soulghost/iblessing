@@ -9,7 +9,7 @@
 #ifndef ScannerWorkDirManager_hpp
 #define ScannerWorkDirManager_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include <vector>
 #include <set>
 
