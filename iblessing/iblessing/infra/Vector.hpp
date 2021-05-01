@@ -29,7 +29,7 @@ THE SOFTWARE.
 
 #include <vector>
 #include <algorithm>
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 
 /**
  * @addtogroup base

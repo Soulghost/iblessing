@@ -6,7 +6,7 @@
 //  Copyright © 2020 soulghost. All rights reserved.
 //
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include <assert.h>
 
 using namespace iblessing;

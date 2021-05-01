@@ -9,7 +9,7 @@
 #ifndef TestManager_hpp
 #define TestManager_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 
 NS_IB_BEGIN
 

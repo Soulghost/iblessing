@@ -9,7 +9,7 @@
 #ifndef UnicornARM64Runtime_hpp
 #define UnicornARM64Runtime_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 
 NS_IB_BEGIN
 

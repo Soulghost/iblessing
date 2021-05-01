@@ -10,19 +10,32 @@
 #define ScannerContext_hpp
 
 #include <iblessing/infra/Object.hpp>
-#include "ScannerCommon.hpp"
-#include "ScannerWorkDirManager.hpp"
-#include "mach-universal.hpp"
-#include "mach-machine.h"
-#include <string>
-#include <memory>
-#include "VirtualMemory.hpp"
-#include "VirtualMemoryV2.hpp"
-#include "StringTable.hpp"
-#include "SymbolTable.hpp"
-#include "ObjcRuntime.hpp"
+#include <iblessing/scanner/context/ScannerWorkDirManager.hpp>
+#include <iblessing/core/polyfill/mach-universal.hpp>
+#include <iblessing/core/polyfill/mach-machine.h>
+#include <iblessing/core/memory/VirtualMemory.hpp>
+#include <iblessing/core/memory/VirtualMemoryV2.hpp>
+#include <iblessing/core/symtab/StringTable.hpp>
+#include <iblessing/core/symtab/SymbolTable.hpp>
+#include <iblessing/core/runtime/ObjcRuntime.hpp>
 
 NS_IB_BEGIN
+
+typedef enum scanner_err {
+    SC_ERR_OK = 0,
+    SC_ERR_UNKNOWN,
+    SC_ERR_NEED_ARCHIVE_LIPO,
+    SC_ERR_NEED_ARCHIVE_NOLIPO,
+    SC_ERR_INVALID_ARGUMENTS,
+    SC_ERR_INVALID_BINARY,          // invalid binary file
+    SC_ERR_RESET_WORK_DIR,
+    SC_ERR_MAP_FAILED,
+    SC_ERR_UNSUPPORT_ARCH,          // only support aarch64 now
+    SC_ERR_MACHO_MISSING_SEGMENT_TEXT,
+    SC_ERR_MACHO_MISSING_SEGMENT_DYLD,
+    SC_ERR_MACHO_MISSING_SEGMENT_SYMTAB,
+    SC_ERR_MACHO_MISSING_SEGMENT_DYSYMTAB
+} scanner_err;
 
 class ScannerContext {
 public:

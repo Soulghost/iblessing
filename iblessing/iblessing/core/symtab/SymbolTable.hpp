@@ -9,15 +9,14 @@
 #ifndef SymbolTable_hpp
 #define SymbolTable_hpp
 
-#include "Object.hpp"
-#include "Symbol.hpp"
-#include "Vector.hpp"
-#include "Map.hpp"
-#include <memory>
-#include "mach-universal.hpp"
-#include "mach-machine.h"
-#include "StringTable.hpp"
 #include <map>
+#include <iblessing/infra/Object.hpp>
+#include <iblessing/infra/Vector.hpp>
+#include <iblessing/infra/Map.hpp>
+#include <iblessing/core/symtab/Symbol.hpp>
+#include <iblessing/core/symtab/StringTable.hpp>
+#include <iblessing/core/polyfill/mach-universal.hpp>
+#include <iblessing/core/polyfill/mach-machine.h>
 
 NS_IB_BEGIN
 

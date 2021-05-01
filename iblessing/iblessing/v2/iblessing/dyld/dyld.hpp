@@ -11,7 +11,7 @@
 
 #include <iblessing/memory/memory.hpp>
 #include <iblessing/objc/objc.hpp>
-#include "DyldSimulator.hpp"
+#include <iblessing/core/dyld/DyldSimulator.hpp>
 
 namespace iblessing {
 

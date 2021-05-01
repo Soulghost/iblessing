@@ -9,10 +9,7 @@
 #ifndef ObjcCategory_hpp
 #define ObjcCategory_hpp
 
-#include "Object.hpp"
-#include "ObjcClass.hpp"
-#include <vector>
-#include "VirtualMemoryV2.hpp"
+#include <iblessing/core/runtime/ObjcClass.hpp>
 
 NS_IB_BEGIN
 

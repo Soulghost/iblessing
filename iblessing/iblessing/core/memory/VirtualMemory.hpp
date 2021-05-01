@@ -9,11 +9,11 @@
 #ifndef HeapStackMemory_hpp
 #define HeapStackMemory_hpp
 
-#include "Object.hpp"
 #include <unordered_map>
 #include <vector>
-#include "ARM64Registers.hpp"
-#include "mach-universal.hpp"
+#include <iblessing/infra/Object.hpp>
+#include <iblessing/core/disasm/ARM64Registers.hpp>
+#include <iblessing/core/polyfill/mach-universal.hpp>
 
 NS_IB_BEGIN
 

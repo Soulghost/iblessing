@@ -21,12 +21,12 @@
 #include "StringUtils.h"
 
 #include "ScannerContextManager.hpp"
-#include "PredicateScanner.hpp"
-#include "ObjcMethodXrefScanner.hpp"
-#include "ObjcClassXrefScanner.hpp"
-#include "SymbolWrapperScanner.hpp"
-#include "SymbolXREFScanner.hpp"
-#include "ObjcUnserializationScanner.hpp"
+//#include "PredicateScanner.hpp"
+//#include "ObjcMethodXrefScanner.hpp"
+//#include "ObjcClassXrefScanner.hpp"
+//#include "SymbolWrapperScanner.hpp"
+//#include "SymbolXREFScanner.hpp"
+//#include "ObjcUnserializationScanner.hpp"
 
 #include <iblessing/mach-o/mach-o.hpp>
 #include <iblessing/memory/memory.hpp>
@@ -46,35 +46,35 @@ static bool fexists(string filename) {
 }
 
 ScannerDispatcher::ScannerDispatcher() {
-#ifdef IB_COCOA_FOUNDATION_ENABLED
-    this->registerScanner("app-info", []() {
-        return new AppInfoScanner("app-info", "extract app infos");
-    });
-#endif
-    
-    this->registerScanner("objc-msg-xref", []() {
-        return new ObjcMethodXrefScanner("objc-msg-xref", "generate objc_msgSend xrefs record");
-    });
-    
-    this->registerScanner("predicate", []() {
-        return new PredicateScanner("predicate", "scan for NSPredicate xrefs and sql injection surfaces");
-    });
-    
-    this->registerScanner("objc-class-xref", []() {
-        return new ObjcClassXrefScanner("objc-class-xref", "scan for class xrefs");
-    });
-    
-    this->registerScanner("symbol-wrapper", []() {
-        return new SymbolWrapperScanner("symbol-wrapper", "detect symbol wrappers");
-    });
-    
-    this->registerScanner("symbol-xref", []() {
-        return new SymbolXREFScanner("symbol-xref", "symbol xref scanner");
-    });
-    
-    this->registerScanner("objc-insecure-unserialization", []() {
-        return new ObjcUnserializationScanner("objc-insecure-unserialization", "objc insecure unserialization scanner");
-    });
+//#ifdef IB_COCOA_FOUNDATION_ENABLED
+//    this->registerScanner("app-info", []() {
+//        return new AppInfoScanner("app-info", "extract app infos");
+//    });
+//#endif
+//
+//    this->registerScanner("objc-msg-xref", []() {
+//        return new ObjcMethodXrefScanner("objc-msg-xref", "generate objc_msgSend xrefs record");
+//    });
+//
+//    this->registerScanner("predicate", []() {
+//        return new PredicateScanner("predicate", "scan for NSPredicate xrefs and sql injection surfaces");
+//    });
+//
+//    this->registerScanner("objc-class-xref", []() {
+//        return new ObjcClassXrefScanner("objc-class-xref", "scan for class xrefs");
+//    });
+//
+//    this->registerScanner("symbol-wrapper", []() {
+//        return new SymbolWrapperScanner("symbol-wrapper", "detect symbol wrappers");
+//    });
+//
+//    this->registerScanner("symbol-xref", []() {
+//        return new SymbolXREFScanner("symbol-xref", "symbol xref scanner");
+//    });
+//
+//    this->registerScanner("objc-insecure-unserialization", []() {
+//        return new ObjcUnserializationScanner("objc-insecure-unserialization", "objc insecure unserialization scanner");
+//    });
 }
 
 vector<Scanner *> ScannerDispatcher::allScanners() {
