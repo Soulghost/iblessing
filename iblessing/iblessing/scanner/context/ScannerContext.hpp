@@ -9,7 +9,7 @@
 #ifndef ScannerContext_hpp
 #define ScannerContext_hpp
 
-#include "Object.hpp"
+#include <iblessing/infra/Object.hpp>
 #include "ScannerCommon.hpp"
 #include "ScannerWorkDirManager.hpp"
 #include "mach-universal.hpp"

@@ -9,9 +9,8 @@
 #ifndef mach_o_hpp
 #define mach_o_hpp
 
-#include <stdio.h>
 #include <iblessing/common/ibtypes.h>
-#include "ScannerContext.hpp"
+#include <iblessing/scanner/context/ScannerContext.hpp>
 
 namespace iblessing {
 

@@ -1465,6 +1465,7 @@
 					"${SRCROOT}/../submodules/unicorn/include",
 					"${SRCROOT}/../submodules/keystone/include",
 					"${SRCROOT}/iblessing/v2",
+					"${SRCROOT}/",
 				);
 			};
 			name = Debug;
@@ -1497,6 +1498,7 @@
 					"${SRCROOT}/../submodules/unicorn/include",
 					"${SRCROOT}/../submodules/keystone/include",
 					"${SRCROOT}/iblessing/v2",
+					"${SRCROOT}/",
 				);
 			};
 			name = Release;

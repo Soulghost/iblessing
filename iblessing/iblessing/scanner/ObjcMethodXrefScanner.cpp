@@ -121,7 +121,6 @@ public:
     uc_context *defaultContext;
     csh disasmHandler;
     ObjcMethod *currentMethod;
-    vector<ObjcMethod *> methods;
     
     // block status
     bool isInBlockBuilder;
@@ -198,6 +197,8 @@ public:
 };
 
 static map<uc_engine *, EngineContext *> engineContexts;
+vector<ObjcMethod *> taskMethods;
+static pthread_mutex_t dispatchMutex;
 static pthread_mutex_t traceRecordMutex;
 static pthread_mutex_t counterMutex;
 static pthread_mutex_t indexMutex;
@@ -822,15 +823,16 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 void* pthread_uc_worker(void *ctx) {
     EngineContext *context = reinterpret_cast<EngineContext *>(ctx);
     shared_ptr<ObjcRuntime> rt = context->scanner->objc->getRuntime();
-    for (size_t i = 0; i < context->methods.size(); i++) {
-#if ShowFullLog
-        printf("\t[*] thread %d: current method index %zu / %zu\n", context->identifer, i, context->methods.size() - 1);
-#else
-//        if (i % 10000 == 0) {
-//            printf("\t[*] current method index %zu / %lu\n", i, methods.size());
-//        }
-#endif
-        ObjcMethod *m = context->methods[i];
+    while (true) {
+        pthread_mutex_lock(&dispatchMutex);
+        if (taskMethods.size() == 0) {
+            pthread_mutex_unlock(&dispatchMutex);
+            break;
+        }
+        ObjcMethod *m = taskMethods.front();
+        taskMethods.erase(taskMethods.begin());
+        pthread_mutex_unlock(&dispatchMutex);
+        
         context->currentMethod = m;
 //        printf("[*] trace method at index %zu\n", i);
         uc_context_restore(context->engine, context->defaultContext);
@@ -935,28 +937,30 @@ void trace_all_methods(vector<uc_engine *> engines, vector<ObjcMethod *> &method
         return;
     }
     
-    // split methods by engines
+    taskMethods = methods;
+    
+//    // split methods by engines
     uint64_t groupCount = engines.size();
     uint64_t methodCount = methods.size();
-    if (methodCount < groupCount) {
-        groupCount = methodCount;
-        cout << termcolor::yellow;
-        cout << StringUtils::format("\t[+] Warn: method count %llu less than thread count %llu", methodCount, groupCount);
-        cout << termcolor::reset << endl;
-    }
-    uint64_t groupCap = methodCount / groupCount;
+//    if (methodCount < groupCount) {
+//        groupCount = methodCount;
+//        cout << termcolor::yellow;
+//        cout << StringUtils::format("\t[+] Warn: method count %llu less than thread count %llu", methodCount, groupCount);
+//        cout << termcolor::reset << endl;
+//    }
+//    uint64_t groupCap = methodCount / groupCount;
     curCount = 0;
     totalCount = methodCount;
     
     // create threads
     vector<pthread_t> threads;
-    size_t startIdx = 0;
+//    size_t startIdx = 0;
     for (size_t i = 0; i < groupCount; i++) {
         EngineContext *ctx = engineContexts[engines[i]];
-        auto endIt = __builtin_expect(i == groupCount - 1, false) ? methods.end() : methods.begin() + startIdx + groupCap;
-        vector<ObjcMethod *> workMethods(methods.begin() + startIdx, endIt);
-        ctx->methods = workMethods;
-        startIdx += groupCap;
+//        auto endIt = __builtin_expect(i == groupCount - 1, false) ? methods.end() : methods.begin() + startIdx + groupCap;
+//        vector<ObjcMethod *> workMethods(methods.begin() + startIdx, endIt);
+//        ctx->methods = workMethods;
+//        startIdx += groupCap;
         
         pthread_t thread;
         assert(pthread_create(&thread, nullptr, pthread_uc_worker, (void *)ctx) == 0);
@@ -1229,6 +1233,7 @@ int ObjcMethodXrefScanner::start() {
     assert(pthread_mutex_init(&traceRecordMutex, &attr) == 0);
     assert(pthread_mutex_init(&counterMutex, &attr) == 0);
     assert(pthread_mutex_init(&indexMutex, &attr) == 0);
+    assert(pthread_mutex_init(&dispatchMutex, &attr) == 0);
     
     printf("  [*] Step 6. track all objc calls\n");
     trace_all_methods(engines, methods);
