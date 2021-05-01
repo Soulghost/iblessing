@@ -9,6 +9,7 @@
 #ifndef iblessing_base_h
 #define iblessing_base_h
 
+#include <stdio.h>
 #include <string>
 #include <memory>
 
