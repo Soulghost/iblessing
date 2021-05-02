@@ -8,8 +8,8 @@
 
 #include "memory.hpp"
 #include "StringUtils.h"
-#include <keystone/keystone.h>
-#include <capstone/capstone.h>
+#include <iblessing/vendor/keystone/keystone.h>
+#include <iblessing/vendor/capstone/capstone.h>
 
 using namespace std;
 using namespace iblessing;

@@ -12,7 +12,7 @@
 #include "Scanner.hpp"
 #include "AntiWrapper.hpp"
 #include <pthread.h>
-#include <unicorn/unicorn.h>
+#include <iblessing/vendor/unicorn/unicorn.h>
 #include <map>
 #include "FunctionPrototype.hpp"
 

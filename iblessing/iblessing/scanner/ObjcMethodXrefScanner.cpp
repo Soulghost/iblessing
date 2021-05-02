@@ -21,8 +21,8 @@
 #include <memory>
 #include "DyldSimulator.hpp"
 #include <pthread.h>
-#include <unicorn/unicorn.h>
-#include <capstone/capstone.h>
+#include <iblessing/vendor/unicorn/unicorn.h>
+#include <iblessing/vendor/capstone/capstone.h>
 #include "SymbolWrapperScanner.hpp"
 #include "SymbolXREFScanner.hpp"
 #include "ScannerDispatcher.hpp"

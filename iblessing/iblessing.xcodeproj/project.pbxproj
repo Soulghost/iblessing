@@ -289,6 +289,39 @@
 		68B173A225B2E6AA0070C6E5 /* ObjDumpTool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjDumpTool.cpp; sourceTree = "<group>"; };
 		68B173A325B2E6AA0070C6E5 /* ObjDumpTool.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjDumpTool.hpp; sourceTree = "<group>"; };
 		68B253E2263D6822008FA1E2 /* iblessing-core.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "iblessing-core.cpp"; sourceTree = "<group>"; };
+		68B2546A263E8421008FA1E2 /* hexagon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hexagon.h; sourceTree = "<group>"; };
+		68B2546B263E8421008FA1E2 /* mips.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mips.h; sourceTree = "<group>"; };
+		68B2546C263E8421008FA1E2 /* sparc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sparc.h; sourceTree = "<group>"; };
+		68B2546D263E8421008FA1E2 /* systemz.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = systemz.h; sourceTree = "<group>"; };
+		68B2546E263E8421008FA1E2 /* arm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = arm.h; sourceTree = "<group>"; };
+		68B2546F263E8421008FA1E2 /* evm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = evm.h; sourceTree = "<group>"; };
+		68B25470263E8421008FA1E2 /* x86.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = x86.h; sourceTree = "<group>"; };
+		68B25471263E8421008FA1E2 /* keystone.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = keystone.h; sourceTree = "<group>"; };
+		68B25472263E8421008FA1E2 /* ppc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ppc.h; sourceTree = "<group>"; };
+		68B25473263E8421008FA1E2 /* arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = arm64.h; sourceTree = "<group>"; };
+		68B25475263E8438008FA1E2 /* capstone.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = capstone.h; sourceTree = "<group>"; };
+		68B25476263E8438008FA1E2 /* mips.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mips.h; sourceTree = "<group>"; };
+		68B25477263E8438008FA1E2 /* sparc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = sparc.h; sourceTree = "<group>"; };
+		68B25478263E8438008FA1E2 /* systemz.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = systemz.h; sourceTree = "<group>"; };
+		68B25479263E8438008FA1E2 /* m68k.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = m68k.h; sourceTree = "<group>"; };
+		68B2547A263E8438008FA1E2 /* arm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = arm.h; sourceTree = "<group>"; };
+		68B2547B263E8438008FA1E2 /* mos65xx.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mos65xx.h; sourceTree = "<group>"; };
+		68B2547C263E8438008FA1E2 /* evm.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = evm.h; sourceTree = "<group>"; };
+		68B2547D263E8438008FA1E2 /* x86.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = x86.h; sourceTree = "<group>"; };
+		68B2547E263E8438008FA1E2 /* ppc.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ppc.h; sourceTree = "<group>"; };
+		68B2547F263E8438008FA1E2 /* arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = arm64.h; sourceTree = "<group>"; };
+		68B25480263E8438008FA1E2 /* xcore.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = xcore.h; sourceTree = "<group>"; };
+		68B25481263E8438008FA1E2 /* m680x.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = m680x.h; sourceTree = "<group>"; };
+		68B25482263E8438008FA1E2 /* platform.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = platform.h; sourceTree = "<group>"; };
+		68B25483263E8438008FA1E2 /* tms320c64x.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = tms320c64x.h; sourceTree = "<group>"; };
+		68B25485263E848A008FA1E2 /* mips.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = mips.h; sourceTree = "<group>"; };
+		68B25486263E848A008FA1E2 /* unicorn.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = unicorn.h; sourceTree = "<group>"; };
+		68B25487263E848A008FA1E2 /* sparc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sparc.h; sourceTree = "<group>"; };
+		68B25488263E848A008FA1E2 /* m68k.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = m68k.h; sourceTree = "<group>"; };
+		68B25489263E848A008FA1E2 /* arm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm.h; sourceTree = "<group>"; };
+		68B2548A263E848A008FA1E2 /* x86.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = x86.h; sourceTree = "<group>"; };
+		68B2548B263E848A008FA1E2 /* arm64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm64.h; sourceTree = "<group>"; };
+		68B2548C263E848A008FA1E2 /* platform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = platform.h; sourceTree = "<group>"; };
 		68BE8A8524E904AF00A534DB /* TestManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TestManager.cpp; sourceTree = "<group>"; };
 		68BE8A8624E904AF00A534DB /* TestManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestManager.hpp; sourceTree = "<group>"; };
 		68BE8A8824E9052200A534DB /* Tester.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Tester.cpp; sourceTree = "<group>"; };
@@ -869,6 +902,7 @@
 		6894E0F8263BAB7E000642F5 /* iblessing */ = {
 			isa = PBXGroup;
 			children = (
+				68B2541A263E82EC008FA1E2 /* vendor */,
 				6894E11C263BE57C000642F5 /* dyld */,
 				6894E112263BDF13000642F5 /* objc */,
 				6894E108263BD0D2000642F5 /* memory */,
@@ -970,6 +1004,70 @@
 				68B173A325B2E6AA0070C6E5 /* ObjDumpTool.hpp */,
 			);
 			path = otool;
+			sourceTree = "<group>";
+		};
+		68B2541A263E82EC008FA1E2 /* vendor */ = {
+			isa = PBXGroup;
+			children = (
+				68B25484263E848A008FA1E2 /* unicorn */,
+				68B25474263E8438008FA1E2 /* capstone */,
+				68B25469263E8421008FA1E2 /* keystone */,
+			);
+			path = vendor;
+			sourceTree = "<group>";
+		};
+		68B25469263E8421008FA1E2 /* keystone */ = {
+			isa = PBXGroup;
+			children = (
+				68B2546A263E8421008FA1E2 /* hexagon.h */,
+				68B2546B263E8421008FA1E2 /* mips.h */,
+				68B2546C263E8421008FA1E2 /* sparc.h */,
+				68B2546D263E8421008FA1E2 /* systemz.h */,
+				68B2546E263E8421008FA1E2 /* arm.h */,
+				68B2546F263E8421008FA1E2 /* evm.h */,
+				68B25470263E8421008FA1E2 /* x86.h */,
+				68B25471263E8421008FA1E2 /* keystone.h */,
+				68B25472263E8421008FA1E2 /* ppc.h */,
+				68B25473263E8421008FA1E2 /* arm64.h */,
+			);
+			path = keystone;
+			sourceTree = "<group>";
+		};
+		68B25474263E8438008FA1E2 /* capstone */ = {
+			isa = PBXGroup;
+			children = (
+				68B25475263E8438008FA1E2 /* capstone.h */,
+				68B25476263E8438008FA1E2 /* mips.h */,
+				68B25477263E8438008FA1E2 /* sparc.h */,
+				68B25478263E8438008FA1E2 /* systemz.h */,
+				68B25479263E8438008FA1E2 /* m68k.h */,
+				68B2547A263E8438008FA1E2 /* arm.h */,
+				68B2547B263E8438008FA1E2 /* mos65xx.h */,
+				68B2547C263E8438008FA1E2 /* evm.h */,
+				68B2547D263E8438008FA1E2 /* x86.h */,
+				68B2547E263E8438008FA1E2 /* ppc.h */,
+				68B2547F263E8438008FA1E2 /* arm64.h */,
+				68B25480263E8438008FA1E2 /* xcore.h */,
+				68B25481263E8438008FA1E2 /* m680x.h */,
+				68B25482263E8438008FA1E2 /* platform.h */,
+				68B25483263E8438008FA1E2 /* tms320c64x.h */,
+			);
+			path = capstone;
+			sourceTree = "<group>";
+		};
+		68B25484263E848A008FA1E2 /* unicorn */ = {
+			isa = PBXGroup;
+			children = (
+				68B25485263E848A008FA1E2 /* mips.h */,
+				68B25486263E848A008FA1E2 /* unicorn.h */,
+				68B25487263E848A008FA1E2 /* sparc.h */,
+				68B25488263E848A008FA1E2 /* m68k.h */,
+				68B25489263E848A008FA1E2 /* arm.h */,
+				68B2548A263E848A008FA1E2 /* x86.h */,
+				68B2548B263E848A008FA1E2 /* arm64.h */,
+				68B2548C263E848A008FA1E2 /* platform.h */,
+			);
+			path = unicorn;
 			sourceTree = "<group>";
 		};
 		68BE8A8124E8F15A00A534DB /* tests */ = {
