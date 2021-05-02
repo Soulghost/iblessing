@@ -43,7 +43,11 @@ cd ..
 sh ./copy-headers.sh
 
 cd cmake-build
-tar -czvf iblessing-framework.tar.gz ./libiblessing-core.dylib include
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    tar -czvf iblessing-framework.tar.gz ./libiblessing-core.dylib include
+else
+    tar -czvf iblessing-framework.tar.gz ./libiblessing-core.so include
+fi
 
 cd ..
 echo "[+] iblessing is in cmake-build directory~"
