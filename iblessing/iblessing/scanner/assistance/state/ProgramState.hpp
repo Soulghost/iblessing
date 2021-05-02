@@ -10,7 +10,7 @@
 #define ProgramState_hpp
 
 #include <iblessing/infra/Object.hpp>
-#include <unicorn/unicorn.h>
+#include <iblessing/vendor/unicorn/unicorn.h>
 
 NS_IB_BEGIN
 

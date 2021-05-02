@@ -10,7 +10,7 @@
 #define ARM64Disasembler_hpp
 
 #include <iblessing/infra/Object.hpp>
-#include <capstone/capstone.h>
+#include <iblessing/vendor/capstone/capstone.h>
 #include <functional>
 
 NS_IB_BEGIN

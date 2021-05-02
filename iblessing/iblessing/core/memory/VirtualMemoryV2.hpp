@@ -11,7 +11,7 @@
 
 #include <vector>
 #include <map>
-#include <unicorn/unicorn.h>
+#include <iblessing/vendor/unicorn/unicorn.h>
 #include <iblessing/core/structs/Foundation.hpp>
 #include <iblessing/core/polyfill/mach-universal.hpp>
 #include <iblessing/core/memory/VirtualMemory.hpp>

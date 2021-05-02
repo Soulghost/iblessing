@@ -12,7 +12,7 @@
 #include <iblessing/infra/Object.hpp>
 #include "ARM64Registers.hpp"
 #include <vector>
-#include <capstone/capstone.h>
+#include <iblessing/vendor/capstone/capstone.h>
 
 NS_IB_BEGIN
 
