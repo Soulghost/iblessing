@@ -40,4 +40,10 @@ else
 fi
 
 cd ..
+sh ./copy-headers.sh
+
+cd cmake-build
+tar -czvf iblessing-framework.tar.gz ./libiblessing-core.dylib include
+
+cd ..
 echo "[+] iblessing is in cmake-build directory~"
