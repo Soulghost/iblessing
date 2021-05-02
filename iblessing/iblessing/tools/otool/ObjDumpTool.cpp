@@ -16,8 +16,8 @@
 #include "SymbolTable.hpp"
 #include "ObjcRuntime.hpp"
 #include "DyldSimulator.hpp"
-#include <capstone/capstone.h>
-#include <unicorn/unicorn.h>
+#include <iblessing/vendor/capstone/capstone.h>
+#include <iblessing/vendor/unicorn/unicorn.h>
 
 #define UnicornStackTopAddr      0x300000000
 
