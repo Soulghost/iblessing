@@ -80,9 +80,6 @@ set(iblessing.SOURCE_INCLUDES
     iblessing/vendor/httplib
     iblessing/vendor/rapidjson
 
-    # utils
-    iblessing/util
-
     # infra
     iblessing/infra
 
@@ -143,7 +140,7 @@ endif()
 
 set(iblessing.SOURCE_LIST
     # utils
-    iblessing/util/StringUtils.cpp
+    iblessing/v2/iblessing/util/StringUtils.cpp
 
     # infra
     iblessing/infra/Object.cpp
@@ -230,10 +227,11 @@ set(iblessing.SOURCE_LIST
     iblessing/v2/iblessing/memory/memory.cpp
     iblessing/v2/iblessing/dyld/dyld.cpp
     iblessing/v2/iblessing/objc/objc.cpp
-    
     iblessing/v2/iblessing/analyser/wrapper/AntiWrapper.cpp
     iblessing/v2/iblessing/analyser/wrapper/FunctionPrototype.cpp
     iblessing/v2/iblessing/analyser/wrapper/SimpleWrapperAnalyser.cpp
+    iblessing/v2/iblessing/analyser/xref/FunctionXrefAnalyser.cpp
+    
 
     # examples
     iblessing/v2/example/otool.cpp
@@ -242,7 +240,7 @@ set(iblessing.SOURCE_LIST
 
 set(iblessing-core.SOURCE_LIST
     # utils
-    iblessing/util/StringUtils.cpp
+    iblessing/v2/iblessing/util/StringUtils.cpp
 
     # infra
     iblessing/infra/Object.cpp
@@ -295,6 +293,7 @@ set(iblessing-core.SOURCE_LIST
     iblessing/v2/iblessing/analyser/wrapper/AntiWrapper.cpp
     iblessing/v2/iblessing/analyser/wrapper/FunctionPrototype.cpp
     iblessing/v2/iblessing/analyser/wrapper/SimpleWrapperAnalyser.cpp
+    iblessing/v2/iblessing/analyser/xref/FunctionXrefAnalyser.cpp
 )
 
 if (iblessing.CSR_ENABLED)

@@ -82,6 +82,7 @@
 		68B173A425B2E6AA0070C6E5 /* ObjDumpTool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B173A225B2E6AA0070C6E5 /* ObjDumpTool.cpp */; };
 		68B253E3263D6822008FA1E2 /* iblessing-core.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B253E2263D6822008FA1E2 /* iblessing-core.cpp */; };
 		68B25541263FA7BB008FA1E2 /* SimpleWrapperAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B2553F263FA7BB008FA1E2 /* SimpleWrapperAnalyser.cpp */; };
+		68B2554F263FC29F008FA1E2 /* FunctionXrefAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B2554D263FC29F008FA1E2 /* FunctionXrefAnalyser.cpp */; };
 		68BE8A8724E904AF00A534DB /* TestManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8524E904AF00A534DB /* TestManager.cpp */; };
 		68BE8A8A24E9052200A534DB /* Tester.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8824E9052200A534DB /* Tester.cpp */; };
 		68BE8A8D24E9056900A534DB /* TestObjcMethodXrefs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8B24E9056900A534DB /* TestObjcMethodXrefs.cpp */; };
@@ -325,6 +326,8 @@
 		68B2548C263E848A008FA1E2 /* platform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = platform.h; sourceTree = "<group>"; };
 		68B2553F263FA7BB008FA1E2 /* SimpleWrapperAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SimpleWrapperAnalyser.cpp; sourceTree = "<group>"; };
 		68B25540263FA7BB008FA1E2 /* SimpleWrapperAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SimpleWrapperAnalyser.hpp; sourceTree = "<group>"; };
+		68B2554D263FC29F008FA1E2 /* FunctionXrefAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FunctionXrefAnalyser.cpp; sourceTree = "<group>"; };
+		68B2554E263FC29F008FA1E2 /* FunctionXrefAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FunctionXrefAnalyser.hpp; sourceTree = "<group>"; };
 		68BE8A8524E904AF00A534DB /* TestManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TestManager.cpp; sourceTree = "<group>"; };
 		68BE8A8624E904AF00A534DB /* TestManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestManager.hpp; sourceTree = "<group>"; };
 		68BE8A8824E9052200A534DB /* Tester.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Tester.cpp; sourceTree = "<group>"; };
@@ -472,7 +475,6 @@
 				685CE84B24C572CC002CC5E8 /* analyzer */,
 				685CE85424C57360002CC5E8 /* generator */,
 				685CE83524C572A0002CC5E8 /* scanner */,
-				685CE82124C57127002CC5E8 /* util */,
 				685CE81924C5708A002CC5E8 /* infra */,
 				685CE7E224C57079002CC5E8 /* core */,
 				685CE7DF24C5705A002CC5E8 /* common */,
@@ -901,6 +903,7 @@
 		6894E0F8263BAB7E000642F5 /* iblessing */ = {
 			isa = PBXGroup;
 			children = (
+				685CE82124C57127002CC5E8 /* util */,
 				68B2553A263FA5E3008FA1E2 /* analyser */,
 				68B2541A263E82EC008FA1E2 /* vendor */,
 				6894E11C263BE57C000642F5 /* dyld */,
@@ -1073,6 +1076,7 @@
 		68B2553A263FA5E3008FA1E2 /* analyser */ = {
 			isa = PBXGroup;
 			children = (
+				68B2554C263FC28A008FA1E2 /* xref */,
 				68B2553B263FA63C008FA1E2 /* wrapper */,
 			);
 			path = analyser;
@@ -1089,6 +1093,15 @@
 				68B25540263FA7BB008FA1E2 /* SimpleWrapperAnalyser.hpp */,
 			);
 			path = wrapper;
+			sourceTree = "<group>";
+		};
+		68B2554C263FC28A008FA1E2 /* xref */ = {
+			isa = PBXGroup;
+			children = (
+				68B2554D263FC29F008FA1E2 /* FunctionXrefAnalyser.cpp */,
+				68B2554E263FC29F008FA1E2 /* FunctionXrefAnalyser.hpp */,
+			);
+			path = xref;
 			sourceTree = "<group>";
 		};
 		68BE8A8124E8F15A00A534DB /* tests */ = {
@@ -1293,6 +1306,7 @@
 				685CE84824C572A0002CC5E8 /* Scanner.cpp in Sources */,
 				68445903257271F900A9D441 /* ObjcReflectionInfoManager.cpp in Sources */,
 				6861982A24E9645D003AB00A /* ObjcUnserializationScanner.cpp in Sources */,
+				68B2554F263FC29F008FA1E2 /* FunctionXrefAnalyser.cpp in Sources */,
 				685CE7DB24C56E8B002CC5E8 /* main.cpp in Sources */,
 				68666DB225288E370014BC91 /* ObjcCategory.cpp in Sources */,
 				68770C9C24E17212003F9652 /* ObjcMsgXREFReportGenerator.cpp in Sources */,
