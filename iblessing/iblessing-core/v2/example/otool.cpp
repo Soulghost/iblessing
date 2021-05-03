@@ -8,20 +8,20 @@
 
 #include "otool.hpp"
 #include "mach-universal.hpp"
-#include <iblessing/util/termcolor.h>
+#include <iblessing-core/util/termcolor.h>
 #include "ScannerContextManager.hpp"
 #include "VirtualMemory.hpp"
 #include "VirtualMemoryV2.hpp"
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/StringUtils.h>
 #include "SymbolTable.hpp"
 #include "ObjcRuntime.hpp"
 #include "DyldSimulator.hpp"
-#include <iblessing/vendor/capstone/capstone.h>
-#include <iblessing/vendor/unicorn/unicorn.h>
-#include <iblessing/mach-o/mach-o.hpp>
-#include <iblessing/memory/memory.hpp>
-#include <iblessing/objc/objc.hpp>
-#include <iblessing/dyld/dyld.hpp>
+#include <iblessing-core/vendor/capstone/capstone.h>
+#include <iblessing-core/vendor/unicorn/unicorn.h>
+#include <iblessing-core/mach-o/mach-o.hpp>
+#include <iblessing-core/memory/memory.hpp>
+#include <iblessing-core/objc/objc.hpp>
+#include <iblessing-core/dyld/dyld.hpp>
 
 #define UnicornStackTopAddr      0x300000000
 

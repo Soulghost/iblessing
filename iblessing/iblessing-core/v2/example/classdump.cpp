@@ -8,10 +8,10 @@
 
 #include "classdump.hpp"
 #include "CoreFoundation.hpp"
-#include <iblessing/mach-o/mach-o.hpp>
-#include <iblessing/memory/memory.hpp>
-#include <iblessing/objc/objc.hpp>
-#include <iblessing/dyld/dyld.hpp>
+#include <iblessing-core/mach-o/mach-o.hpp>
+#include <iblessing-core/memory/memory.hpp>
+#include <iblessing-core/objc/objc.hpp>
+#include <iblessing-core/dyld/dyld.hpp>
 
 using namespace std;
 using namespace iblessing;

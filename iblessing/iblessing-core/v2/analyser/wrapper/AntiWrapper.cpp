@@ -7,7 +7,7 @@
 //
 
 #include "AntiWrapper.hpp"
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;

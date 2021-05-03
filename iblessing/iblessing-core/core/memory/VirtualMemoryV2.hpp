@@ -11,10 +11,10 @@
 
 #include <vector>
 #include <map>
-#include <iblessing/vendor/unicorn/unicorn.h>
-#include <iblessing/core/structs/Foundation.hpp>
-#include <iblessing/core/polyfill/mach-universal.hpp>
-#include <iblessing/core/memory/VirtualMemory.hpp>
+#include <iblessing-core/v2/vendor/unicorn/unicorn.h>
+#include <iblessing-core/core/structs/Foundation.hpp>
+#include <iblessing-core/core/polyfill/mach-universal.hpp>
+#include <iblessing-core/core/memory/VirtualMemory.hpp>
 
 NS_IB_BEGIN
 

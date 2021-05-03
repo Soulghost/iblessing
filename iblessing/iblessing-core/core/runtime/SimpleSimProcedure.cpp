@@ -7,8 +7,8 @@
 //
 
 #include "SimpleSimProcedure.hpp"
-#include <iblessing/util/termcolor.h>
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/v2/util/termcolor.h>
+#include <iblessing-core/v2/util/StringUtils.h>
 #include "../../vendor/httplib/httplib.h"
 #include "../../vendor/rapidjson/document.h"
 #include "../../vendor/rapidjson/document.h"

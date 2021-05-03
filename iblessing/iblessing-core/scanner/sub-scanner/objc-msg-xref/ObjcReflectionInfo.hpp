@@ -9,7 +9,7 @@
 #ifndef ObjcReflectionInfo_hpp
 #define ObjcReflectionInfo_hpp
 
-#include <iblessing/infra/Object.hpp>
+#include <iblessing-core/infra/Object.hpp>
 #include <vector>
 #include <map>
 #include <set>

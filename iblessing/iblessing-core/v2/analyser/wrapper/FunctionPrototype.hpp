@@ -9,7 +9,7 @@
 #ifndef FunctionPrototype_hpp
 #define FunctionPrototype_hpp
 
-#include <iblessing/infra/Object.hpp>
+#include <iblessing-core/infra/Object.hpp>
 #include <vector>
 
 NS_IB_BEGIN

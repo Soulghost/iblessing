@@ -12,13 +12,13 @@
 #include <unordered_map>
 #include <set>
 
-#include <iblessing/infra/Object.hpp>
-#include <iblessing/infra/Vector.hpp>
-#include <iblessing/core/runtime/ObjcObject.hpp>
-#include <iblessing/core/runtime/ObjcMethod.hpp>
-#include <iblessing/core/runtime/ObjcBlock.hpp>
-#include <iblessing/core/runtime/ObjcCategory.hpp>
-#include <iblessing/core/memory/VirtualMemoryV2.hpp>
+#include <iblessing-core/infra/Object.hpp>
+#include <iblessing-core/infra/Vector.hpp>
+#include <iblessing-core/core/runtime/ObjcObject.hpp>
+#include <iblessing-core/core/runtime/ObjcMethod.hpp>
+#include <iblessing-core/core/runtime/ObjcBlock.hpp>
+#include <iblessing-core/core/runtime/ObjcCategory.hpp>
+#include <iblessing-core/core/memory/VirtualMemoryV2.hpp>
 
 NS_IB_BEGIN
 

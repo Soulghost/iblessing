@@ -7,7 +7,7 @@
 //
 
 #include "SimpleWrapperAnalyser.hpp"
-#include <iblessing/util/termcolor.h>
+#include <iblessing-core/util/termcolor.h>
 #include <set>
 #include <pthread.h>
 

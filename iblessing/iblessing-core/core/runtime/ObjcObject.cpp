@@ -9,8 +9,8 @@
 #include "ObjcObject.hpp"
 #include "VirtualMemory.hpp"
 #include "SymbolTable.hpp"
-#include <iblessing/util/termcolor.h>
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;
