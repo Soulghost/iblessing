@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		6829627A24CBEE4A00EF9251 /* Tests.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829627924CBEE4A00EF9251 /* Tests.m */; };
 		6829628724CBEEA300EF9251 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829628624CBEEA300EF9251 /* AppDelegate.m */; };
 		6829628D24CBEEA300EF9251 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829628C24CBEEA300EF9251 /* ViewController.m */; };
 		6829629024CBEEA300EF9251 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6829628E24CBEEA300EF9251 /* Main.storyboard */; };
@@ -113,8 +112,6 @@
 		6817507025BA7B920046328F /* SimpleSimProcedure.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SimpleSimProcedure.hpp; sourceTree = "<group>"; };
 		68192CBF251F359500EB867C /* libkeystone.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libkeystone.a; sourceTree = "<group>"; };
 		6829627724CBEE4A00EF9251 /* Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		6829627924CBEE4A00EF9251 /* Tests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Tests.m; sourceTree = "<group>"; };
-		6829627B24CBEE4A00EF9251 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6829628324CBEEA300EF9251 /* iblessing-sample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "iblessing-sample.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6829628524CBEEA300EF9251 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		6829628624CBEEA300EF9251 /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
@@ -396,15 +393,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		6829627824CBEE4A00EF9251 /* Tests */ = {
-			isa = PBXGroup;
-			children = (
-				6829627924CBEE4A00EF9251 /* Tests.m */,
-				6829627B24CBEE4A00EF9251 /* Info.plist */,
-			);
-			path = Tests;
-			sourceTree = "<group>";
-		};
 		6829628424CBEEA300EF9251 /* iblessing-sample */ = {
 			isa = PBXGroup;
 			children = (
@@ -465,9 +453,8 @@
 			isa = PBXGroup;
 			children = (
 				685CE7D124C55309002CC5E8 /* iblessing */,
-				6829627824CBEE4A00EF9251 /* Tests */,
-				6829628424CBEEA300EF9251 /* iblessing-sample */,
 				68B255AC26401DCD008FA1E2 /* iblessing-core */,
+				6829628424CBEEA300EF9251 /* iblessing-sample */,
 				685CE7D024C55309002CC5E8 /* Products */,
 				685CE82524C57145002CC5E8 /* Frameworks */,
 			);
@@ -487,6 +474,7 @@
 		685CE7D124C55309002CC5E8 /* iblessing */ = {
 			isa = PBXGroup;
 			children = (
+				68B2575A26402FB9008FA1E2 /* vendor */,
 				6800875E24CAD5D100853E04 /* iblessing.entitlements */,
 				68B256ED264026DE008FA1E2 /* builtin */,
 				68C362FB24C9CA2E00441950 /* platform */,
@@ -502,7 +490,6 @@
 				685CE86024C57390002CC5E8 /* rapidjson */,
 				685CE85E24C57380002CC5E8 /* httplib */,
 				685CE82E24C5723F002CC5E8 /* libs */,
-				685CE7DD24C56F55002CC5E8 /* argparse */,
 			);
 			path = vendor;
 			sourceTree = "<group>";
@@ -1068,12 +1055,12 @@
 			children = (
 				685CE85424C57360002CC5E8 /* generator */,
 				685CE88C24C68904002CC5E8 /* serialization */,
-				68B2574726402A41008FA1E2 /* scanners */,
+				68B2574726402A41008FA1E2 /* scanner */,
 			);
 			path = builtin;
 			sourceTree = "<group>";
 		};
-		68B2574726402A41008FA1E2 /* scanners */ = {
+		68B2574726402A41008FA1E2 /* scanner */ = {
 			isa = PBXGroup;
 			children = (
 				685CE85024C572FE002CC5E8 /* domain */,
@@ -1096,7 +1083,15 @@
 				6861982924E9645D003AB00A /* ObjcUnserializationScanner.hpp */,
 				6861982824E9645D003AB00A /* ObjcUnserializationScanner.cpp */,
 			);
-			path = scanners;
+			path = scanner;
+			sourceTree = "<group>";
+		};
+		68B2575A26402FB9008FA1E2 /* vendor */ = {
+			isa = PBXGroup;
+			children = (
+				685CE7DD24C56F55002CC5E8 /* argparse */,
+			);
+			path = vendor;
 			sourceTree = "<group>";
 		};
 		68BE8A8124E8F15A00A534DB /* tests */ = {
@@ -1290,7 +1285,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				6829627A24CBEE4A00EF9251 /* Tests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

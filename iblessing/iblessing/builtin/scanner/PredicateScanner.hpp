@@ -11,7 +11,7 @@
 
 #include <iblessing-core/infra/Object.hpp>
 #include <vector>
-#include "Scanner.hpp"
+#include <iblessing-core/scanner/Scanner.hpp>
 
 NS_IB_BEGIN
 

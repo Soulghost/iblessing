@@ -9,7 +9,7 @@
 #ifndef SymbolXREFScanner_hpp
 #define SymbolXREFScanner_hpp
 
-#include "Scanner.hpp"
+#include <iblessing-core/scanner/Scanner.hpp>
 #include <map>
 #include <set>
 

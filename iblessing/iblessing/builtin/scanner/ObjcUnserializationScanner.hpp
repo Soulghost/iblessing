@@ -9,7 +9,7 @@
 #ifndef ObjcUnserializationScanner_hpp
 #define ObjcUnserializationScanner_hpp
 
-#include "Scanner.hpp"
+#include <iblessing-core/scanner/Scanner.hpp>
 
 NS_IB_BEGIN
 

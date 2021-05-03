@@ -8,7 +8,7 @@
 
 #include "PredicateScanner.hpp"
 #include <iblessing-core/v2/util/termcolor.h>
-#include "DyldSimulator.hpp"
+#include <iblessing-core/core/dyld/DyldSimulator.hpp>
 #include "ARM64Runtime.hpp"
 #include "ARM64Disasembler.hpp"
 #include "ARM64Runtime.hpp"
