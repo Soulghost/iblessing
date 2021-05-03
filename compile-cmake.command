@@ -18,9 +18,9 @@ cd build
 ../make-lib.sh
 cd ../../..
 
-cp submodules/capstone/libcapstone.a                iblessing/iblessing/vendor/libs/
-cp submodules/unicorn/libunicorn.a                  iblessing/iblessing/vendor/libs/
-cp submodules/keystone/build/llvm/lib/libkeystone.a iblessing/iblessing/vendor/libs/
+cp submodules/capstone/libcapstone.a                iblessing/iblessing-core/vendor/libs/
+cp submodules/unicorn/libunicorn.a                  iblessing/iblessing-core/vendor/libs/
+cp submodules/keystone/build/llvm/lib/libkeystone.a iblessing/iblessing-core/vendor/libs/
 
 mkdir -p cmake-build
 cd cmake-build

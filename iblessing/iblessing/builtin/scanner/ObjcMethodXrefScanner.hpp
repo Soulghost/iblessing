@@ -9,7 +9,7 @@
 #ifndef ObjcMethodXrefScanner_hpp
 #define ObjcMethodXrefScanner_hpp
 
-#include "Scanner.hpp"
+#include <iblessing-core/scanner/Scanner.hpp>
 #include <vector>
 #include <string>
 

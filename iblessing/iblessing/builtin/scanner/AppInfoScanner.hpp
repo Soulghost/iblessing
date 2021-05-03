@@ -9,7 +9,7 @@
 #ifndef AppInfoScanner_hpp
 #define AppInfoScanner_hpp
 
-#include "Scanner.hpp"
+#include <iblessing-core/scanner/Scanner.hpp>
 
 NS_IB_BEGIN
 

@@ -9,7 +9,7 @@
 #ifndef ObjcClassXrefScanner_hpp
 #define ObjcClassXrefScanner_hpp
 
-#include "Scanner.hpp"
+#include <iblessing-core/scanner/Scanner.hpp>
 
 NS_IB_BEGIN
 
