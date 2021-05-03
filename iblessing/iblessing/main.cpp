@@ -7,9 +7,9 @@
 //
 
 #include <cstdio>
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/StringUtils.h>
 #include "argparse.h"
-#include <iblessing/util/termcolor.h>
+#include <iblessing-core/util/termcolor.h>
 #include "ScannerDispatcher.hpp"
 #include "GeneratorDispatcher.hpp"
 #include "TestManager.hpp"

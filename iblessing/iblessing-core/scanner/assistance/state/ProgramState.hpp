@@ -9,8 +9,8 @@
 #ifndef ProgramState_hpp
 #define ProgramState_hpp
 
-#include <iblessing/infra/Object.hpp>
-#include <iblessing/vendor/unicorn/unicorn.h>
+#include <iblessing-core/infra/Object.hpp>
+#include <iblessing-core/vendor/unicorn/unicorn.h>
 
 NS_IB_BEGIN
 

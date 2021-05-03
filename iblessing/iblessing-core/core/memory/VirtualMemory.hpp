@@ -11,9 +11,9 @@
 
 #include <unordered_map>
 #include <vector>
-#include <iblessing/infra/Object.hpp>
-#include <iblessing/core/disasm/ARM64Registers.hpp>
-#include <iblessing/core/polyfill/mach-universal.hpp>
+#include <iblessing-core/infra/Object.hpp>
+#include <iblessing-core/core/disasm/ARM64Registers.hpp>
+#include <iblessing-core/core/polyfill/mach-universal.hpp>
 
 NS_IB_BEGIN
 

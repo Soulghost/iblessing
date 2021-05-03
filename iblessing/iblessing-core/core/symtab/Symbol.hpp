@@ -9,8 +9,8 @@
 #ifndef Symbol_hpp
 #define Symbol_hpp
 
-#include <iblessing/infra/Object.hpp>
-#include <iblessing/core/polyfill/mach-universal.hpp>
+#include <iblessing-core/infra/Object.hpp>
+#include <iblessing-core/core/polyfill/mach-universal.hpp>
 
 NS_IB_BEGIN
 

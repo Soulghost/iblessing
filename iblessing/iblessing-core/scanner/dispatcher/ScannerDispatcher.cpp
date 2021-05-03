@@ -17,8 +17,8 @@
 #include <sys/unistd.h>
 #include <sys/mman.h>
 
-#include <iblessing/util/termcolor.h>
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/util/StringUtils.h>
 
 #include "ScannerContextManager.hpp"
 //#include "PredicateScanner.hpp"
@@ -28,10 +28,10 @@
 //#include "SymbolXREFScanner.hpp"
 //#include "ObjcUnserializationScanner.hpp"
 
-#include <iblessing/mach-o/mach-o.hpp>
-#include <iblessing/memory/memory.hpp>
-#include <iblessing/objc/objc.hpp>
-#include <iblessing/dyld/dyld.hpp>
+#include <iblessing-core/mach-o/mach-o.hpp>
+#include <iblessing-core/memory/memory.hpp>
+#include <iblessing-core/objc/objc.hpp>
+#include <iblessing-core/dyld/dyld.hpp>
 
 #ifdef IB_COCOA_FOUNDATION_ENABLED
 #include "AppInfoScanner.hpp"

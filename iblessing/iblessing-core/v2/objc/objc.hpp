@@ -10,7 +10,7 @@
 #define objc_hpp
 
 #include <iblessing-core/v2/memory/memory.hpp>
-#include <iblessing/core/runtime/ObjcRuntime.hpp>
+#include <iblessing-core/core/runtime/ObjcRuntime.hpp>
 
 namespace iblessing {
 

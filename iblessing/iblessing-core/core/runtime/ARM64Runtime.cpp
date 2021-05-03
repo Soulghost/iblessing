@@ -10,7 +10,7 @@
 #include "VirtualMemory.hpp"
 #include "VirtualMemoryV2.hpp"
 #include "ARM64ThreadState.hpp"
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/v2/util/StringUtils.h>
 #include "SymbolTable.hpp"
 
 #define ASMAssert(cond, fatal) do {\

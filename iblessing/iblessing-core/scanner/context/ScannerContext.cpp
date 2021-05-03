@@ -14,11 +14,11 @@
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <iblessing/vendor/keystone/keystone.h>
-#include <iblessing/vendor/capstone/capstone.h>
+#include <iblessing-core/vendor/keystone/keystone.h>
+#include <iblessing-core/vendor/capstone/capstone.h>
 
-#include <iblessing/util/termcolor.h>
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;

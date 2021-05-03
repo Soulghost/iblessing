@@ -10,13 +10,13 @@
 #define SymbolTable_hpp
 
 #include <map>
-#include <iblessing/infra/Object.hpp>
-#include <iblessing/infra/Vector.hpp>
-#include <iblessing/infra/Map.hpp>
-#include <iblessing/core/symtab/Symbol.hpp>
-#include <iblessing/core/symtab/StringTable.hpp>
-#include <iblessing/core/polyfill/mach-universal.hpp>
-#include <iblessing/core/polyfill/mach-machine.h>
+#include <iblessing-core/infra/Object.hpp>
+#include <iblessing-core/infra/Vector.hpp>
+#include <iblessing-core/infra/Map.hpp>
+#include <iblessing-core/core/symtab/Symbol.hpp>
+#include <iblessing-core/core/symtab/StringTable.hpp>
+#include <iblessing-core/core/polyfill/mach-universal.hpp>
+#include <iblessing-core/core/polyfill/mach-machine.h>
 
 NS_IB_BEGIN
 

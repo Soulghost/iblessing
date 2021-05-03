@@ -16,7 +16,7 @@
 #include <string>
 #include <functional>
 #include <string.h>
-#include <iblessing/common/macro/CommonDefines.hpp>
+#include <iblessing-core/common/macro/CommonDefines.hpp>
 
 NS_IB_BEGIN
 

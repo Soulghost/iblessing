@@ -10,8 +10,8 @@
 #define SymbolWrapperSerializationManager_hpp
 
 #include <map>
-#include <iblessing/analyser/wrapper/AntiWrapper.hpp>
-#include <iblessing/analyser/wrapper/FunctionPrototype.hpp>
+#include <iblessing-core/analyser/wrapper/AntiWrapper.hpp>
+#include <iblessing-core/analyser/wrapper/FunctionPrototype.hpp>
 
 NS_IB_BEGIN
 

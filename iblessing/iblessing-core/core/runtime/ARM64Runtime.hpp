@@ -9,8 +9,8 @@
 #ifndef ARM64Runtime_hpp
 #define ARM64Runtime_hpp
 
-#include <iblessing/infra/Object.hpp>
-#include <iblessing/vendor/capstone/capstone.h>
+#include <iblessing-core/infra/Object.hpp>
+#include <iblessing-core/v2/vendor/capstone/capstone.h>
 
 NS_IB_BEGIN
 

@@ -9,15 +9,15 @@
 #ifndef ScannerContext_hpp
 #define ScannerContext_hpp
 
-#include <iblessing/infra/Object.hpp>
-#include <iblessing/scanner/context/ScannerWorkDirManager.hpp>
-#include <iblessing/core/polyfill/mach-universal.hpp>
-#include <iblessing/core/polyfill/mach-machine.h>
-#include <iblessing/core/memory/VirtualMemory.hpp>
-#include <iblessing/core/memory/VirtualMemoryV2.hpp>
-#include <iblessing/core/symtab/StringTable.hpp>
-#include <iblessing/core/symtab/SymbolTable.hpp>
-#include <iblessing/core/runtime/ObjcRuntime.hpp>
+#include <iblessing-core/infra/Object.hpp>
+#include <iblessing-core/scanner/context/ScannerWorkDirManager.hpp>
+#include <iblessing-core/core/polyfill/mach-universal.hpp>
+#include <iblessing-core/core/polyfill/mach-machine.h>
+#include <iblessing-core/core/memory/VirtualMemory.hpp>
+#include <iblessing-core/core/memory/VirtualMemoryV2.hpp>
+#include <iblessing-core/core/symtab/StringTable.hpp>
+#include <iblessing-core/core/symtab/SymbolTable.hpp>
+#include <iblessing-core/core/runtime/ObjcRuntime.hpp>
 
 NS_IB_BEGIN
 

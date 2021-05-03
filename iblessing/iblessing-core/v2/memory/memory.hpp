@@ -9,9 +9,9 @@
 #ifndef memory_hpp
 #define memory_hpp
 
-#include <iblessing/mach-o/mach-o.hpp>
-#include <iblessing/core/memory/VirtualMemory.hpp>
-#include <iblessing/core/memory/VirtualMemoryV2.hpp>
+#include <iblessing-core/v2/mach-o/mach-o.hpp>
+#include <iblessing-core/core/memory/VirtualMemory.hpp>
+#include <iblessing-core/core/memory/VirtualMemoryV2.hpp>
 
 namespace iblessing {
 

@@ -38,7 +38,6 @@
 		68B255FC26401F2E008FA1E2 /* ObjcObject.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE80524C57079002CC5E8 /* ObjcObject.cpp */; };
 		68B255FD26401F2E008FA1E2 /* ObjcBlock.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68770C6F24DAD45C003F9652 /* ObjcBlock.cpp */; };
 		68B255FE26401F2E008FA1E2 /* ObjcCategory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68666DB025288E370014BC91 /* ObjcCategory.cpp */; };
-		68B255FF26401F2E008FA1E2 /* SimpleSimProcedure.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6817506F25BA7B920046328F /* SimpleSimProcedure.cpp */; };
 		68B2560426401F3C008FA1E2 /* Object.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE81C24C5708A002CC5E8 /* Object.cpp */; };
 		68B2560926401F58008FA1E2 /* ScannerDisassemblyDriver.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028D424DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp */; };
 		68B2560E26401F5C008FA1E2 /* ScannerDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A028C924DE897F00077CE0 /* ScannerDispatcher.cpp */; };
@@ -1293,7 +1292,6 @@
 				68B255FC26401F2E008FA1E2 /* ObjcObject.cpp in Sources */,
 				68B255FD26401F2E008FA1E2 /* ObjcBlock.cpp in Sources */,
 				68B255FE26401F2E008FA1E2 /* ObjcCategory.cpp in Sources */,
-				68B255FF26401F2E008FA1E2 /* SimpleSimProcedure.cpp in Sources */,
 				68B2560426401F3C008FA1E2 /* Object.cpp in Sources */,
 				68B2560926401F58008FA1E2 /* ScannerDisassemblyDriver.cpp in Sources */,
 				68B2560E26401F5C008FA1E2 /* ScannerDispatcher.cpp in Sources */,
@@ -1468,7 +1466,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SYSTEM_HEADER_SEARCH_PATHS = (
-					"${SRCROOT}/iblessing-core/v2",
+					"${SRCROOT}/",
 					"${SRCROOT}/../submodules/unicorn/include",
 					"${SRCROOT}/../submodules/keystone/include",
 					"${SRCROOT}/../submodules/capstone/include",
@@ -1527,7 +1525,7 @@
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
 				SYSTEM_HEADER_SEARCH_PATHS = (
-					"${SRCROOT}/iblessing-core/v2",
+					"${SRCROOT}/",
 					"${SRCROOT}/../submodules/unicorn/include",
 					"${SRCROOT}/../submodules/keystone/include",
 					"${SRCROOT}/../submodules/capstone/include",

@@ -9,14 +9,14 @@
 #ifndef Scanner_hpp
 #define Scanner_hpp
 
-#include <iblessing/infra/Object.hpp>
-#include <iblessing/scanner/driver/ScannerDisassemblyDriver.hpp>
 #include <map>
 #include <string>
-#include <iblessing/mach-o/mach-o.hpp>
-#include <iblessing/memory/memory.hpp>
-#include <iblessing/objc/objc.hpp>
-#include <iblessing/dyld/dyld.hpp>
+#include <iblessing-core/infra/Object.hpp>
+#include <iblessing-core/scanner/driver/ScannerDisassemblyDriver.hpp>
+#include <iblessing-core/v2/mach-o/mach-o.hpp>
+#include <iblessing-core/v2/memory/memory.hpp>
+#include <iblessing-core/v2/objc/objc.hpp>
+#include <iblessing-core/v2/dyld/dyld.hpp>
 
 NS_IB_BEGIN
 

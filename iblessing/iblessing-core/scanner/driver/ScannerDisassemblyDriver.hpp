@@ -10,7 +10,7 @@
 #define ScannerDisassemblyDriver_hpp
 
 #include <vector>
-#include <iblessing/core/disasm/ARM64Disasembler.hpp>
+#include <iblessing-core/core/disasm/ARM64Disasembler.hpp>
 
 NS_IB_BEGIN
 
