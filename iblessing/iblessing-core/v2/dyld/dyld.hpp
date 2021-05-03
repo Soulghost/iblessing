@@ -9,7 +9,7 @@
 #ifndef dyld_hpp
 #define dyld_hpp
 
-#include <iblessing/memory/memory.hpp>
+#include <iblessing/v2/memory/memory.hpp>
 #include <iblessing/objc/objc.hpp>
 #include <iblessing/core/dyld/DyldSimulator.hpp>
 
