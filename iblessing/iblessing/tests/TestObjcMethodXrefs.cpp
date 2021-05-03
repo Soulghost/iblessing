@@ -7,9 +7,9 @@
 //
 
 #include "TestObjcMethodXrefs.hpp"
-#include <iblessing-core/util/StringUtils.h>
+#include <iblessing-core/v2/util/StringUtils.h>
 #include "ObjcMethodChainSerializationManager.hpp"
-#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/v2/util/termcolor.h>
 
 #include <cstdio>
 #include <unistd.h>

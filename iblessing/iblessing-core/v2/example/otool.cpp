@@ -8,11 +8,11 @@
 
 #include "otool.hpp"
 #include "mach-universal.hpp"
-#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/v2/util/termcolor.h>
 #include "ScannerContextManager.hpp"
 #include "VirtualMemory.hpp"
 #include "VirtualMemoryV2.hpp"
-#include <iblessing-core/util/StringUtils.h>
+#include <iblessing-core/v2/util/StringUtils.h>
 #include "SymbolTable.hpp"
 #include "ObjcRuntime.hpp"
 #include "DyldSimulator.hpp"

@@ -7,22 +7,22 @@
 //
 
 #include <cstdio>
-#include "argparse.h"
 #include <iblessing-core/v2/util/StringUtils.h>
 #include <iblessing-core/v2/util/termcolor.h>
-#include <iblessing-core/scanner/dispatcher/ScannerDispatcher.hpp>
-//#include "GeneratorDispatcher.hpp"
-//#include "TestManager.hpp"
+#include "argparse.h"
+#include "ScannerDispatcher.hpp"
+#include "GeneratorDispatcher.hpp"
+#include "TestManager.hpp"
 
 // tools
-//#include "ObjDumpTool.hpp"
+#include "ObjDumpTool.hpp"
 
-//#ifdef IB_CSR_ENABLED
-//#include "csrutil.hpp"
-//#endif
-//
-//#include "classdump.hpp"
-//#include "otool.hpp"
+#ifdef IB_CSR_ENABLED
+#include "csrutil.hpp"
+#endif
+
+#include "classdump.hpp"
+#include "otool.hpp"
 
 using namespace std;
 using namespace argparse;
@@ -45,6 +45,12 @@ int main(int argc, const char *argv[]) {
     // hello text
     printf("[***] iblessing iOS Security Exploiting Toolkit Beta 1.0.0.2 (http://blog.asm.im)\n");
     printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
+
+#ifdef IB_CSR_ENABLED
+    if (CSRUtil::isSIPon()) {
+        printf("[***] System Integrity Protection is on\n");
+    }
+#endif
 
     printf("\n");
     
@@ -120,6 +126,15 @@ print_list:
             delete scanner;
         }
         delete sd;
+        
+        GeneratorDispatcher *gd = new GeneratorDispatcher();
+        vector<Generator *> generators = gd->allGenerators();
+        printf("\n[*] Generator List:\n");
+        for (Generator *generator : generators) {
+            printf("    - %s: %s\n", generator->identifier.c_str(), generator->desc.c_str());
+            delete generator;
+        }
+        delete gd;
         return 0;
     }
     
@@ -137,7 +152,49 @@ print_list:
     
     // handle info mode
     string mode = parser.get<string>("mode");
-    if (mode == "scan") {
+    if (mode == "generator") {
+        string outputFilePath;
+        if (parser.exists("output")) {
+            outputFilePath = parser.get<string>("output");
+        } else {
+            size_t size = pathconf(".", _PC_PATH_MAX);
+            char *buf = (char *)malloc((size_t)size);
+            char *path = getcwd(buf, (size_t)size);
+            outputFilePath = string(path);
+            free(buf);
+        }
+        printf("[*] set output path to %s\n", outputFilePath.c_str());
+        
+        string generatorId;
+        if (!parser.exists("identifier")) {
+            cout << termcolor::red;
+            cout << "[-] Error: please use -i to set the generator by id";
+            cout << termcolor::reset << endl;
+            return 1;
+        }
+        generatorId = parser.get<string>("identifier");
+        
+        map<string, string> options;
+        if (parser.exists("data")) {
+            string extraData = parser.get<string>("data");
+            vector<string> ops = StringUtils::split(extraData, ';');
+            for (string op : ops) {
+                vector<string> lr = StringUtils::split(op, '=');
+                if (lr.size() != 2) {
+                    cout << termcolor::red;
+                    cout << "[-] Error: cannot parse extra data " << op;
+                    cout << termcolor::reset << endl;
+                    return 1;
+                }
+                options[lr[0]] = lr[1];
+            }
+        }
+        
+        GeneratorDispatcher *generator = new GeneratorDispatcher();
+        int ret = generator->start(generatorId, options, filePath, outputFilePath);
+        delete generator;
+        return ret;
+    } else if (mode == "scan") {
         string outputFilePath;
         if (parser.exists("output")) {
             outputFilePath = parser.get<string>("output");
@@ -192,6 +249,22 @@ print_list:
         int ret = dispatcher->start(scannerId, options, filePath, outputFilePath);
         delete dispatcher;
         return ret;
+    } else if (mode == "otool") {
+        printf("[*] otool mode\n");
+        ObjDumpTool otool;
+        return otool.dumpTextSection(filePath);
+    } else if (mode == "test") {
+        printf("[*] test mode\n");
+        bool success = TestManager::testAll();
+        if (success) {
+            cout << termcolor::green << "[+] All tests passed";
+            cout << termcolor::reset << endl;
+            return 0;
+        } else {
+            cout << termcolor::red << "[-] Error: some tests failed";
+            cout << termcolor::reset << endl;
+            return 1;
+        }
     } else {
         cout << termcolor::red;
         cout << "[-] error: unresolved mode: " << mode;

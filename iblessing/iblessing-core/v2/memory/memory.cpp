@@ -7,9 +7,9 @@
 //
 
 #include "memory.hpp"
-#include <iblessing-core/util/StringUtils.h>
-#include <iblessing-core/vendor/keystone/keystone.h>
-#include <iblessing-core/vendor/capstone/capstone.h>
+#include <iblessing-core/v2/util/StringUtils.h>
+#include <iblessing-core/v2/vendor/keystone/keystone.h>
+#include <iblessing-core/v2/vendor/capstone/capstone.h>
 
 using namespace std;
 using namespace iblessing;

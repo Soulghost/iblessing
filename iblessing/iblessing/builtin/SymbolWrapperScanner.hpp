@@ -11,7 +11,7 @@
 
 #include "Scanner.hpp"
 #include <pthread.h>
-#include <iblessing-core/vendor/unicorn/unicorn.h>
+#include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <map>
 
 NS_IB_BEGIN

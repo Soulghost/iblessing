@@ -10,7 +10,7 @@
 #define dyld_hpp
 
 #include <iblessing-core/v2/memory/memory.hpp>
-#include <iblessing-core/objc/objc.hpp>
+#include <iblessing-core/v2/objc/objc.hpp>
 #include <iblessing-core/core/dyld/DyldSimulator.hpp>
 
 namespace iblessing {

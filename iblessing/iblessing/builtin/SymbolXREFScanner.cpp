@@ -7,8 +7,8 @@
 //
 
 #include "SymbolXREFScanner.hpp"
-#include <iblessing-core/util/termcolor.h>
-#include <iblessing-core/util/StringUtils.h>
+#include <iblessing-core/v2/util/termcolor.h>
+#include <iblessing-core/v2/util/StringUtils.h>
 #include "VirtualMemory.hpp"
 #include "ARM64Runtime.hpp"
 #include "ARM64Disasembler.hpp"

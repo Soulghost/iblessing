@@ -7,8 +7,8 @@
 //
 
 #include "CocoaAppInfoScanner.hpp"
-#include <iblessing-core/util/StringUtils.h>
-#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/v2/util/StringUtils.h>
+#include <iblessing-core/v2/util/termcolor.h>
 #include <sstream>
 #include <dirent.h>
 #include <vector>
