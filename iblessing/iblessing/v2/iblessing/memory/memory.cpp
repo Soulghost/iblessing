@@ -7,7 +7,7 @@
 //
 
 #include "memory.hpp"
-#include "StringUtils.h"
+#include <iblessing/util/StringUtils.h>
 #include <iblessing/vendor/keystone/keystone.h>
 #include <iblessing/vendor/capstone/capstone.h>
 

@@ -7,9 +7,9 @@
 //
 
 #include "VirtualMemory.hpp"
-#include "termcolor.h"
+#include <iblessing/util/termcolor.h>
 #include "ObjcObject.hpp"
-#include "StringUtils.h"
+#include <iblessing/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;

@@ -490,7 +490,6 @@
 				685CE86024C57390002CC5E8 /* rapidjson */,
 				685CE85E24C57380002CC5E8 /* httplib */,
 				685CE82E24C5723F002CC5E8 /* libs */,
-				685CE81F24C57113002CC5E8 /* termcolor */,
 				685CE7DD24C56F55002CC5E8 /* argparse */,
 			);
 			path = vendor;
@@ -627,17 +626,10 @@
 			path = infra;
 			sourceTree = "<group>";
 		};
-		685CE81F24C57113002CC5E8 /* termcolor */ = {
-			isa = PBXGroup;
-			children = (
-				685CE82024C5711D002CC5E8 /* termcolor.h */,
-			);
-			path = termcolor;
-			sourceTree = "<group>";
-		};
 		685CE82124C57127002CC5E8 /* util */ = {
 			isa = PBXGroup;
 			children = (
+				685CE82024C5711D002CC5E8 /* termcolor.h */,
 				685CE82224C57130002CC5E8 /* StringUtils.cpp */,
 				685CE82324C57131002CC5E8 /* StringUtils.h */,
 			);

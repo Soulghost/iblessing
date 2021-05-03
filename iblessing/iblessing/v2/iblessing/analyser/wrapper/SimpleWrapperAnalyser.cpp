@@ -7,7 +7,7 @@
 //
 
 #include "SimpleWrapperAnalyser.hpp"
-#include "termcolor.h"
+#include <iblessing/util/termcolor.h>
 #include <set>
 #include <pthread.h>
 
@@ -97,7 +97,7 @@ ib_return_t SimpleWrapperAnalyser::start() {
         symbols = _symbols;
     }
     
-    printf("%s  [*] try to find wrappers for", prepadding);
+    printf("%s  [*] try to find wrappers for ", prepadding);
     bool first = true;
     for (string symbol : symbols) {
         printf("%s%s", first ? "" : ", ", symbol.c_str());
