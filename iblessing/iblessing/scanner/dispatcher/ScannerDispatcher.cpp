@@ -17,8 +17,8 @@
 #include <sys/unistd.h>
 #include <sys/mman.h>
 
-#include "termcolor.h"
-#include "StringUtils.h"
+#include <iblessing/util/termcolor.h>
+#include <iblessing/util/StringUtils.h>
 
 #include "ScannerContextManager.hpp"
 //#include "PredicateScanner.hpp"

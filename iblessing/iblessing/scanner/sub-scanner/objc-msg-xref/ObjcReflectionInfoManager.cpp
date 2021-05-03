@@ -13,8 +13,8 @@
 #include "../../../vendor/rapidjson/document.h"
 #include "../../../vendor/rapidjson/writer.h"
 #include "../../../vendor/rapidjson/stringbuffer.h"
-#include "termcolor.h"
-#include "StringUtils.h"
+#include <iblessing/util/termcolor.h>
+#include <iblessing/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;

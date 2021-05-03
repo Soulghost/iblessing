@@ -9,8 +9,8 @@
 #include "ObjcRuntime.hpp"
 #include "VirtualMemoryV2.hpp"
 #include "SymbolTable.hpp"
-#include "termcolor.h"
-#include "StringUtils.h"
+#include <iblessing/util/termcolor.h>
+#include <iblessing/util/StringUtils.h>
 #include "ObjcCategory.hpp"
 #include "SimpleSimProcedure.hpp"
 

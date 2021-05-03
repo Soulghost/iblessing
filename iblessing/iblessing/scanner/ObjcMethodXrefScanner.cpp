@@ -8,11 +8,11 @@
 
 #include "ObjcMethodXrefScanner.hpp"
 #include "ObjcRuntime.hpp"
-#include "termcolor.h"
+#include <iblessing/util/termcolor.h>
 #include "ARM64Runtime.hpp"
 #include "SymbolTable.hpp"
 #include "ARM64ThreadState.hpp"
-#include "StringUtils.h"
+#include <iblessing/util/StringUtils.h>
 #include <set>
 #include <algorithm>
 #include <sstream>
