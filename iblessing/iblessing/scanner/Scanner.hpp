@@ -26,7 +26,7 @@ public:
         identifier(identifier),
         desc(desc),
         isBinaryScanner(isBinaryScanner),
-        driver(nullptr)
+        disasmDriver(nullptr)
     {}
     
     virtual ~Scanner() {};
@@ -47,7 +47,7 @@ public:
     
     // FIXME: buggy design pattern
     void *dispatcher;
-    ScannerDisassemblyDriver *driver;
+    std::shared_ptr<ScannerDisassemblyDriver> disasmDriver;
     
     virtual int start() = 0;
 };
