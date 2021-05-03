@@ -81,6 +81,7 @@
 		68AE3B1224EB9CFE003E25EF /* InsecureUnSerialization.m in Sources */ = {isa = PBXBuildFile; fileRef = 68AE3B1124EB9CFE003E25EF /* InsecureUnSerialization.m */; };
 		68B173A425B2E6AA0070C6E5 /* ObjDumpTool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B173A225B2E6AA0070C6E5 /* ObjDumpTool.cpp */; };
 		68B253E3263D6822008FA1E2 /* iblessing-core.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B253E2263D6822008FA1E2 /* iblessing-core.cpp */; };
+		68B25541263FA7BB008FA1E2 /* SimpleWrapperAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B2553F263FA7BB008FA1E2 /* SimpleWrapperAnalyser.cpp */; };
 		68BE8A8724E904AF00A534DB /* TestManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8524E904AF00A534DB /* TestManager.cpp */; };
 		68BE8A8A24E9052200A534DB /* Tester.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8824E9052200A534DB /* Tester.cpp */; };
 		68BE8A8D24E9056900A534DB /* TestObjcMethodXrefs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8B24E9056900A534DB /* TestObjcMethodXrefs.cpp */; };
@@ -322,6 +323,8 @@
 		68B2548A263E848A008FA1E2 /* x86.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = x86.h; sourceTree = "<group>"; };
 		68B2548B263E848A008FA1E2 /* arm64.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = arm64.h; sourceTree = "<group>"; };
 		68B2548C263E848A008FA1E2 /* platform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = platform.h; sourceTree = "<group>"; };
+		68B2553F263FA7BB008FA1E2 /* SimpleWrapperAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SimpleWrapperAnalyser.cpp; sourceTree = "<group>"; };
+		68B25540263FA7BB008FA1E2 /* SimpleWrapperAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SimpleWrapperAnalyser.hpp; sourceTree = "<group>"; };
 		68BE8A8524E904AF00A534DB /* TestManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TestManager.cpp; sourceTree = "<group>"; };
 		68BE8A8624E904AF00A534DB /* TestManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestManager.hpp; sourceTree = "<group>"; };
 		68BE8A8824E9052200A534DB /* Tester.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Tester.cpp; sourceTree = "<group>"; };
@@ -701,10 +704,6 @@
 		685CE84C24C572D4002CC5E8 /* deobfuscator */ = {
 			isa = PBXGroup;
 			children = (
-				685CE84D24C572D4002CC5E8 /* AntiWrapper.cpp */,
-				685CE84E24C572D4002CC5E8 /* AntiWrapper.hpp */,
-				6829631B24D0460500EF9251 /* FunctionPrototype.cpp */,
-				6829631C24D0460500EF9251 /* FunctionPrototype.hpp */,
 			);
 			path = deobfuscator;
 			sourceTree = "<group>";
@@ -902,6 +901,7 @@
 		6894E0F8263BAB7E000642F5 /* iblessing */ = {
 			isa = PBXGroup;
 			children = (
+				68B2553A263FA5E3008FA1E2 /* analyser */,
 				68B2541A263E82EC008FA1E2 /* vendor */,
 				6894E11C263BE57C000642F5 /* dyld */,
 				6894E112263BDF13000642F5 /* objc */,
@@ -1068,6 +1068,27 @@
 				68B2548C263E848A008FA1E2 /* platform.h */,
 			);
 			path = unicorn;
+			sourceTree = "<group>";
+		};
+		68B2553A263FA5E3008FA1E2 /* analyser */ = {
+			isa = PBXGroup;
+			children = (
+				68B2553B263FA63C008FA1E2 /* wrapper */,
+			);
+			path = analyser;
+			sourceTree = "<group>";
+		};
+		68B2553B263FA63C008FA1E2 /* wrapper */ = {
+			isa = PBXGroup;
+			children = (
+				685CE84D24C572D4002CC5E8 /* AntiWrapper.cpp */,
+				685CE84E24C572D4002CC5E8 /* AntiWrapper.hpp */,
+				6829631B24D0460500EF9251 /* FunctionPrototype.cpp */,
+				6829631C24D0460500EF9251 /* FunctionPrototype.hpp */,
+				68B2553F263FA7BB008FA1E2 /* SimpleWrapperAnalyser.cpp */,
+				68B25540263FA7BB008FA1E2 /* SimpleWrapperAnalyser.hpp */,
+			);
+			path = wrapper;
 			sourceTree = "<group>";
 		};
 		68BE8A8124E8F15A00A534DB /* tests */ = {
@@ -1251,6 +1272,7 @@
 			files = (
 				685CE81524C57079002CC5E8 /* ObjcRuntime.cpp in Sources */,
 				685CE80F24C57079002CC5E8 /* ARM64ThreadState.cpp in Sources */,
+				68B25541263FA7BB008FA1E2 /* SimpleWrapperAnalyser.cpp in Sources */,
 				685CE81024C57079002CC5E8 /* ARM64Disasembler.cpp in Sources */,
 				6866173F24E51CA300C4FBB3 /* CoreFoundation.cpp in Sources */,
 				685B5B8E24D6711E00C30CFD /* SymbolXREFScanner.cpp in Sources */,
@@ -1533,9 +1555,9 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = FY3C8MQXF9;
+				DEVELOPMENT_TEAM = 6CMYQQFFT8;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -1550,6 +1572,7 @@
 					"$(PROJECT_DIR)/iblessing/vendor/termcolor",
 					"$(PROJECT_DIR)/iblessing/vendor/libs",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.soulghost.iblessing;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SYSTEM_HEADER_SEARCH_PATHS = (
@@ -1567,9 +1590,9 @@
 			buildSettings = {
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++17";
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
-				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = FY3C8MQXF9;
+				DEVELOPMENT_TEAM = 6CMYQQFFT8;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -1582,6 +1605,7 @@
 					"$(PROJECT_DIR)/iblessing/vendor/termcolor",
 					"$(PROJECT_DIR)/iblessing/vendor/libs",
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.soulghost.iblessing;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SYMROOT = build;

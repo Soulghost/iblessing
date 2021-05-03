@@ -13,7 +13,7 @@
 #include <vector>
 #include <string>
 #include <iblessing/infra/Object.hpp>
-#include "Scanner.hpp"
+#include <iblessing/scanner/Scanner.hpp>
 
 NS_IB_BEGIN;
 
@@ -23,13 +23,15 @@ class ScannerDispatcher {
 public:
     int jobs;
     
-    ScannerDispatcher();
+    static ScannerDispatcher* getInstance();
     void registerScanner(std::string scannerId, ScannerProvider provider);
     int start(std::string scannerId, std::map<std::string, std::string> options, std::string inputPath, std::string outputPath);
-    Scanner* prepareForScanner(std::string scannerId, std::map<std::string, std::string> options, std::string inputPath, std::string outputPath, ScannerDisassemblyDriver *driver = nullptr);
+    Scanner* prepareForScanner(std::string scannerId, std::map<std::string, std::string> options, std::string inputPath, std::string outputPath, std::shared_ptr<ScannerDisassemblyDriver> disasmDriver = nullptr);
     std::vector<Scanner *> allScanners();
     
 private:
+    ScannerDispatcher();
+    static ScannerDispatcher *_instance;
     std::map<std::string, ScannerProvider> scannerMap;
 };
 

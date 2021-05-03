@@ -11,7 +11,6 @@
 
 #include <iblessing/infra/Object.hpp>
 #include <iblessing/vendor/capstone/capstone.h>
-#include "StringUtils.h"
 #include <map>
 #include <vector>
 #include <cassert>
@@ -42,24 +41,8 @@ struct AntiWrapperRegLink {
         from = f.from;
     }
     
-    AntiWrapperRegLink getRootSource() {
-        AntiWrapperRegLink *cur = this;
-        while (cur && cur->from != nullptr && cur->from != this) {
-            cur = cur->from;
-        }
-        return *cur;
-    }
-    
-    std::string getIDAExpr() {
-        if (current >= ARM64_REG_X0 && current <= ARM64_REG_X28) {
-            return StringUtils::format("x%d", current - ARM64_REG_X0);
-        }
-        if (current >= ARM64_REG_X29 && current <= ARM64_REG_X30) {
-            return StringUtils::format("x%d", 29 + current - ARM64_REG_X29);
-        }
-        assert(false);
-        return "";
-    }
+    AntiWrapperRegLink getRootSource();
+    std::string getIDAExpr();
 };
 
 struct AntiWrapperRegLinkGraph {
@@ -80,31 +63,8 @@ struct AntiWrapperRegLinkGraph {
 
     }
     
-    AntiWrapperRegLink* linkFromOp(cs_arm64_op op) {
-        AntiWrapperRegLink *link = nullptr;
-        if (op.reg >= ARM64_REG_X0 && op.reg <= ARM64_REG_X28) {
-            link = x[op.reg - ARM64_REG_X0];
-            link->current = op.reg;
-        }
-        if (op.reg >= ARM64_REG_X29 && op.reg <= ARM64_REG_X30) {
-            link = x[29 + op.reg - ARM64_REG_X29];
-            link->current = op.reg;
-        }
-        return link;
-    }
-    
-    bool createLink(cs_arm64_op src, cs_arm64_op dst) {
-        AntiWrapperRegLink *srcLink = linkFromOp(src);
-        AntiWrapperRegLink *dstLink = linkFromOp(dst);
-        if (!srcLink || !dstLink) {
-            return false;
-        }
-        
-        srcLink->active = true;
-        dstLink->active = true;
-        srcLink->from = dstLink;
-        return true;
-    }
+    AntiWrapperRegLink* linkFromOp(cs_arm64_op op);
+    bool createLink(cs_arm64_op src, cs_arm64_op dst);
 };
 
 typedef std::function<AntiWrapperArgs (AntiWrapperBlock block, AntiWrapperArgs args)> AntiWrapperTransformer;

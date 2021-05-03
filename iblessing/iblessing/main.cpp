@@ -43,7 +43,7 @@ int main(int argc, const char *argv[]) {
            \n");
     
     // hello text
-    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 1.0.0 (http://blog.asm.im)\n");
+    printf("[***] iblessing iOS Security Exploiting Toolkit Beta 1.0.0.1 (http://blog.asm.im)\n");
     printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
 
 #ifdef IB_CSR_ENABLED
@@ -118,7 +118,7 @@ int main(int argc, const char *argv[]) {
     // handle scanner list
     if (parser.exists("list")) {
 print_list:
-        ScannerDispatcher *sd = new ScannerDispatcher();
+        ScannerDispatcher *sd = ScannerDispatcher::getInstance();
         vector<Scanner *> scanners = sd->allScanners();
         printf("[*] Scanner List:\n");
         for (Scanner *scanner : scanners) {
@@ -244,7 +244,7 @@ print_list:
             }
         }
         printf("[*] set jobs count to %d\n", jobs);
-        ScannerDispatcher *dispatcher = new ScannerDispatcher();
+        ScannerDispatcher *dispatcher = ScannerDispatcher::getInstance();
         dispatcher->jobs = jobs;
         int ret = dispatcher->start(scannerId, options, filePath, outputFilePath);
         delete dispatcher;

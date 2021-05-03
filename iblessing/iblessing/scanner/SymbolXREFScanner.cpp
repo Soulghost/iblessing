@@ -14,18 +14,26 @@
 #include "ARM64Disasembler.hpp"
 #include "SymbolTable.hpp"
 #include <set>
+#include "ScannerDispatcher.hpp"
 
 using namespace std;
 using namespace iblessing;
 
+__attribute__((constructor))
+static void scannerRegister() {
+    ScannerDispatcher::getInstance()->registerScanner("symbol-xref", []() {
+        return new SymbolXREFScanner("symbol-xref", "symbol xref scanner");
+    });
+};
+
 int SymbolXREFScanner::start() {
     assert(macho != nullptr);
     
-    ScannerDisassemblyDriver *disasmDriver = this->driver;
+    shared_ptr<ScannerDisassemblyDriver> disasmDriver = this->disasmDriver;
     bool localDriver = false;
     if (!disasmDriver) {
         printf("\t[*] using local driver\n");
-        disasmDriver = new ScannerDisassemblyDriver();
+        disasmDriver = make_shared<ScannerDisassemblyDriver>();
         localDriver = true;
     }
     
@@ -176,7 +184,6 @@ int SymbolXREFScanner::start() {
     
     if (localDriver) {
         disasmDriver->startDisassembly(codeData, startAddr, endAddr);
-        delete disasmDriver;
     } else {
         printf("%s\t[*] Wating for driver event\n", prepadding);
     }

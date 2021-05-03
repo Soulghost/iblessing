@@ -9,8 +9,8 @@
 #ifndef ScannerDisassemblyDriver_hpp
 #define ScannerDisassemblyDriver_hpp
 
-#include "ARM64Disasembler.hpp"
 #include <vector>
+#include <iblessing/core/disasm/ARM64Disasembler.hpp>
 
 NS_IB_BEGIN
 

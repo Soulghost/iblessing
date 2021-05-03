@@ -40,6 +40,14 @@
 using namespace std;
 using namespace iblessing;
 
+ScannerDispatcher* ScannerDispatcher::_instance = nullptr;
+ScannerDispatcher* ScannerDispatcher::getInstance() {
+    if (ScannerDispatcher::_instance == nullptr) {
+        ScannerDispatcher::_instance = new ScannerDispatcher();
+    }
+    return ScannerDispatcher::_instance;
+}
+
 static bool fexists(string filename) {
     std::ifstream ifile(filename);
     return (bool)ifile;
@@ -52,9 +60,7 @@ ScannerDispatcher::ScannerDispatcher() {
 //    });
 //#endif
 //
-//    this->registerScanner("objc-msg-xref", []() {
-//        return new ObjcMethodXrefScanner("objc-msg-xref", "generate objc_msgSend xrefs record");
-//    });
+
 //
 //    this->registerScanner("predicate", []() {
 //        return new PredicateScanner("predicate", "scan for NSPredicate xrefs and sql injection surfaces");
@@ -64,13 +70,8 @@ ScannerDispatcher::ScannerDispatcher() {
 //        return new ObjcClassXrefScanner("objc-class-xref", "scan for class xrefs");
 //    });
 //
-//    this->registerScanner("symbol-wrapper", []() {
-//        return new SymbolWrapperScanner("symbol-wrapper", "detect symbol wrappers");
-//    });
+
 //
-//    this->registerScanner("symbol-xref", []() {
-//        return new SymbolXREFScanner("symbol-xref", "symbol xref scanner");
-//    });
 //
 //    this->registerScanner("objc-insecure-unserialization", []() {
 //        return new ObjcUnserializationScanner("objc-insecure-unserialization", "objc insecure unserialization scanner");
@@ -102,7 +103,7 @@ int ScannerDispatcher::start(std::string scannerId, std::map<std::string, std::s
 }
 
 
-Scanner* ScannerDispatcher::prepareForScanner(std::string scannerId, std::map<std::string, std::string> options, std::string inputPath, std::string outputPath, ScannerDisassemblyDriver *driver) {
+Scanner* ScannerDispatcher::prepareForScanner(std::string scannerId, std::map<std::string, std::string> options, std::string inputPath, std::string outputPath, shared_ptr<ScannerDisassemblyDriver> disasmDriver) {
     // input validate
     if (!fexists(inputPath)) {
         cout << termcolor::red << "[-] ScannerDispatcher Error: input file " << inputPath << " not exist";
@@ -142,8 +143,8 @@ Scanner* ScannerDispatcher::prepareForScanner(std::string scannerId, std::map<st
 //        }
         
         // load driver
-        if (driver) {
-            s->driver = driver;
+        if (disasmDriver) {
+            s->disasmDriver = disasmDriver;
         }
     }
     
