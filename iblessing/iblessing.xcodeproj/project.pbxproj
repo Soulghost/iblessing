@@ -58,7 +58,6 @@
 		68B256A126402341008FA1E2 /* libcapstone.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D755D824C714EC0057E092 /* libcapstone.a */; };
 		68B256A226402341008FA1E2 /* libunicorn.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 68D755D624C714E00057E092 /* libunicorn.a */; };
 		68B256A726402374008FA1E2 /* SimpleSimProcedure.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6817506F25BA7B920046328F /* SimpleSimProcedure.cpp */; };
-		68B256BE26402552008FA1E2 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B256BD26402552008FA1E2 /* main.cpp */; };
 		68B256D42640260D008FA1E2 /* libiblessing-core.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */; };
 		68B256F126402705008FA1E2 /* SymbolWrapperScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE84024C572A0002CC5E8 /* SymbolWrapperScanner.cpp */; };
 		68B256F52640270B008FA1E2 /* SymbolXREFScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685B5B8C24D6711E00C30CFD /* SymbolXREFScanner.cpp */; };
@@ -70,6 +69,19 @@
 		68B25710264027AD008FA1E2 /* ObjcReflectionInfoManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68445901257271F900A9D441 /* ObjcReflectionInfoManager.cpp */; };
 		68B2571426402823008FA1E2 /* ObjcMethodChainSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE88D24C68933002CC5E8 /* ObjcMethodChainSerializationManager.cpp */; };
 		68B2571826402831008FA1E2 /* ObjcMethodCallSnapshotSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 684458C12543E14400A9D441 /* ObjcMethodCallSnapshotSerializationManager.cpp */; };
+		68B2571F2640295B008FA1E2 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE7DA24C56E8B002CC5E8 /* main.cpp */; };
+		68B2572326402979008FA1E2 /* Generator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE85524C57360002CC5E8 /* Generator.cpp */; };
+		68B257272640297B008FA1E2 /* GeneratorDispatcher.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE85724C57360002CC5E8 /* GeneratorDispatcher.cpp */; };
+		68B2572B26402986008FA1E2 /* IDAObjcMsgXREFGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE85824C57360002CC5E8 /* IDAObjcMsgXREFGenerator.cpp */; };
+		68B2572C26402986008FA1E2 /* ObjcMsgXREFServerGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */; };
+		68B2572D26402986008FA1E2 /* ObjcMsgXREFStatisticsGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 682962DE24CC7A2600EF9251 /* ObjcMsgXREFStatisticsGenerator.cpp */; };
+		68B2572E26402986008FA1E2 /* IDASymbolWrapperNamingScriptGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6829633324D2838500EF9251 /* IDASymbolWrapperNamingScriptGenerator.cpp */; };
+		68B2572F26402986008FA1E2 /* ObjcMsgXREFReportGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68770C9A24E17212003F9652 /* ObjcMsgXREFReportGenerator.cpp */; };
+		68B2573026402986008FA1E2 /* IDASymbolicScriptGenerator.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6856E6E124E7C4370050DA19 /* IDASymbolicScriptGenerator.cpp */; };
+		68B25734264029FF008FA1E2 /* TestManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8524E904AF00A534DB /* TestManager.cpp */; };
+		68B2573826402A01008FA1E2 /* Tester.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8824E9052200A534DB /* Tester.cpp */; };
+		68B2573C26402A04008FA1E2 /* TestObjcMethodXrefs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8B24E9056900A534DB /* TestObjcMethodXrefs.cpp */; };
+		68B2574026402A1F008FA1E2 /* SymbolWrapperSerializationManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6829632124D052AF00EF9251 /* SymbolWrapperSerializationManager.cpp */; };
 		68C362FA24C9C9D100441950 /* libSystem.B.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 68C362F924C9C9D000441950 /* libSystem.B.tbd */; };
 /* End PBXBuildFile section */
 
@@ -137,7 +149,7 @@
 		685B5B8C24D6711E00C30CFD /* SymbolXREFScanner.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SymbolXREFScanner.cpp; sourceTree = "<group>"; };
 		685B5B8D24D6711E00C30CFD /* SymbolXREFScanner.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SymbolXREFScanner.hpp; sourceTree = "<group>"; };
 		685CE7CF24C55309002CC5E8 /* iblessing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = iblessing; sourceTree = BUILT_PRODUCTS_DIR; };
-		685CE7DA24C56E8B002CC5E8 /* main-old.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "main-old.cpp"; sourceTree = "<group>"; };
+		685CE7DA24C56E8B002CC5E8 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		685CE7DE24C56F5C002CC5E8 /* argparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argparse.h; sourceTree = "<group>"; };
 		685CE7E124C57061002CC5E8 /* CommonDefines.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CommonDefines.hpp; sourceTree = "<group>"; };
 		685CE7E424C57079002CC5E8 /* Symbol.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Symbol.cpp; sourceTree = "<group>"; };
@@ -289,8 +301,6 @@
 		68A028D524DE8F5400077CE0 /* ScannerDisassemblyDriver.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScannerDisassemblyDriver.hpp; sourceTree = "<group>"; };
 		68AE3B1024EB9CFE003E25EF /* InsecureUnSerialization.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = InsecureUnSerialization.h; sourceTree = "<group>"; };
 		68AE3B1124EB9CFE003E25EF /* InsecureUnSerialization.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = InsecureUnSerialization.m; sourceTree = "<group>"; };
-		68B173A225B2E6AA0070C6E5 /* ObjDumpTool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjDumpTool.cpp; sourceTree = "<group>"; };
-		68B173A325B2E6AA0070C6E5 /* ObjDumpTool.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjDumpTool.hpp; sourceTree = "<group>"; };
 		68B253E2263D6822008FA1E2 /* iblessing-core.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "iblessing-core.cpp"; sourceTree = "<group>"; };
 		68B2546A263E8421008FA1E2 /* hexagon.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = hexagon.h; sourceTree = "<group>"; };
 		68B2546B263E8421008FA1E2 /* mips.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mips.h; sourceTree = "<group>"; };
@@ -330,7 +340,6 @@
 		68B2554D263FC29F008FA1E2 /* FunctionXrefAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FunctionXrefAnalyser.cpp; sourceTree = "<group>"; };
 		68B2554E263FC29F008FA1E2 /* FunctionXrefAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FunctionXrefAnalyser.hpp; sourceTree = "<group>"; };
 		68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = "libiblessing-core.dylib"; sourceTree = BUILT_PRODUCTS_DIR; };
-		68B256BD26402552008FA1E2 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		68BE8A8524E904AF00A534DB /* TestManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TestManager.cpp; sourceTree = "<group>"; };
 		68BE8A8624E904AF00A534DB /* TestManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestManager.hpp; sourceTree = "<group>"; };
 		68BE8A8824E9052200A534DB /* Tester.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Tester.cpp; sourceTree = "<group>"; };
@@ -478,16 +487,11 @@
 		685CE7D124C55309002CC5E8 /* iblessing */ = {
 			isa = PBXGroup;
 			children = (
-				68B256ED264026DE008FA1E2 /* builtin */,
-				68B173A025B2E6730070C6E5 /* tools */,
-				68BE8A8124E8F15A00A534DB /* tests */,
 				6800875E24CAD5D100853E04 /* iblessing.entitlements */,
+				68B256ED264026DE008FA1E2 /* builtin */,
 				68C362FB24C9CA2E00441950 /* platform */,
-				685CE88C24C68904002CC5E8 /* serialization */,
-				685CE85024C572FE002CC5E8 /* domain */,
-				685CE85424C57360002CC5E8 /* generator */,
-				685CE7DA24C56E8B002CC5E8 /* main-old.cpp */,
-				68B256BD26402552008FA1E2 /* main.cpp */,
+				68BE8A8124E8F15A00A534DB /* tests */,
+				685CE7DA24C56E8B002CC5E8 /* main.cpp */,
 			);
 			path = iblessing;
 			sourceTree = "<group>";
@@ -951,23 +955,6 @@
 			path = insecureUnserialization;
 			sourceTree = "<group>";
 		};
-		68B173A025B2E6730070C6E5 /* tools */ = {
-			isa = PBXGroup;
-			children = (
-				68B173A125B2E68C0070C6E5 /* otool */,
-			);
-			path = tools;
-			sourceTree = "<group>";
-		};
-		68B173A125B2E68C0070C6E5 /* otool */ = {
-			isa = PBXGroup;
-			children = (
-				68B173A225B2E6AA0070C6E5 /* ObjDumpTool.cpp */,
-				68B173A325B2E6AA0070C6E5 /* ObjDumpTool.hpp */,
-			);
-			path = otool;
-			sourceTree = "<group>";
-		};
 		68B2541A263E82EC008FA1E2 /* vendor */ = {
 			isa = PBXGroup;
 			children = (
@@ -1079,6 +1066,17 @@
 		68B256ED264026DE008FA1E2 /* builtin */ = {
 			isa = PBXGroup;
 			children = (
+				685CE85424C57360002CC5E8 /* generator */,
+				685CE88C24C68904002CC5E8 /* serialization */,
+				68B2574726402A41008FA1E2 /* scanners */,
+			);
+			path = builtin;
+			sourceTree = "<group>";
+		};
+		68B2574726402A41008FA1E2 /* scanners */ = {
+			isa = PBXGroup;
+			children = (
+				685CE85024C572FE002CC5E8 /* domain */,
 				684458FC2572709800A9D441 /* sub-scanner */,
 				6877B77D251454C900227CFF /* assistance */,
 				685CE83624C572A0002CC5E8 /* SymbolWrapperScanner.hpp */,
@@ -1098,7 +1096,7 @@
 				6861982924E9645D003AB00A /* ObjcUnserializationScanner.hpp */,
 				6861982824E9645D003AB00A /* ObjcUnserializationScanner.cpp */,
 			);
-			path = builtin;
+			path = scanners;
 			sourceTree = "<group>";
 		};
 		68BE8A8124E8F15A00A534DB /* tests */ = {
@@ -1313,7 +1311,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				68B256BE26402552008FA1E2 /* main.cpp in Sources */,
+				68B2571F2640295B008FA1E2 /* main.cpp in Sources */,
 				68B256F126402705008FA1E2 /* SymbolWrapperScanner.cpp in Sources */,
 				68B256F52640270B008FA1E2 /* SymbolXREFScanner.cpp in Sources */,
 				68B256F92640270E008FA1E2 /* ObjcMethodXrefScanner.cpp in Sources */,
@@ -1324,6 +1322,18 @@
 				68B25710264027AD008FA1E2 /* ObjcReflectionInfoManager.cpp in Sources */,
 				68B2571426402823008FA1E2 /* ObjcMethodChainSerializationManager.cpp in Sources */,
 				68B2571826402831008FA1E2 /* ObjcMethodCallSnapshotSerializationManager.cpp in Sources */,
+				68B2572326402979008FA1E2 /* Generator.cpp in Sources */,
+				68B257272640297B008FA1E2 /* GeneratorDispatcher.cpp in Sources */,
+				68B2572B26402986008FA1E2 /* IDAObjcMsgXREFGenerator.cpp in Sources */,
+				68B2572C26402986008FA1E2 /* ObjcMsgXREFServerGenerator.cpp in Sources */,
+				68B2572D26402986008FA1E2 /* ObjcMsgXREFStatisticsGenerator.cpp in Sources */,
+				68B2572E26402986008FA1E2 /* IDASymbolWrapperNamingScriptGenerator.cpp in Sources */,
+				68B2572F26402986008FA1E2 /* ObjcMsgXREFReportGenerator.cpp in Sources */,
+				68B2573026402986008FA1E2 /* IDASymbolicScriptGenerator.cpp in Sources */,
+				68B2574026402A1F008FA1E2 /* SymbolWrapperSerializationManager.cpp in Sources */,
+				68B25734264029FF008FA1E2 /* TestManager.cpp in Sources */,
+				68B2573826402A01008FA1E2 /* Tester.cpp in Sources */,
+				68B2573C26402A04008FA1E2 /* TestObjcMethodXrefs.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
