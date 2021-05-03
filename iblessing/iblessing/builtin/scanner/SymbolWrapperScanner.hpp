@@ -9,7 +9,7 @@
 #ifndef SymbolWrapperScanner_hpp
 #define SymbolWrapperScanner_hpp
 
-#include "Scanner.hpp"
+#include <iblessing-core/scanner/Scanner.hpp>
 #include <pthread.h>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <map>
