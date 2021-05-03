@@ -7,8 +7,8 @@
 //
 
 #include "FunctionXrefAnalyser.hpp"
-#include "termcolor.h"
-#include "StringUtils.h"
+#include <iblessing/util/termcolor.h>
+#include <iblessing/util/StringUtils.h>
 #include <iblessing/core/runtime/ARM64Runtime.hpp>
 
 using namespace std;

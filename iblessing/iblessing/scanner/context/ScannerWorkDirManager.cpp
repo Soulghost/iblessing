@@ -7,7 +7,7 @@
 //
 
 #include "ScannerWorkDirManager.hpp"
-#include "StringUtils.h"
+#include <iblessing/util/StringUtils.h>
 
 #ifdef IB_PLATFORM_DARWIN
 #include <filesystem>

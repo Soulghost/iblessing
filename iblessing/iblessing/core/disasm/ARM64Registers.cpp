@@ -7,7 +7,7 @@
 //
 
 #include "ARM64Registers.hpp"
-#include "StringUtils.h"
+#include <iblessing/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;

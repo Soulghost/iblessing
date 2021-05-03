@@ -7,7 +7,7 @@
 //
 
 #include "ObjcClassXrefScanner.hpp"
-#include "termcolor.h"
+#include <iblessing/util/termcolor.h>
 #include "DyldSimulator.hpp"
 #include "ARM64Runtime.hpp"
 #include "ARM64Disasembler.hpp"
@@ -15,7 +15,7 @@
 #include "ARM64ThreadState.hpp"
 #include "VirtualMemory.hpp"
 #include "SymbolTable.hpp"
-#include "StringUtils.h"
+#include <iblessing/util/StringUtils.h>
 #include "ObjcRuntime.hpp"
 #include <set>
 

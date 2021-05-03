@@ -17,8 +17,8 @@
 #include <iblessing/vendor/keystone/keystone.h>
 #include <iblessing/vendor/capstone/capstone.h>
 
-#include "termcolor.h"
-#include "StringUtils.h"
+#include <iblessing/util/termcolor.h>
+#include <iblessing/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;

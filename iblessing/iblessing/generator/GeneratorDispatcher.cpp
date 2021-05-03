@@ -8,8 +8,8 @@
 
 #include "GeneratorDispatcher.hpp"
 #include <fstream>
-#include "termcolor.h"
-#include "StringUtils.h"
+#include <iblessing/util/termcolor.h>
+#include <iblessing/util/StringUtils.h>
 
 #include "IDAObjcMsgXREFGenerator.hpp"
 #include "ObjcMsgXREFServerGenerator.hpp"

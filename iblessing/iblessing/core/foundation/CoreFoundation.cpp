@@ -7,12 +7,12 @@
 //
 
 #include "CoreFoundation.hpp"
-#include "StringUtils.h"
+#include <iblessing/util/StringUtils.h>
 #include <sstream>
 #include <set>
 #include <map>
 #include <stack>
-#include "termcolor.h"
+#include <iblessing/util/termcolor.h>
 
 using namespace std;
 using namespace iblessing;

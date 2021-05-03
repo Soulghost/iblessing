@@ -8,8 +8,8 @@
 
 #include "VirtualMemoryV2.hpp"
 #include "VirtualMemory.hpp"
-#include "termcolor.h"
-#include "StringUtils.h"
+#include <iblessing/util/termcolor.h>
+#include <iblessing/util/StringUtils.h>
 #include "mach-machine.h"
 #include "ScannerContext.hpp"
 #include "SymbolTable.hpp"
