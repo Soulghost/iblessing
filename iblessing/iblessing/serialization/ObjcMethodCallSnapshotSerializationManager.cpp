@@ -7,14 +7,14 @@
 //
 
 #include "ObjcMethodCallSnapshotSerializationManager.hpp"
-#include "../vendor/httplib/httplib.h"
-#include "../vendor/rapidjson/document.h"
-#include "../vendor/rapidjson/document.h"
-#include "../vendor/rapidjson/writer.h"
-#include "../vendor/rapidjson/stringbuffer.h"
-#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/vendor/httplib/httplib.h>
+#include <iblessing-core/vendor/rapidjson/document.h>
+#include <iblessing-core/vendor/rapidjson/document.h>
+#include <iblessing-core/vendor/rapidjson/writer.h>
+#include <iblessing-core/vendor/rapidjson/stringbuffer.h>
+#include <iblessing-core/v2/util/termcolor.h>
 #include "ObjcClass.hpp"
-#include <iblessing-core/util/StringUtils.h>
+#include <iblessing-core/v2/util/StringUtils.h>
 
 using namespace std;
 

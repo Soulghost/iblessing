@@ -9,7 +9,7 @@
 #include "ObjcMethodChainSerializationManager.hpp"
 #include <fstream>
 #include <algorithm>
-#include <iblessing-core/util/StringUtils.h>
+#include <iblessing-core/v2/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;

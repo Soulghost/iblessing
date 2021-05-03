@@ -10,7 +10,7 @@
 #include "VirtualMemoryV2.hpp"
 #include "ObjcRuntime.hpp"
 #include "SymbolTable.hpp"
-#include <iblessing-core/util/StringUtils.h>
+#include <iblessing-core/v2/util/StringUtils.h>
 #include "CoreFoundation.hpp"
 
 using namespace std;
