@@ -39,6 +39,7 @@
 #include <iblessing/objc/objc.hpp>
 #include <iblessing/dyld/dyld.hpp>
 #include <iblessing/analyser/wrapper/SimpleWrapperAnalyser.hpp>
+#include <iblessing/analyser/xref/FunctionXrefAnalyser.hpp>
 #include "ScannerDispatcher.hpp"
 
 #define UnicornStackTopAddr      0x300000000
@@ -1135,18 +1136,10 @@ int ObjcMethodXrefScanner::start() {
     callSnapshotPath = StringUtils::path_join(outputPath, fileName + "_call-snapshots.iblessing.json");
     reflectionManager.reportPath = StringUtils::path_join(outputPath, fileName + "_objc-reflections.iblessing.json");
     
-    SymbolXREFScanner *sxrefScanner = nullptr;
-    ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
-    options["symbols"] = "_objc_msgSend";
-    Scanner *s = dispatcher->prepareForScanner("symbol-xref", options, inputPath, outputPath, sharedDriver);
-    if (s) {
-        sxrefScanner = reinterpret_cast<SymbolXREFScanner *>(s);
-        sxrefScanner->start();
-    } else {
-        cout << termcolor::red << "    [-] Error: cannot find symbol-xref scanner";
-        cout << termcolor::reset << endl;
-        return 1;
-    }
+    shared_ptr<FunctionXrefAnalyser> functionXrefAnalyser = FunctionXrefAnalyser::create(macho, memory);
+    functionXrefAnalyser->targetSymbols = {"_objc_msgSend"};
+    functionXrefAnalyser->disasmDriver = sharedDriver;
+    functionXrefAnalyser->start();
     
     printf("    [*] Dispatching Disassembly Driver\n");
     struct ib_section_64 *textSect = memory->fileMemory->textSect;
@@ -1183,7 +1176,7 @@ int ObjcMethodXrefScanner::start() {
     subClassInfo->isExternal = true;
     subClassInfo->isSub = true;
     subClassInfo->className = StringUtils::format("iblessing_SubClass");
-    for (auto it = sxrefScanner->xrefs.begin(); it != sxrefScanner->xrefs.end(); it++) {
+    for (auto it = functionXrefAnalyser->xrefs.begin(); it != functionXrefAnalyser->xrefs.end(); it++) {
         for (SymbolXREF sxref : it->second) {
             if (impAddrs.find(sxref.startAddr) != impAddrs.end()) {
                 // skip imp
@@ -1202,7 +1195,6 @@ int ObjcMethodXrefScanner::start() {
             funcAddrs.push_back(sxref.startAddr);
         }
     }
-    delete sxrefScanner;
     
     // remove dupliate elements
     methods.erase(unique(methods.begin(), methods.end(), [](ObjcMethod *a, ObjcMethod *b) {
