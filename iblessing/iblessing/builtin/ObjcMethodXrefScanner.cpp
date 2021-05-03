@@ -8,11 +8,11 @@
 
 #include "ObjcMethodXrefScanner.hpp"
 #include "ObjcRuntime.hpp"
-#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/v2/util/termcolor.h>
 #include "ARM64Runtime.hpp"
 #include "SymbolTable.hpp"
 #include "ARM64ThreadState.hpp"
-#include <iblessing-core/util/StringUtils.h>
+#include <iblessing-core/v2/util/StringUtils.h>
 #include <set>
 #include <algorithm>
 #include <sstream>
@@ -21,8 +21,8 @@
 #include <memory>
 #include "DyldSimulator.hpp"
 #include <pthread.h>
-#include <iblessing-core/vendor/unicorn/unicorn.h>
-#include <iblessing-core/vendor/capstone/capstone.h>
+#include <iblessing-core/v2/vendor/unicorn/unicorn.h>
+#include <iblessing-core/v2/vendor/capstone/capstone.h>
 #include "SymbolXREFScanner.hpp"
 #include "ScannerDispatcher.hpp"
 #include "VirtualMemoryV2.hpp"
@@ -34,12 +34,12 @@
 #include "ObjcReflectionInfoManager.hpp"
 #include "SimpleSimProcedure.hpp"
 
-#include <iblessing-core/mach-o/mach-o.hpp>
-#include <iblessing-core/memory/memory.hpp>
-#include <iblessing-core/objc/objc.hpp>
-#include <iblessing-core/dyld/dyld.hpp>
-#include <iblessing-core/analyser/wrapper/SimpleWrapperAnalyser.hpp>
-#include <iblessing-core/analyser/xref/FunctionXrefAnalyser.hpp>
+#include <iblessing-core/v2/mach-o/mach-o.hpp>
+#include <iblessing-core/v2/memory/memory.hpp>
+#include <iblessing-core/v2/objc/objc.hpp>
+#include <iblessing-core/v2/dyld/dyld.hpp>
+#include <iblessing-core/v2/analyser/wrapper/SimpleWrapperAnalyser.hpp>
+#include <iblessing-core/v2/analyser/xref/FunctionXrefAnalyser.hpp>
 #include "ScannerDispatcher.hpp"
 
 #define UnicornStackTopAddr      0x300000000

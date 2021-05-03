@@ -7,7 +7,7 @@
 //
 
 #include "ScannerContextManager.hpp"
-#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/v2/util/termcolor.h>
 
 using namespace std;
 using namespace iblessing;

@@ -14,7 +14,7 @@
 #include "../vendor/rapidjson/document.h"
 #include "../vendor/rapidjson/writer.h"
 #include "../vendor/rapidjson/stringbuffer.h"
-#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/v2/util/termcolor.h>
 
 using namespace std;
 using namespace iblessing;

@@ -7,7 +7,7 @@
 //
 
 #include "dyld.hpp"
-#include <iblessing-core/util/StringUtils.h>
+#include <iblessing-core/v2/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;
