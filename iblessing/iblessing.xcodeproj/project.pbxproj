@@ -83,6 +83,9 @@
 		68B253E3263D6822008FA1E2 /* iblessing-core.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B253E2263D6822008FA1E2 /* iblessing-core.cpp */; };
 		68B25541263FA7BB008FA1E2 /* SimpleWrapperAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B2553F263FA7BB008FA1E2 /* SimpleWrapperAnalyser.cpp */; };
 		68B2554F263FC29F008FA1E2 /* FunctionXrefAnalyser.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B2554D263FC29F008FA1E2 /* FunctionXrefAnalyser.cpp */; };
+		68B255AE26401DCD008FA1E2 /* iblessing_core.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68B255AD26401DCD008FA1E2 /* iblessing_core.hpp */; };
+		68B255B026401DCD008FA1E2 /* iblessing_corePriv.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68B255AF26401DCD008FA1E2 /* iblessing_corePriv.hpp */; };
+		68B255B226401DCD008FA1E2 /* iblessing_core.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68B255B126401DCD008FA1E2 /* iblessing_core.cpp */; };
 		68BE8A8724E904AF00A534DB /* TestManager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8524E904AF00A534DB /* TestManager.cpp */; };
 		68BE8A8A24E9052200A534DB /* Tester.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8824E9052200A534DB /* Tester.cpp */; };
 		68BE8A8D24E9056900A534DB /* TestObjcMethodXrefs.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68BE8A8B24E9056900A534DB /* TestObjcMethodXrefs.cpp */; };
@@ -328,6 +331,10 @@
 		68B25540263FA7BB008FA1E2 /* SimpleWrapperAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SimpleWrapperAnalyser.hpp; sourceTree = "<group>"; };
 		68B2554D263FC29F008FA1E2 /* FunctionXrefAnalyser.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = FunctionXrefAnalyser.cpp; sourceTree = "<group>"; };
 		68B2554E263FC29F008FA1E2 /* FunctionXrefAnalyser.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = FunctionXrefAnalyser.hpp; sourceTree = "<group>"; };
+		68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = "libiblessing-core.dylib"; sourceTree = BUILT_PRODUCTS_DIR; };
+		68B255AD26401DCD008FA1E2 /* iblessing_core.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = iblessing_core.hpp; sourceTree = "<group>"; };
+		68B255AF26401DCD008FA1E2 /* iblessing_corePriv.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = iblessing_corePriv.hpp; sourceTree = "<group>"; };
+		68B255B126401DCD008FA1E2 /* iblessing_core.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = iblessing_core.cpp; sourceTree = "<group>"; };
 		68BE8A8524E904AF00A534DB /* TestManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = TestManager.cpp; sourceTree = "<group>"; };
 		68BE8A8624E904AF00A534DB /* TestManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = TestManager.hpp; sourceTree = "<group>"; };
 		68BE8A8824E9052200A534DB /* Tester.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = Tester.cpp; sourceTree = "<group>"; };
@@ -370,6 +377,13 @@
 				68192CC0251F359500EB867C /* libkeystone.a in Frameworks */,
 				68D755D924C714EC0057E092 /* libcapstone.a in Frameworks */,
 				68D755D724C714E00057E092 /* libunicorn.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		68B255A926401DCD008FA1E2 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -447,6 +461,7 @@
 				685CE7D124C55309002CC5E8 /* iblessing */,
 				6829627824CBEE4A00EF9251 /* Tests */,
 				6829628424CBEEA300EF9251 /* iblessing-sample */,
+				68B255AC26401DCD008FA1E2 /* iblessing-core */,
 				685CE7D024C55309002CC5E8 /* Products */,
 				685CE82524C57145002CC5E8 /* Frameworks */,
 			);
@@ -458,6 +473,7 @@
 				685CE7CF24C55309002CC5E8 /* iblessing */,
 				6829627724CBEE4A00EF9251 /* Tests.xctest */,
 				6829628324CBEEA300EF9251 /* iblessing-sample.app */,
+				68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1096,6 +1112,16 @@
 			path = xref;
 			sourceTree = "<group>";
 		};
+		68B255AC26401DCD008FA1E2 /* iblessing-core */ = {
+			isa = PBXGroup;
+			children = (
+				68B255AD26401DCD008FA1E2 /* iblessing_core.hpp */,
+				68B255AF26401DCD008FA1E2 /* iblessing_corePriv.hpp */,
+				68B255B126401DCD008FA1E2 /* iblessing_core.cpp */,
+			);
+			path = "iblessing-core";
+			sourceTree = "<group>";
+		};
 		68BE8A8124E8F15A00A534DB /* tests */ = {
 			isa = PBXGroup;
 			children = (
@@ -1137,6 +1163,18 @@
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
+
+/* Begin PBXHeadersBuildPhase section */
+		68B255A726401DCD008FA1E2 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				68B255AE26401DCD008FA1E2 /* iblessing_core.hpp in Headers */,
+				68B255B026401DCD008FA1E2 /* iblessing_corePriv.hpp in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
 		6829627624CBEE4A00EF9251 /* Tests */ = {
@@ -1189,6 +1227,23 @@
 			productReference = 685CE7CF24C55309002CC5E8 /* iblessing */;
 			productType = "com.apple.product-type.tool";
 		};
+		68B255AA26401DCD008FA1E2 /* iblessing-core */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 68B255B326401DCD008FA1E2 /* Build configuration list for PBXNativeTarget "iblessing-core" */;
+			buildPhases = (
+				68B255A726401DCD008FA1E2 /* Headers */,
+				68B255A826401DCD008FA1E2 /* Sources */,
+				68B255A926401DCD008FA1E2 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "iblessing-core";
+			productName = "iblessing-core";
+			productReference = 68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */;
+			productType = "com.apple.product-type.library.dynamic";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -1206,6 +1261,9 @@
 					};
 					685CE7CE24C55309002CC5E8 = {
 						CreatedOnToolsVersion = 11.5;
+					};
+					68B255AA26401DCD008FA1E2 = {
+						CreatedOnToolsVersion = 12.4;
 					};
 				};
 			};
@@ -1225,6 +1283,7 @@
 				685CE7CE24C55309002CC5E8 /* iblessing */,
 				6829627624CBEE4A00EF9251 /* Tests */,
 				6829628224CBEEA300EF9251 /* iblessing-sample */,
+				68B255AA26401DCD008FA1E2 /* iblessing-core */,
 			);
 		};
 /* End PBXProject section */
@@ -1346,6 +1405,14 @@
 				68B173A425B2E6AA0070C6E5 /* ObjDumpTool.cpp in Sources */,
 				6866173B24DFF93A00C4FBB3 /* mach-universal.cpp in Sources */,
 				68770C7124DAD45C003F9652 /* ObjcBlock.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		68B255A826401DCD008FA1E2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				68B255B226401DCD008FA1E2 /* iblessing_core.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1625,6 +1692,44 @@
 			};
 			name = Release;
 		};
+		68B255B426401DCD008FA1E2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = FY3C8MQXF9;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				EXECUTABLE_PREFIX = lib;
+				GCC_ENABLE_CPP_EXCEPTIONS = YES;
+				GCC_ENABLE_CPP_RTTI = YES;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		68B255B526401DCD008FA1E2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = FY3C8MQXF9;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				EXECUTABLE_PREFIX = lib;
+				GCC_ENABLE_CPP_EXCEPTIONS = YES;
+				GCC_ENABLE_CPP_RTTI = YES;
+				GCC_SYMBOLS_PRIVATE_EXTERN = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1660,6 +1765,15 @@
 			buildConfigurations = (
 				685CE7D724C55309002CC5E8 /* Debug */,
 				685CE7D824C55309002CC5E8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		68B255B326401DCD008FA1E2 /* Build configuration list for PBXNativeTarget "iblessing-core" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				68B255B426401DCD008FA1E2 /* Debug */,
+				68B255B526401DCD008FA1E2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -10,7 +10,7 @@
 #define Scanner_hpp
 
 #include <iblessing/infra/Object.hpp>
-#include "ScannerDisassemblyDriver.hpp"
+#include <iblessing/scanner/driver/ScannerDisassemblyDriver.hpp>
 #include <map>
 #include <string>
 #include <iblessing/mach-o/mach-o.hpp>
