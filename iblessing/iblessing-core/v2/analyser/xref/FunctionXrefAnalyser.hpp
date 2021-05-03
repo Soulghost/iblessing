@@ -9,13 +9,13 @@
 #ifndef SymbolXrefAnalyser_hpp
 #define SymbolXrefAnalyser_hpp
 
-#include <iblessing-core/common/ibtypes.h>
-#include <iblessing/scanner/driver/ScannerDisassemblyDriver.hpp>
-#include <iblessing/analyser/wrapper/AntiWrapper.hpp>
-#include <iblessing/analyser/wrapper/FunctionPrototype.hpp>
-#include <iblessing/mach-o/mach-o.hpp>
-#include <iblessing/memory/memory.hpp>
-#include <iblessing/vendor/unicorn/unicorn.h>
+#include <iblessing-core/v2/common/ibtypes.h>
+#include <iblessing-core/scanner/driver/ScannerDisassemblyDriver.hpp>
+#include <iblessing-core/v2/analyser/wrapper/AntiWrapper.hpp>
+#include <iblessing-core/v2/analyser/wrapper/FunctionPrototype.hpp>
+#include <iblessing-core/v2/mach-o/mach-o.hpp>
+#include <iblessing-core/v2/memory/memory.hpp>
+#include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 
 namespace iblessing {
 namespace Analyser {

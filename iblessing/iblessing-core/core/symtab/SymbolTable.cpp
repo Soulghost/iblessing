@@ -8,7 +8,7 @@
 
 #include "SymbolTable.hpp"
 #include "StringTable.hpp"
-#include <iblessing/util/termcolor.h>
+#include <iblessing-core/v2/util/termcolor.h>
 
 using namespace std;
 using namespace iblessing;

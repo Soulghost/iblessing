@@ -9,7 +9,7 @@
 #ifndef SimpleSimProcedure_hpp
 #define SimpleSimProcedure_hpp
 
-#include <iblessing/infra/Object.hpp>
+#include <iblessing-core/infra/Object.hpp>
 #include <vector>
 #include <map>
 

@@ -9,7 +9,7 @@
 #include "SymbolWrapperSerializationManager.hpp"
 #include <sstream>
 #include <fstream>
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;

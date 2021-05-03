@@ -36,7 +36,7 @@
 #include <map>
 #endif
 
-#include <iblessing/infra/Object.hpp>
+#include <iblessing-core/infra/Object.hpp>
 
 
 /**

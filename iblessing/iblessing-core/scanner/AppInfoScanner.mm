@@ -8,8 +8,8 @@
 
 #import <Foundation/Foundation.h>
 #include "AppInfoScanner.hpp"
-#include <iblessing/util/termcolor.h>
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/util/StringUtils.h>
 #include <dirent.h>
 #include <vector>
 #include <array>

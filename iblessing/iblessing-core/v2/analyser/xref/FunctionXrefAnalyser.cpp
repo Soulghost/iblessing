@@ -7,9 +7,9 @@
 //
 
 #include "FunctionXrefAnalyser.hpp"
-#include <iblessing/util/termcolor.h>
-#include <iblessing/util/StringUtils.h>
-#include <iblessing/core/runtime/ARM64Runtime.hpp>
+#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/util/StringUtils.h>
+#include <iblessing-core/core/runtime/ARM64Runtime.hpp>
 
 using namespace std;
 using namespace iblessing;

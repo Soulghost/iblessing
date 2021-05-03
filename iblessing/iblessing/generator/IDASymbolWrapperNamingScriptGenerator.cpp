@@ -9,7 +9,7 @@
 #include "IDASymbolWrapperNamingScriptGenerator.hpp"
 #include "SymbolWrapperSerializationManager.hpp"
 #include <fstream>
-#include <iblessing/util/termcolor.h>
+#include <iblessing-core/util/termcolor.h>
 
 using namespace std;
 using namespace iblessing;

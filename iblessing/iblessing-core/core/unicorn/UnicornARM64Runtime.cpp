@@ -8,7 +8,7 @@
 
 #include "UnicornARM64Runtime.hpp"
 #include "VirtualMemory.hpp"
-#include <iblessing/vendor/unicorn/unicorn.h>
+#include <iblessing-core/vendor/unicorn/unicorn.h>
 
 using namespace std;
 using namespace iblessing;

@@ -7,7 +7,7 @@
 //
 
 #include "ObjcUnserializationScanner.hpp"
-#include <iblessing/util/termcolor.h>
+#include <iblessing-core/util/termcolor.h>
 #include "DyldSimulator.hpp"
 #include "ARM64Runtime.hpp"
 #include "ARM64Disasembler.hpp"
@@ -16,7 +16,7 @@
 #include "VirtualMemory.hpp"
 #include "VirtualMemoryV2.hpp"
 #include "SymbolTable.hpp"
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/StringUtils.h>
 #include <set>
 
 using namespace std;

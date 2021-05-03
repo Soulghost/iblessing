@@ -9,10 +9,10 @@
 #ifndef ARM64ThreadState_hpp
 #define ARM64ThreadState_hpp
 
-#include <iblessing/infra/Object.hpp>
+#include <iblessing-core/infra/Object.hpp>
 #include "ARM64Registers.hpp"
 #include <vector>
-#include <iblessing/vendor/capstone/capstone.h>
+#include <iblessing-core/v2/vendor/capstone/capstone.h>
 
 NS_IB_BEGIN
 

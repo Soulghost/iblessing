@@ -9,7 +9,7 @@
 #ifndef ObjcBlock_hpp
 #define ObjcBlock_hpp
 
-#include <iblessing/core/runtime/ObjcClass.hpp>
+#include <iblessing-core/core/runtime/ObjcClass.hpp>
 
 NS_IB_BEGIN
 

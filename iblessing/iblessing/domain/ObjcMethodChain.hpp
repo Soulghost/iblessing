@@ -13,7 +13,7 @@
 #include <unistd.h>
 #include <set>
 #include <string>
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/StringUtils.h>
 
 NS_IB_BEGIN
 

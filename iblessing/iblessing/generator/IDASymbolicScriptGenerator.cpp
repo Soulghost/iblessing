@@ -9,8 +9,8 @@
 #include "IDASymbolicScriptGenerator.hpp"
 #include <fstream>
 
-#include <iblessing/util/termcolor.h>
-#include <iblessing/util/StringUtils.h>
+#include <iblessing-core/util/termcolor.h>
+#include <iblessing-core/util/StringUtils.h>
 
 using namespace std;
 using namespace iblessing;

@@ -11,12 +11,12 @@
 
 #include <unordered_map>
 
-#include <iblessing/infra/Object.hpp>
-#include <iblessing/infra/Vector.hpp>
-#include <iblessing/core/runtime/ObjcMethod.hpp>
-#include <iblessing/core/runtime/ObjcIvar.hpp>
-#include <iblessing/core/memory/VirtualMemoryV2.hpp>
-#include <iblessing/core/symtab/SymbolTable.hpp>
+#include <iblessing-core/infra/Object.hpp>
+#include <iblessing-core/infra/Vector.hpp>
+#include <iblessing-core/core/runtime/ObjcMethod.hpp>
+#include <iblessing-core/core/runtime/ObjcIvar.hpp>
+#include <iblessing-core/core/memory/VirtualMemoryV2.hpp>
+#include <iblessing-core/core/symtab/SymbolTable.hpp>
 
 NS_IB_BEGIN
 
