@@ -23,7 +23,6 @@
 #include <pthread.h>
 #include <iblessing/vendor/unicorn/unicorn.h>
 #include <iblessing/vendor/capstone/capstone.h>
-#include "SymbolWrapperScanner.hpp"
 #include "SymbolXREFScanner.hpp"
 #include "ScannerDispatcher.hpp"
 #include "VirtualMemoryV2.hpp"
@@ -39,6 +38,8 @@
 #include <iblessing/memory/memory.hpp>
 #include <iblessing/objc/objc.hpp>
 #include <iblessing/dyld/dyld.hpp>
+#include <iblessing/analyser/wrapper/SimpleWrapperAnalyser.hpp>
+#include "ScannerDispatcher.hpp"
 
 #define UnicornStackTopAddr      0x300000000
 
@@ -67,9 +68,17 @@
 
 using namespace std;
 using namespace iblessing;
+using namespace iblessing::Analyser;
+
+__attribute__((constructor))
+static void scannerRegister() {
+    ScannerDispatcher::getInstance()->registerScanner("objc-msg-xref", []() {
+        return new ObjcMethodXrefScanner("objc-msg-xref", "generate objc_msgSend xrefs record");
+    });
+};
 
 static string recordPath, callSnapshotPath;
-static SymbolWrapperScanner *antiWrapperScanner;
+static shared_ptr<SimpleWrapperAnalyser> wrapperAnalyser;
 static uc_hook insn_hook, memexp_hook;
 
 static map<string, MethodChain *> sel2chain;
@@ -705,7 +714,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                 msgType = ObjcMessageTypeStret;
             }
         } else {
-            if (antiWrapperScanner && antiWrapperScanner->antiWrapper.isWrappedCall(pc)) {
+            if (wrapperAnalyser && wrapperAnalyser->isWrappedCall(pc).first) {
                 AntiWrapperArgs args;
                 args.nArgs = 31;
                 for (int i = 0; i < 31; i++) {
@@ -717,7 +726,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                 }
                 
                 // we only take care of x0, x1, dont pollute other regs
-                args = antiWrapperScanner->antiWrapper.performWrapperTransform(pc, args);
+                args = wrapperAnalyser->performWrapperTransform(pc, args);
                 for (int i = 0; i < 2; i++) {
                     uc_reg_write(uc, UC_ARM64_REG_X0 + i, &args.x[i]);
                 }
@@ -1109,20 +1118,17 @@ int ObjcMethodXrefScanner::start() {
     }
     
     printf("  [*] Step 4. Start sub-scanners\n");
-    ScannerDisassemblyDriver *sharedDriver = new ScannerDisassemblyDriver();
+    shared_ptr<ScannerDisassemblyDriver> sharedDriver = make_shared<ScannerDisassemblyDriver>();
     if (shouldAntiWrapper) {
-        ScannerDispatcher *dispatcher = reinterpret_cast<ScannerDispatcher *>(this->dispatcher);
-        options["symbols"] = "_objc_msgSend";
-        Scanner *s = dispatcher->prepareForScanner("symbol-wrapper", options, inputPath, outputPath, sharedDriver);
-        if (s) {
-            antiWrapperScanner = reinterpret_cast<SymbolWrapperScanner *>(s);
-            antiWrapperScanner->start();
-        }
+        wrapperAnalyser = SimpleWrapperAnalyser::create(macho, memory);
+        wrapperAnalyser->targetSymbols = {"_objc_msgSend"};
+        wrapperAnalyser->disasmDriver = sharedDriver;
+        wrapperAnalyser->start();
         cout << termcolor::yellow << "    [!] Warning: the anti-wrapper mode consumes a huge amount of memory,";
         cout << " this may be related to a memory leak or emulator problem, and I haven't solved it yet";
         cout << termcolor::reset << endl;
     } else {
-        antiWrapperScanner = nullptr;
+        wrapperAnalyser = nullptr;
     }
     
     recordPath = StringUtils::path_join(outputPath, fileName + "_method-xrefs.iblessing.txt");
@@ -1228,8 +1234,8 @@ int ObjcMethodXrefScanner::start() {
     trace_all_methods(engines, subMethods);
     
     storeMethodChains();
-    if (antiWrapperScanner) {
-        delete antiWrapperScanner;
+    if (wrapperAnalyser) {
+        wrapperAnalyser.reset();
     }
     printf("  [*] ObjcMethodXrefScanner Exploit Scanner finished\n");
     return 0;

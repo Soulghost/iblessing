@@ -216,10 +216,6 @@ set(iblessing.SOURCE_LIST
     iblessing/serialization/SymbolWrapperSerializationManager.cpp
     iblessing/serialization/ObjcMethodCallSnapshotSerializationManager.cpp
 
-    # analyzer
-    iblessing/analyzer/deobfuscator/AntiWrapper.cpp
-    iblessing/analyzer/deobfuscator/FunctionPrototype.cpp
-
     # domain
     iblessing/domain/ObjcMethodChain.cpp
     iblessing/domain/ObjcMethodCall.cpp
@@ -234,6 +230,10 @@ set(iblessing.SOURCE_LIST
     iblessing/v2/iblessing/memory/memory.cpp
     iblessing/v2/iblessing/dyld/dyld.cpp
     iblessing/v2/iblessing/objc/objc.cpp
+    
+    iblessing/v2/iblessing/analyser/wrapper/AntiWrapper.cpp
+    iblessing/v2/iblessing/analyser/wrapper/FunctionPrototype.cpp
+    iblessing/v2/iblessing/analyser/wrapper/SimpleWrapperAnalyser.cpp
 
     # examples
     iblessing/v2/example/otool.cpp
@@ -283,10 +283,6 @@ set(iblessing-core.SOURCE_LIST
     iblessing/scanner/dispatcher/ScannerDispatcher.cpp
     iblessing/scanner/driver/ScannerDisassemblyDriver.cpp
 
-    # analyzer
-    iblessing/analyzer/deobfuscator/AntiWrapper.cpp
-    iblessing/analyzer/deobfuscator/FunctionPrototype.cpp
-
     # domain
     iblessing/domain/ObjcMethodChain.cpp
     iblessing/domain/ObjcMethodCall.cpp
@@ -296,6 +292,9 @@ set(iblessing-core.SOURCE_LIST
     iblessing/v2/iblessing/memory/memory.cpp
     iblessing/v2/iblessing/dyld/dyld.cpp
     iblessing/v2/iblessing/objc/objc.cpp
+    iblessing/v2/iblessing/analyser/wrapper/AntiWrapper.cpp
+    iblessing/v2/iblessing/analyser/wrapper/FunctionPrototype.cpp
+    iblessing/v2/iblessing/analyser/wrapper/SimpleWrapperAnalyser.cpp
 )
 
 if (iblessing.CSR_ENABLED)

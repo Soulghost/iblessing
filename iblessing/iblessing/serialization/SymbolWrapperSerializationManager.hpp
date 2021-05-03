@@ -9,9 +9,9 @@
 #ifndef SymbolWrapperSerializationManager_hpp
 #define SymbolWrapperSerializationManager_hpp
 
-#include "AntiWrapper.hpp"
-#include "FunctionPrototype.hpp"
 #include <map>
+#include <iblessing/analyser/wrapper/AntiWrapper.hpp>
+#include <iblessing/analyser/wrapper/FunctionPrototype.hpp>
 
 NS_IB_BEGIN
 
