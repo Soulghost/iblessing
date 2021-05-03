@@ -9,7 +9,7 @@
 #ifndef SymbolXrefAnalyser_hpp
 #define SymbolXrefAnalyser_hpp
 
-#include <iblessing/common/ibtypes.h>
+#include <iblessing-core/common/ibtypes.h>
 #include <iblessing/scanner/driver/ScannerDisassemblyDriver.hpp>
 #include <iblessing/analyser/wrapper/AntiWrapper.hpp>
 #include <iblessing/analyser/wrapper/FunctionPrototype.hpp>
