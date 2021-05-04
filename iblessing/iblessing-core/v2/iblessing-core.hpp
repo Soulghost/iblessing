@@ -9,9 +9,9 @@
 #ifndef iblessing_h
 #define iblessing_h
 
-#include <iblessing-core/mach-o/mach-o.hpp>
-#include <iblessing-core/memory/memory.hpp>
-#include <iblessing-core/dyld/dyld.hpp>
-#include <iblessing-core/objc/objc.hpp>
+#include <iblessing-core/v2/mach-o/mach-o.hpp>
+#include <iblessing-core/v2/memory/memory.hpp>
+#include <iblessing-core/v2/dyld/dyld.hpp>
+#include <iblessing-core/v2/objc/objc.hpp>
 
 #endif /* iblessing_h */
