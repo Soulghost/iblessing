@@ -390,7 +390,7 @@ bool ARM64Runtime::handleMOV(cs_insn *insn, std::string *insnDesc, std::string *
     return true;
 }
 
-bool ARM64Runtime::isRET(cs_insn *insn) {
+bool ARM64Runtime::isRET(shared_ptr<SymbolTable> symtab, cs_insn *insn) {
     const char *mnemonic = insn[0].mnemonic;
     if (strcmp(mnemonic, "ret") == 0) {
         return true;
@@ -398,7 +398,6 @@ bool ARM64Runtime::isRET(cs_insn *insn) {
     if (strcmp(insn[0].mnemonic, "b") == 0 ||
         strncmp(insn[0].mnemonic, "b.", 2) == 0) {
         uint64_t pc = insn[0].detail->arm64.operands[0].imm;
-        SymbolTable *symtab = SymbolTable::getInstance();
         Symbol *symbol = symtab->getSymbolByAddress(pc);
         if (symbol == nullptr) {
             return false;
@@ -420,7 +419,6 @@ bool ARM64Runtime::isRET(cs_insn *insn) {
     }
     if (strcmp(insn[0].mnemonic, "bl") == 0) {
         uint64_t pc = insn[0].detail->arm64.operands[0].imm;
-        SymbolTable *symtab = SymbolTable::getInstance();
         Symbol *symbol = symtab->getSymbolByAddress(pc);
         if (symbol == nullptr) {
             return false;

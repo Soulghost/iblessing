@@ -11,6 +11,7 @@
 
 #include <iblessing-core/infra/Object.hpp>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
+#include <iblessing-core/core/symtab/SymbolTable.hpp>
 
 NS_IB_BEGIN
 
@@ -24,7 +25,7 @@ public:
     static bool handleLDR(cs_insn *insn, std::string *insnDesc, std::string *insnComment, bool swMode = false, bool fatal = true);
     static bool handleADR(cs_insn *insn, std::string *insnDesc, std::string *insnComment, bool fatal = true);
     static bool handleMOV(cs_insn *insn, std::string *insnDesc, std::string *insnComment, bool fatal = true);
-    static bool isRET(cs_insn *insn);
+    static bool isRET(std::shared_ptr<SymbolTable> symtab, cs_insn *insn);
 };
 
 NS_IB_END

@@ -200,7 +200,7 @@ int ObjcUnserializationScanner::start() {
             }
             
             // detect return
-            if (ARM64Runtime::isRET(insn)) {
+            if (ARM64Runtime::isRET(nullptr, insn)) {
                 *stop = true;
                 return;
             }

@@ -7,22 +7,29 @@
 //
 
 #include "ObjcClassXrefScanner.hpp"
-#include <iblessing-core/v2/util/termcolor.h>
-#include "DyldSimulator.hpp"
 #include "ARM64Runtime.hpp"
 #include "ARM64Disasembler.hpp"
 #include "ARM64Runtime.hpp"
 #include "ARM64ThreadState.hpp"
-#include "VirtualMemory.hpp"
-#include "SymbolTable.hpp"
+#include <iblessing-core/v2/util/termcolor.h>
 #include <iblessing-core/v2/util/StringUtils.h>
-#include "ObjcRuntime.hpp"
+#include <iblessing-core/scanner/dispatcher/ScannerDispatcher.hpp>
+#include <iblessing-core/v2/analyser/wrapper/SimpleWrapperAnalyser.hpp>
+#include <iblessing/builtin/serialization/SymbolWrapperSerializationManager.hpp>
 #include <set>
 
 using namespace std;
 using namespace iblessing;
 
+//__attribute__((constructor))
+//static void scannerRegister() {
+//    ScannerDispatcher::getInstance()->registerScanner("symbol-wrapper", []() {
+//        return new ObjcClassXrefScanner("objc-class-xref", "scan for class xrefs");
+//    });
+//};
+
 int ObjcClassXrefScanner::start() {
+    assert(macho != nullptr);
     cout << "[*] start Objc Class Xref Scanner" << endl;
     if (options.find("classes") == options.end()) {
         cout << termcolor::red;
@@ -53,7 +60,10 @@ int ObjcClassXrefScanner::start() {
     printf("\n");
     
     printf("  [*] Step 1. locate class refs\n");
-    VirtualMemory *vm = VirtualMemory::progressDefault();
+    shared_ptr<Memory> memory = Memory::createFromMachO(macho);
+    assert(memory->loadSync() == IB_SUCCESS);
+    this->memory = memory;
+    shared_ptr<VirtualMemory> vm = memory->fileMemory;
     DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
         if (classRecords.find((symbolName)) != classRecords.end()) {
             uint64_t symbolAddr = addr + addend;
@@ -72,28 +82,11 @@ int ObjcClassXrefScanner::start() {
         }
     }
     
-    
     printf("  [*] Step 2. find __TEXT,__text\n");
-    struct ib_section_64 *textSect = nullptr;
-    for (struct ib_segment_command_64 *seg : vm->segmentHeaders) {
-        // FIX: https://github.com/Soulghost/iblessing/issues/5
-//        if (strncmp(seg->segname, "__TEXT", 16) == 0) {
-        struct ib_section_64 *sect = (struct ib_section_64 *)((uint8_t *)seg + sizeof(struct ib_segment_command_64));
-        if (strncmp(sect->sectname, "__text", 16) == 0) {
-            textSect = sect;
-            break;
-        }
-//        }
-    }
-    if (!textSect) {
-        cout << "\t" << termcolor::red << "[-] Error: cannot find __TEXT,__text section";
-        cout << termcolor::reset << endl;
-        return 1;
-    }
+    struct ib_section_64 *textSect = vm->textSect;
     printf("\t[+] find __TEXT,__text at 0x%x\n", textSect->offset);
     
     printf("  [*] Step 3. scan in __text\n");
-    
     ARM64ThreadState *state = ARM64ThreadState::mainThreadState();
 #if 1
     ARM64Disassembler *disasm = new ARM64Disassembler();
@@ -182,7 +175,7 @@ int ObjcClassXrefScanner::start() {
 #endif
     
     printf("  [*] Step 4. symbolicate ref addresses\n");
-    SymbolTable *symtab = SymbolTable::getInstance();
+    shared_ptr<SymbolTable> symtab = macho->context->symtab;
     for (auto it = classRecords.begin(); it != classRecords.end(); it++) {
         string classSymbol = it->first;
         printf("    [+] %s -|\n", classSymbol.c_str());

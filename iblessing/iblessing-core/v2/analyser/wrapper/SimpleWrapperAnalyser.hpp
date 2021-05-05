@@ -35,6 +35,10 @@ public:
     std::pair<bool, std::string> isWrappedCall(uint64_t address);
     AntiWrapperArgs performWrapperTransform(uint64_t addr, AntiWrapperArgs args);
     
+    // inner usage
+    std::map<std::string, FunctionProtoType> symbol2proto;
+    AntiWrapper antiWrapper;
+    
 protected:
     std::shared_ptr<MachO> macho;
     std::shared_ptr<Memory> memory;
@@ -42,12 +46,11 @@ protected:
     uc_engine *uc;
     uc_hook memexp_hook;
     uc_context *ctx;
-    std::map<std::string, FunctionProtoType> symbol2proto;
+    
     
     uint64_t funcStartCursor = 0;
     uint8_t progressCur = 0;
     bool hasMemLoader = false;
-    AntiWrapper antiWrapper;
     AntiWrapperRegLinkGraph currentGraph;
 };
 

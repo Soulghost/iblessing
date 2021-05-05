@@ -96,11 +96,11 @@ ib_return_t FunctionXrefAnalyser::start() {
                     xrefs[it->first].insert(xref);
                 }
             }
-            xrefs.insert(currentXREFs.begin(), currentXREFs.end());
+//            xrefs.insert(currentXREFs.begin(), currentXREFs.end());
             currentXREFs.clear();
         };
         
-        if (ARM64Runtime::isRET(insn) ||
+        if (ARM64Runtime::isRET(symtab, insn) ||
             strcmp(insn->mnemonic, "brk") == 0) {
             recordRET();
             return;
@@ -128,7 +128,8 @@ ib_return_t FunctionXrefAnalyser::start() {
                     SymbolXREF xref = SymbolXREF();
                     xref.name = symbol->name;
                     xref.startAddr = funcStartCursor;
-                    xref.xrefAddrs.insert(pc);
+                    xref.callerAddr = insn->address;
+                    xref.symbolAddr = pc;
                     currentXREFs[symbol->name].insert(xref);
                 }
             } else {
