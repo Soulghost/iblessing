@@ -17,6 +17,7 @@
 #endif
 
 #include <dlfcn.h>
+#include <cassert>
 
 #ifdef IB_PLATFORM_DARWIN
 namespace fs = std::filesystem;
