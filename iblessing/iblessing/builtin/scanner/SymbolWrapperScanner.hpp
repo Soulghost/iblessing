@@ -18,15 +18,10 @@ NS_IB_BEGIN
 
 class SymbolWrapperScanner : public Scanner {
 public:
-    SymbolWrapperScanner(std::string name, std::string desc): Scanner(name, desc) {
-        init();
-    }
+    SymbolWrapperScanner(std::string name, std::string desc): Scanner(name, desc) {}
     
     virtual ~SymbolWrapperScanner() {};
     virtual int start();
-    
-private:
-    void init();
 };
 
 NS_IB_END

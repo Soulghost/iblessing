@@ -72,20 +72,20 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "otool"
-            isEnabled = "NO">
+            argument = "-l"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-i"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "ida-symbolic"
-            isEnabled = "NO">
+            argument = "symbol-wrapper"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "objc-msg-xref"
-            isEnabled = "YES">
+            argument = "app-info"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "objc-msg-xref-json"
@@ -101,7 +101,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/opt/one-btn/tmp/apps/Chrome/Payload/stable.app/Chrome"
-            isEnabled = "NO">
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
@@ -116,8 +116,8 @@
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/opt/one-btn/tmp/apps/&#x6296;&#x97f3;&#x77ed;&#x89c6;&#x9891;/Payload/Aweme.app/Aweme"
-            isEnabled = "YES">
+            argument = "/opt/one-btn/tmp/apps/&#x6296;&#x97f3;&#x77ed;&#x89c6;&#x9891;/Payload/Aweme.app"
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d"
@@ -125,11 +125,11 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;antiWrapper=1;findAllPath=2&apos;"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "&apos;mode=jtool2&apos;"
-            isEnabled = "NO">
+            argument = "symbols=_objc_msgSend,_NSClassFromString"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;diff=/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug/new1/Chrome_method-xrefs.iblessing.txt&apos;"

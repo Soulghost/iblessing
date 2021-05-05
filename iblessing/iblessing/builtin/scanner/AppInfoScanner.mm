@@ -10,12 +10,20 @@
 #include "AppInfoScanner.hpp"
 #include <iblessing-core/v2/util/termcolor.h>
 #include <iblessing-core/v2/util/StringUtils.h>
+#include <iblessing-core/scanner/dispatcher/ScannerDispatcher.hpp>
 #include <dirent.h>
 #include <vector>
 #include <array>
 
 using namespace std;
 using namespace iblessing;
+
+__attribute__((constructor))
+static void registry() {
+    ScannerDispatcher::getInstance()->registerScanner("app-info", []() {
+        return new AppInfoScanner("app-info", "extract app infos");
+    });
+}
 
 int AppInfoScanner::start() {
     cout << "[*] start App Info Scanner" << endl;

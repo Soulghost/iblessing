@@ -23,7 +23,6 @@
 #include <pthread.h>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
-#include "SymbolXREFScanner.hpp"
 #include "ScannerDispatcher.hpp"
 #include "VirtualMemoryV2.hpp"
 #include "CoreFoundation.hpp"
@@ -426,7 +425,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     
     // detect return
     // FIXME: wrapped return, tiktok 0x1064B6A08
-    if (ARM64Runtime::isRET(insn)) {
+    if (ARM64Runtime::isRET(symtab, insn)) {
         reachToEnd = true;
         ctx->setLastInsn(insn);
         free(codes);
