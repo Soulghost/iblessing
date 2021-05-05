@@ -165,6 +165,9 @@ set(iblessing.SOURCE_LIST
     iblessing/builtin/scanner/assistance/state/ProgramStateManager.cpp
     iblessing/builtin/scanner/sub-scanner/objc-msg-xref/ObjcReflectionInfoManager.cpp
 
+    # registry
+    iblessing/registry/PluginRegistry.cpp
+
     # generator
     iblessing/builtin/generator/Generator.cpp
     iblessing/builtin/generator/GeneratorDispatcher.cpp
