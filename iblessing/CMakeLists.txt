@@ -48,7 +48,7 @@ target_link_libraries(iblessing-core ${CMAKE_SOURCE_DIR}/../submodules/keystone/
 target_link_libraries(iblessing iblessing-core)
 
 if ((iblessing.PLATFORM STREQUAL "linux")) 
-    # target_link_libraries(iblessing stdc++fs)
+    target_link_libraries(iblessing dl)
     target_link_libraries(iblessing-core stdc++fs)
 endif()
 
