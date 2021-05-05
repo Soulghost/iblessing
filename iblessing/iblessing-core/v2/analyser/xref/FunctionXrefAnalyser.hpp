@@ -24,7 +24,8 @@ struct SymbolXREF {
     std::string name;
     uint64_t startAddr;
     uint64_t endAddr;
-    std::set<uint64_t> xrefAddrs;
+    uint64_t symbolAddr;
+    uint64_t callerAddr;
     
     bool operator < (const SymbolXREF &rhs) const {
         return startAddr < rhs.startAddr;
