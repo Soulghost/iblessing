@@ -13,6 +13,7 @@
 #include "argparse.h"
 #include "GeneratorDispatcher.hpp"
 #include "TestManager.hpp"
+#include <iblessing/registry/PluginRegistry.h>
 
 #ifdef IB_CSR_ENABLED
 #include "csrutil.hpp"
@@ -37,6 +38,8 @@ int main(int argc, const char *argv[]) {
     // hello text
     printf("[***] iblessing iOS Security Exploiting Toolkit Beta 1.0.0.2 (http://blog.asm.im)\n");
     printf("[***] Author: Soulghost (高级页面仔) @ (https://github.com/Soulghost)\n");
+    
+    registerPlugins();
 
 #ifdef IB_CSR_ENABLED
     if (CSRUtil::isSIPon()) {
