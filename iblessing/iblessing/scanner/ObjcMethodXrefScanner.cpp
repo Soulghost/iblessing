@@ -52,7 +52,7 @@
 //#define SkipPreScannerDriver
 //#define Stalker
 //#define UsingSet
-//#define DebugMethod "mlist"
+//#define DebugMethod "retrievePersistedAnonymousID"
 //#define DebugTrackCall
 //#define DebugClass  "AFCXbsManager"
 //#define ThreadCount 8
