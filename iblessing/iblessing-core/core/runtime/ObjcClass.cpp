@@ -307,6 +307,7 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
         }
     }
     
+    // handle property
     uint64_t objc_class_propertys_offset = objc_methodlist_offset + 4 * 8;
     uint64_t objc_class_propertys_addr = rf64rn(objc_class_propertys_offset);
     if (objc_class_propertys_addr != 0) {
@@ -331,7 +332,7 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
                 }
                 ObjcProperty *objcProperty = new ObjcProperty(property);
                 objcProperty->clazz = info;
-//                info->propertyList.pushBack(objcProperty);
+                info->propertyList.pushBack(objcProperty);
                 objc_class_property_addr += 16;
             }
         }
