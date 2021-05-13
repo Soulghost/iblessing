@@ -104,6 +104,12 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
         return nullptr;
     }
     info->className = className;
+    
+    if (info->className.compare("BLFunTiebarFlowVideoCell") == 0) {
+        
+        printf("\nBLFunTiebarFlowVideoCell");
+    }
+    
     // get method list from objc_class->rw_data->const->method_list
     uint64_t objc_methodlist_offset = objc_class_ro_addr + 32;
 #if 0
@@ -301,6 +307,35 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
         }
     }
     
+    uint64_t objc_class_propertys_offset = objc_methodlist_offset + 4 * 8;
+    uint64_t objc_class_propertys_addr = rf64rn(objc_class_propertys_offset);
+    if (objc_class_propertys_addr != 0) {
+        uint32_t objc_class_propertys_count = rf32rn(objc_class_propertys_addr + 4);
+        if (objc_class_propertys_count > 0) {
+            uint64_t objc_class_property_addr = objc_class_propertys_addr + 8;
+            while (objc_class_propertys_count--) {
+                struct ib_property_t *property_ptr = (struct ib_property_t *)vm2->readBySize(objc_class_property_addr, sizeof(struct ib_property_t));
+                if (!property_ptr) {
+                    objc_class_property_addr += 16;
+                    continue;
+                }
+                struct ib_property_t property = *(struct ib_property_t *)property_ptr;
+                uint64_t nameAddr = (uint64_t)property.name;
+                uint64_t attributesAddr = (uint64_t)property.attributes;
+                // fix structure
+                property.name = vm2->readString(nameAddr, 1000);
+                property.attributes = vm2->readString(attributesAddr, 1000);
+                if (!property.name || !property.attributes) {
+                    objc_class_property_addr += 16;
+                    continue;
+                }
+                ObjcProperty *objcProperty = new ObjcProperty(property);
+                objcProperty->clazz = info;
+//                info->propertyList.pushBack(objcProperty);
+                objc_class_property_addr += 16;
+            }
+        }
+    }
     
     // realize superclass
     uint64_t objc_superclass_offset = objc_data_addr + 8;

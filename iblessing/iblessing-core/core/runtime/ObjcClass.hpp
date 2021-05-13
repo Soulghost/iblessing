@@ -15,6 +15,7 @@
 #include <iblessing-core/infra/Vector.hpp>
 #include <iblessing-core/core/runtime/ObjcMethod.hpp>
 #include <iblessing-core/core/runtime/ObjcIvar.hpp>
+#include <iblessing-core/core/runtime/ObjcProperty.hpp>
 #include <iblessing-core/core/memory/VirtualMemoryV2.hpp>
 #include <iblessing-core/core/symtab/SymbolTable.hpp>
 
@@ -36,6 +37,7 @@ public:
     std::string className;
     Vector<ObjcMethod *> methodList;
     Vector<ObjcIvar *> ivarList;
+    Vector<ObjcProperty *> propertyList;
     ObjcClassRuntimeInfo *superClassInfo;
     std::unordered_map<std::string, ObjcMethod *> name2method;
     std::unordered_map<std::string, ObjcIvar *> name2ivar;

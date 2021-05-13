@@ -87,6 +87,8 @@
 		68B258B726429CE6008FA1E2 /* PredicateScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE84124C572A0002CC5E8 /* PredicateScanner.cpp */; };
 		68B258BF26429D01008FA1E2 /* ObjcUnserializationScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6861982824E9645D003AB00A /* ObjcUnserializationScanner.cpp */; };
 		68C362FA24C9C9D100441950 /* libSystem.B.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 68C362F924C9C9D000441950 /* libSystem.B.tbd */; };
+		CA9817DF264CCF7000FB109E /* ObjcProperty.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CA9817DD264CCF7000FB109E /* ObjcProperty.hpp */; };
+		CA9817E0264CCF7000FB109E /* ObjcProperty.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CA9817DE264CCF7000FB109E /* ObjcProperty.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -361,6 +363,8 @@
 		68D755D824C714EC0057E092 /* libcapstone.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libcapstone.a; sourceTree = "<group>"; };
 		68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMsgXREFServerGenerator.cpp; sourceTree = "<group>"; };
 		68D755DB24C8012A0057E092 /* ObjcMsgXREFServerGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMsgXREFServerGenerator.hpp; sourceTree = "<group>"; };
+		CA9817DD264CCF7000FB109E /* ObjcProperty.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ObjcProperty.hpp; sourceTree = "<group>"; };
+		CA9817DE264CCF7000FB109E /* ObjcProperty.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcProperty.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -591,24 +595,26 @@
 		685CE7F924C57079002CC5E8 /* runtime */ = {
 			isa = PBXGroup;
 			children = (
+				685CE80224C57079002CC5E8 /* ARM64Runtime.hpp */,
 				685CE7FA24C57079002CC5E8 /* ARM64Runtime.cpp */,
+				685CE80324C57079002CC5E8 /* ObjcClass.hpp */,
 				685CE7FB24C57079002CC5E8 /* ObjcClass.cpp */,
-				685CE7FC24C57079002CC5E8 /* ObjcMethod.cpp */,
 				685CE7FD24C57079002CC5E8 /* ObjcObject.hpp */,
+				685CE80524C57079002CC5E8 /* ObjcObject.cpp */,
+				685CE80024C57079002CC5E8 /* ObjcRuntime.hpp */,
 				685CE7FE24C57079002CC5E8 /* ObjcRuntime.cpp */,
 				685CE7FF24C57079002CC5E8 /* ObjcIvar.hpp */,
-				685CE80024C57079002CC5E8 /* ObjcRuntime.hpp */,
 				685CE80124C57079002CC5E8 /* ObjcIvar.cpp */,
-				685CE80224C57079002CC5E8 /* ARM64Runtime.hpp */,
-				685CE80324C57079002CC5E8 /* ObjcClass.hpp */,
+				CA9817DD264CCF7000FB109E /* ObjcProperty.hpp */,
+				CA9817DE264CCF7000FB109E /* ObjcProperty.cpp */,
 				685CE80424C57079002CC5E8 /* ObjcMethod.hpp */,
-				685CE80524C57079002CC5E8 /* ObjcObject.cpp */,
+				685CE7FC24C57079002CC5E8 /* ObjcMethod.cpp */,
 				68770C6F24DAD45C003F9652 /* ObjcBlock.cpp */,
 				68770C7024DAD45C003F9652 /* ObjcBlock.hpp */,
 				68666DB025288E370014BC91 /* ObjcCategory.cpp */,
 				68666DB125288E370014BC91 /* ObjcCategory.hpp */,
-				6817506F25BA7B920046328F /* SimpleSimProcedure.cpp */,
 				6817507025BA7B920046328F /* SimpleSimProcedure.hpp */,
+				6817506F25BA7B920046328F /* SimpleSimProcedure.cpp */,
 			);
 			path = runtime;
 			sourceTree = "<group>";
@@ -637,8 +643,8 @@
 			isa = PBXGroup;
 			children = (
 				685CE82024C5711D002CC5E8 /* termcolor.h */,
-				685CE82224C57130002CC5E8 /* StringUtils.cpp */,
 				685CE82324C57131002CC5E8 /* StringUtils.h */,
+				685CE82224C57130002CC5E8 /* StringUtils.cpp */,
 			);
 			path = util;
 			sourceTree = "<group>";
@@ -1158,6 +1164,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CA9817DF264CCF7000FB109E /* ObjcProperty.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1373,6 +1380,7 @@
 				68B255F826401F2E008FA1E2 /* ObjcClass.cpp in Sources */,
 				68B255F926401F2E008FA1E2 /* ObjcMethod.cpp in Sources */,
 				68B255FA26401F2E008FA1E2 /* ObjcRuntime.cpp in Sources */,
+				CA9817E0264CCF7000FB109E /* ObjcProperty.cpp in Sources */,
 				68B255FB26401F2E008FA1E2 /* ObjcIvar.cpp in Sources */,
 				68B255FC26401F2E008FA1E2 /* ObjcObject.cpp in Sources */,
 				68B255FD26401F2E008FA1E2 /* ObjcBlock.cpp in Sources */,

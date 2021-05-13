@@ -109,7 +109,7 @@ bool has_suffix(const std::string &str, const std::string &suffix)
 }
 
 std::string capitalized(const std::string &str)
-{    
+{
     std::string firstChar = str.substr(0,1);
     transform(firstChar.begin(), firstChar.end(), firstChar.begin(), ::toupper);
     return firstChar + str.substr(1);

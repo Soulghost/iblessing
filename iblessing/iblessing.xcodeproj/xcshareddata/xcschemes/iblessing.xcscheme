@@ -73,7 +73,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-l"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-i"
@@ -81,6 +81,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "symbol-wrapper"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "objc-msg-xref"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -97,10 +101,14 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-f"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/opt/one-btn/tmp/apps/Chrome/Payload/stable.app/Chrome"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/renekton/Downloads/Payload/bigoshow.app/bigoshow"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
@@ -121,7 +129,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;antiWrapper=1;findAllPath=2&apos;"
@@ -129,7 +137,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "symbols=_objc_msgSend,_NSClassFromString"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;diff=/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug/new1/Chrome_method-xrefs.iblessing.txt&apos;"
