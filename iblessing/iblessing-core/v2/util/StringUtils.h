@@ -54,6 +54,7 @@ bool CC_DLL has_prefix(const std::string &str, const std::string &prefix);
 bool CC_DLL has_suffix(const std::string &str, const std::string &suffix);
 std::string CC_DLL path_join(std::string a, std::string b);
 int countNonPrintablecharacters(const char *str, int limit);
+std::string capitalized(const std::string &str);
 
 };
 

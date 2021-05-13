@@ -1634,7 +1634,7 @@
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 6CMYQQFFT8;
+				DEVELOPMENT_TEAM = WKW49C29JL;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -1649,7 +1649,7 @@
 					"$(PROJECT_DIR)/iblessing/vendor/termcolor",
 					"$(PROJECT_DIR)/iblessing/vendor/libs",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.soulghost.iblessing;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ymz.iblessing;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SYSTEM_HEADER_SEARCH_PATHS = "${inherited}";
@@ -1663,7 +1663,7 @@
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 6CMYQQFFT8;
+				DEVELOPMENT_TEAM = WKW49C29JL;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -1676,7 +1676,7 @@
 					"$(PROJECT_DIR)/iblessing/vendor/termcolor",
 					"$(PROJECT_DIR)/iblessing/vendor/libs",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.soulghost.iblessing;
+				PRODUCT_BUNDLE_IDENTIFIER = com.ymz.iblessing;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SYMROOT = build;
