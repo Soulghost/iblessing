@@ -26,27 +26,6 @@ class ObjcClassRuntimeInfo;
 class ObjcProperty : public Object {
 public:
     
-    /*
-     @property (readonly) NSString *name;
-     @property (readonly) NSString *attributeString;
-     @property (readonly) CDType *type;
-     @property (readonly) NSArray *attributes;
-
-     @property (strong) NSString *attributeStringAfterType;
-
-     @property (nonatomic, readonly) NSString *defaultGetter;
-     @property (nonatomic, readonly) NSString *defaultSetter;
-
-     @property (strong) NSString *customGetter;
-     @property (strong) NSString *customSetter;
-
-     @property (nonatomic, readonly) NSString *getter;
-     @property (nonatomic, readonly) NSString *setter;
-
-     @property (readonly) BOOL isReadOnly;
-     @property (readonly) BOOL isDynamic;
-
-     **/
     struct ib_property_t raw;
     ObjcClassRuntimeInfo *clazz;
     std::string name;
@@ -60,8 +39,11 @@ public:
     std::string customGetter;
     std::string customSetter;
     
+    std::string assignedType;
+    
     bool isReadOnly;
     bool isDynamic;
+    bool isNonatomic;
     
     ObjcProperty(struct ib_property_t property);
     std::string getter();
