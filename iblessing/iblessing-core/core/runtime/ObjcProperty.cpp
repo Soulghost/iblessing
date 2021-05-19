@@ -9,6 +9,7 @@
 #include "ObjcProperty.hpp"
 #include "StringUtils.h"
 #include <algorithm>
+#include <sstream>
 using namespace std;
 using namespace iblessing;
 
@@ -52,29 +53,7 @@ void ObjcProperty::handleAttributeString() {
     attributes.pop_back();//移除变量名 防止误判
     std::string typeString = attributes.front();
     
-    if (typeString.find("TB") != std::string::npos) {
-        type = "BOOL";
-    } else if (typeString.find("Tc") != std::string::npos) {
-        type = "char";
-    } else if (typeString.find("Td") != std::string::npos) {
-        type = "double";
-    } else if (typeString.find("Ti") != std::string::npos) {
-        type = "int";
-    } else if (typeString.find("Tf") != std::string::npos) {
-        type = "float";
-    } else if (typeString.find("Tl") != std::string::npos) {
-        type = "long";
-    } else if (typeString.find("Ts") != std::string::npos) {
-        type = "short";
-    } else if (typeString.find("TI") != std::string::npos) {
-        type = "unsigned";
-    } else if (typeString.find("T@\"") != std::string::npos) {
-        std::size_t front = typeString.find("T@\"");
-        std::size_t back = typeString.rfind("\"", typeString.length());
-        type = typeString.substr(front+3, back-3);
-    } else if (typeString.find("T@") != std::string::npos) {
-        type = "id";
-    }
+    type = this->getTypeWithTypeSign(typeString);
     
     for (std::string att: attributes) {
         
@@ -96,5 +75,46 @@ void ObjcProperty::handleAttributeString() {
             assignedType = "weak";
         }
     }
+}
+
+std::string ObjcProperty::getTypeWithTypeSign(std::string typeSign) {
+    
+    std::string type;
+    if (typeSign.find("TB") != std::string::npos) {
+        type = "BOOL";
+    } else if (typeSign.find("Tc") != std::string::npos) {
+        type = "char";
+    } else if (typeSign.find("Td") != std::string::npos) {
+        type = "double";
+    } else if (typeSign.find("Ti") != std::string::npos) {
+        type = "int";
+    } else if (typeSign.find("Tf") != std::string::npos) {
+        type = "float";
+    } else if (typeSign.find("Tl") != std::string::npos) {
+        type = "long";
+    } else if (typeSign.find("Ts") != std::string::npos) {
+        type = "short";
+    } else if (typeSign.find("TI") != std::string::npos) {
+        type = "unsigned";
+    } else if (typeSign.find("T@\"") != std::string::npos) {
+        std::size_t front = typeSign.find("T@\"");
+        std::size_t back = typeSign.rfind("\"", typeSign.length());
+        type = typeSign.substr(front+3, back-3)+" *";
+    } else if (typeSign.find("T@") != std::string::npos) {
+        type = "id";
+    }
+    return type;
+}
+
+std::string ObjcProperty::description() {
+    
+    std::string nonatomic = isNonatomic?"nonatomic, ":"atomic, ";
+    std::string readOnly = isReadOnly?" , readonly":"";
+    std::string getter = customGetter.empty()?"":" , getter="+customGetter;
+    std::string setter = customSetter.empty()?"":" , setter="+customSetter;
+    std::stringstream ss;
+    ss<<"@property("<<nonatomic<<assignedType<<readOnly<<getter<<setter<<")"<<type<<" "<<name;
+    std::string description = ss.str();
+    return description;
 }
 

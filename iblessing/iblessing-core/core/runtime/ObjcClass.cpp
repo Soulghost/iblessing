@@ -333,6 +333,8 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
                 ObjcProperty *objcProperty = new ObjcProperty(property);
                 objcProperty->clazz = info;
                 info->propertyList.pushBack(objcProperty);
+                std::string description = objcProperty->description();
+                
                 objc_class_property_addr += 16;
             }
         }

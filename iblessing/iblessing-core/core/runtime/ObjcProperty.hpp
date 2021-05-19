@@ -48,8 +48,10 @@ public:
     ObjcProperty(struct ib_property_t property);
     std::string getter();
     std::string setter();
+    std::string description();
 private:
     void handleAttributeString();
+    std::string getTypeWithTypeSign(std::string typeSign);
 };
 NS_IB_END
 #endif /* ObjcProperty_hpp */
