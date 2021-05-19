@@ -51,6 +51,7 @@ public:
     std::string description();
 private:
     void handleAttributeString();
+    std::string handleStructWithTypeSign(std::string typeSign);
     std::string getTypeWithTypeSign(std::string typeSign);
 };
 NS_IB_END

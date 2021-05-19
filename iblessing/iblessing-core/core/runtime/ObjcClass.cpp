@@ -105,9 +105,9 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
     }
     info->className = className;
     
-    if (info->className.compare("BLFunTiebarFlowVideoCell") == 0) {
+    if (info->className.compare("BLTiebarBrowseCellModel") == 0) {
         
-        printf("\nBLFunTiebarFlowVideoCell");
+        printf("\BLTiebarBrowseCellModel");
     }
     
     // get method list from objc_class->rw_data->const->method_list
@@ -307,6 +307,10 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
         }
     }
     
+    if (info->className.compare("BLTiebarBrowseCellModel") == 0) {
+        
+        printf("\BLTiebarBrowseCellModel");
+    }
     // handle property
     uint64_t objc_class_propertys_offset = objc_methodlist_offset + 4 * 8;
     uint64_t objc_class_propertys_addr = rf64rn(objc_class_propertys_offset);
