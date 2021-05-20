@@ -72,7 +72,8 @@ void ObjcProperty::handleAttributeString() {
         } else if (StringUtils::has_prefix(att, "&")) {
             assignedType = "retain";
         } else if (StringUtils::has_prefix(att, "W")) {
-            assignedType = "weak";
+//            assignedType = "weak";
+            type = "__weak "+type;
         }
     }
 }
@@ -81,39 +82,43 @@ std::string ObjcProperty::getTypeWithTypeSign(std::string typeSign) {
     
     std::string type;
     if (typeSign.find("TB") != std::string::npos) {
-        type = "_Bool";
+        type = "_Bool ";
     } else if (typeSign.find("Tc") != std::string::npos) {
-        type = "char";
+        type = "char ";
     } else if (typeSign.find("TC") != std::string::npos) {
-        type = "unsigned char";
+        type = "unsigned char ";
     } else if (typeSign.find("Td") != std::string::npos) {
-        type = "double";
+        type = "double ";
     } else if (typeSign.find("Ti") != std::string::npos) {
-        type = "int";
+        type = "int ";
     } else if (typeSign.find("TI") != std::string::npos) {
-        type = "unsigned int";
+        type = "unsigned int ";
     } else if (typeSign.find("Tf") != std::string::npos) {
-        type = "float";
+        type = "float ";
     } else if (typeSign.find("Tl") != std::string::npos) {
-        type = "long";
+        type = "long ";
     } else if (typeSign.find("Ts") != std::string::npos) {
-        type = "short";
+        type = "short ";
     } else if (typeSign.find("Tq") != std::string::npos) {
-        type = "long long";
+        type = "long long ";
     } else if (typeSign.find("TQ") != std::string::npos) {
-        type = "unsigned long long";
+        type = "unsigned long long ";
     } else if (typeSign.find("T#") != std::string::npos) {
-        type = "Class";
+        type = "Class ";
     } else if (typeSign.find("T:") != std::string::npos) {
-        type = "SEL";
+        type = "SEL ";
+    } else if (typeSign.find("Tr*") != std::string::npos) {
+        type = "const char *";
     } else if (typeSign.find("T@\"") != std::string::npos) {
         std::size_t front = typeSign.find("T@\"");
         std::size_t back = typeSign.rfind("\"", typeSign.length());
         type = typeSign.substr(front+3, back-3)+" *";
     } else if (typeSign.find("T@") != std::string::npos) {
-        type = "id";
+        type = "id ";
     } else if (typeSign.find("T{") != std::string::npos) {//struct
-        type = "id";
+        type = this->handleStructWithTypeSign(typeSign);
+    } else if (typeSign.find("T^{") != std::string::npos) {//block
+        type = this->handleStructWithTypeSign(typeSign);
     }
     return type;
 }
@@ -121,6 +126,8 @@ std::string ObjcProperty::getTypeWithTypeSign(std::string typeSign) {
 std::string ObjcProperty::handleStructWithTypeSign(std::string typeSign) {
     if (typeSign.find("T{") != std::string::npos) {//struct
         type = "id";
+    } else if (typeSign.find("T^{") != std::string::npos) {//block
+        type = this->handleStructWithTypeSign(typeSign);
     }
     return "";
 }
@@ -133,7 +140,7 @@ std::string ObjcProperty::description() {
     std::string setter = customSetter.empty()?"":", setter="+customSetter;
     std::string assigned = assignedType.empty()?"":", "+assignedType;
     std::stringstream ss;
-    ss<<"@property("<<nonatomic<<assigned<<readOnly<<getter<<setter<<")"<<type<<" "<<name;
+    ss<<"@property("<<nonatomic<<assigned<<readOnly<<getter<<setter<<")"<<type<<name;
     std::string description = ss.str();
     
     if (this->name.compare("flowCellSize") == 0) {

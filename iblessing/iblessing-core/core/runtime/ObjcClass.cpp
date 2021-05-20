@@ -107,7 +107,7 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
     
     if (info->className.compare("BLTiebarBrowseCellModel") == 0) {
         
-        printf("\BLTiebarBrowseCellModel");
+        printf("\nBLTiebarBrowseCellModel");
     }
     
     // get method list from objc_class->rw_data->const->method_list
@@ -309,7 +309,11 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
     
     if (info->className.compare("BLTiebarBrowseCellModel") == 0) {
         
-        printf("\BLTiebarBrowseCellModel");
+        printf("\nBLTiebarBrowseCellModel");
+    }
+    if (info->className.compare("APMPBMeasurementConfig") == 0) {
+        
+        printf("\nAPMPBMeasurementConfig");
     }
     // handle property
     uint64_t objc_class_propertys_offset = objc_methodlist_offset + 4 * 8;
