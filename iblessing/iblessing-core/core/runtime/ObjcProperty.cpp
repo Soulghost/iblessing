@@ -125,11 +125,22 @@ std::string ObjcProperty::getTypeWithTypeSign(std::string typeSign) {
 
 std::string ObjcProperty::handleStructWithTypeSign(std::string typeSign) {
     if (typeSign.find("T{") != std::string::npos) {//struct
-        type = "id";
+        size_t structNameIndex = typeSign.find("{");
+        size_t structTypeIndex = typeSign.find("=");
+        std::string structName = typeSign.substr(structNameIndex+1, structTypeIndex-2);
+        std::string structType = typeSign.substr(structTypeIndex+1);
+        type = "struct{";
+        for (auto i = structType.begin(); i<=structType.end()-2; i++) {
+            std::string s = StringUtils::format("%c",*i);
+            std::string subType = getTypeWithTypeSign(s);
+            type += StringUtils::format("%s = %s%ld;", s.c_str(), s.c_str(), i-structType.begin());
+        }
+        type += "}";
+        printf("end");
     } else if (typeSign.find("T^{") != std::string::npos) {//block
-        type = this->handleStructWithTypeSign(typeSign);
+        type = "id";
     }
-    return "";
+    return type;
 }
 
 std::string ObjcProperty::description() {

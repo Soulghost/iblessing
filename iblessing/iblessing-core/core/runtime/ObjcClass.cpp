@@ -315,6 +315,10 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
         
         printf("\nAPMPBMeasurementConfig");
     }
+    if (info->className.compare("TestClass") == 0) {
+        
+        printf("\nTestClass");
+    }
     // handle property
     uint64_t objc_class_propertys_offset = objc_methodlist_offset + 4 * 8;
     uint64_t objc_class_propertys_addr = rf64rn(objc_class_propertys_offset);

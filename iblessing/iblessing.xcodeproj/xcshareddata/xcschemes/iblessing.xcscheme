@@ -109,6 +109,10 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/Users/renekton/Downloads/Payload/bigoshow.app/bigoshow"
+            isEnabled = "NO">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/renekton/Library/Developer/Xcode/DerivedData/class-dump-favdwzgucbwyhsdpursqizobeslu/Build/Products/Debug/class-dump"
             isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
