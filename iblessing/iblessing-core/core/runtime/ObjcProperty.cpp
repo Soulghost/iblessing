@@ -52,7 +52,9 @@ void ObjcProperty::handleAttributeString() {
     attributes = StringUtils::split(attributeString,',');
     //attributes.pop_back();//移除变量名 防止误判
     std::string typeString = attributes.front();
-    
+    if (StringUtils::has_prefix(typeString, "T")) {
+        typeString = typeString.substr(1);//移除T
+    }
     type = this->getTypeWithTypeSign(typeString);
     
     for (std::string att: attributes) {
@@ -81,50 +83,54 @@ void ObjcProperty::handleAttributeString() {
 std::string ObjcProperty::getTypeWithTypeSign(std::string typeSign) {
     
     std::string type;
-    if (typeSign.find("TB") != std::string::npos) {
+    if (StringUtils::has_prefix(typeSign, "B")) {
         type = "_Bool ";
-    } else if (typeSign.find("Tc") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "c")) {
         type = "char ";
-    } else if (typeSign.find("TC") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "C")) {
         type = "unsigned char ";
-    } else if (typeSign.find("Td") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "d")) {
         type = "double ";
-    } else if (typeSign.find("Ti") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "i")) {
         type = "int ";
-    } else if (typeSign.find("TI") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "I")) {
         type = "unsigned int ";
-    } else if (typeSign.find("Tf") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "f")) {
         type = "float ";
-    } else if (typeSign.find("Tl") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "l")) {
         type = "long ";
-    } else if (typeSign.find("Ts") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "s")) {
         type = "short ";
-    } else if (typeSign.find("Tq") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "q")) {
         type = "long long ";
-    } else if (typeSign.find("TQ") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "Q")) {
         type = "unsigned long long ";
-    } else if (typeSign.find("T#") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "#")) {
         type = "Class ";
-    } else if (typeSign.find("T:") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, ":")) {
         type = "SEL ";
-    } else if (typeSign.find("Tr*") != std::string::npos) {
+    } else if (StringUtils::has_prefix(typeSign, "r*")) {
         type = "const char *";
-    } else if (typeSign.find("T@\"") != std::string::npos) {
-        std::size_t front = typeSign.find("T@\"");
+    } else if (StringUtils::has_prefix(typeSign, "@\"")) {
+        std::size_t front = typeSign.find("@\"");
         std::size_t back = typeSign.rfind("\"", typeSign.length());
-        type = typeSign.substr(front+3, back-3)+" *";
-    } else if (typeSign.find("T@") != std::string::npos) {
+        type = typeSign.substr(front+2, back-2)+" *";
+    } else if (StringUtils::has_prefix(typeSign, "@")) {
         type = "id ";
-    } else if (typeSign.find("T{") != std::string::npos) {//struct
+    } else if (StringUtils::has_prefix(typeSign, "{")) {//struct
         type = this->handleStructWithTypeSign(typeSign);
-    } else if (typeSign.find("T^{") != std::string::npos) {//block
+    } else if (StringUtils::has_prefix(typeSign, "^{")) {//block
         type = this->handleStructWithTypeSign(typeSign);
     }
     return type;
 }
 
 std::string ObjcProperty::handleStructWithTypeSign(std::string typeSign) {
-    if (typeSign.find("T{") != std::string::npos) {//struct
+    if (StringUtils::has_prefix(typeSign, "{") && typeSign.length() == 1) {
+        
+        return "";
+    }
+    if (StringUtils::has_prefix(typeSign, "{")) {//struct
         size_t structNameIndex = typeSign.find("{");
         size_t structTypeIndex = typeSign.find("=");
         std::string structName = typeSign.substr(structNameIndex+1, structTypeIndex-2);
@@ -133,11 +139,12 @@ std::string ObjcProperty::handleStructWithTypeSign(std::string typeSign) {
         for (auto i = structType.begin(); i<=structType.end()-2; i++) {
             std::string s = StringUtils::format("%c",*i);
             std::string subType = getTypeWithTypeSign(s);
-            type += StringUtils::format("%s = %s%ld;", s.c_str(), s.c_str(), i-structType.begin());
+//            type += StringUtils::format("%s = %s%ld;", s.c_str(), s.c_str(), i-structType.begin());
+            type += StringUtils::format("%s%s%ld;", subType.c_str(), subType.substr(0, subType.length()-1).c_str(), i-structType.begin());
         }
         type += "}";
         printf("end");
-    } else if (typeSign.find("T^{") != std::string::npos) {//block
+    } else if (typeSign.find("^{") != std::string::npos) {//block
         type = "id";
     }
     return type;
