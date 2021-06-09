@@ -23,12 +23,20 @@ int AppInfoScanner::start() {
     string bundlePath = inputPath;
     string outputFilePath;
     string infoName;
+    bool privacyScan = false;
     if (options.find("infoName") != options.end()) {
         infoName = options["infoName"];
         if (!StringUtils::has_suffix(infoName, ".plist")) {
             infoName = infoName + ".plist";
         }
         printf("  [*] specific info.plist name to %s", infoName.c_str());
+    }
+    
+    if (options.find("privacy") != options.end()){
+        string temp = options["privacy"];
+        if (!temp.compare("true")){
+            privacyScan = true;
+        }
     }
     
     outputFilePath = StringUtils::path_join(outputPath, fileName + "_info.iblessing.txt");
@@ -99,6 +107,38 @@ int AppInfoScanner::start() {
         cout << [bundleId UTF8String];
         cout << endl;
         [finalReport appendFormat:@"\nBundle Identifier: %@", bundleId];
+    }
+    
+    if(privacyScan) {
+        int cnt = 0;
+        NSMutableSet<NSString *> *privacy = [NSMutableSet set];
+        map<string, string>::iterator iter;
+        iter = PrivacyMap.begin();
+        
+        cout << termcolor::yellow;
+        cout << "[+] app privacy request scan :";
+        cout << termcolor::reset << endl;
+        
+        while(iter != PrivacyMap.end()){
+            NSString *cur = infoPlist[[NSString stringWithCString:iter->first.c_str() encoding:[NSString defaultCStringEncoding]]];
+            if(cur){
+                cout << " |--";
+                cout << termcolor::red;
+                cout << iter->second;
+                cout << termcolor::reset << endl;
+                cout << "   |-- description : " << [cur UTF8String] << endl;
+                cnt += 1;
+                [privacy addObject: [NSString stringWithCString:iter->first.c_str() encoding:[NSString defaultCStringEncoding]]];
+            }
+            iter++;
+        }
+        
+        if (cnt > 0){
+            [finalReport appendFormat:@"\nPrivacy request count : %d", cnt];
+            for (NSString *item : privacy) {
+                [finalReport appendFormat:@"\n - %@", item];
+            }
+        }
     }
     
     if (httpsConfigs) {
