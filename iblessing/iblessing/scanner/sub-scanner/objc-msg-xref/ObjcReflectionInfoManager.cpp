@@ -61,7 +61,8 @@ bool ObjcReflectionInfoManager::syncToDisk(string path) {
         for (ObjcReflectionCall &call : calls) {
             rapidjson::Value reflectionCall(rapidjson::kObjectType);
             reflectionCall.AddMember("r", call.resolved, allocator);
-            
+            reflectionCall.AddMember("pc", jsonString(StringUtils::format("0x%llx", call.pc), allocator), allocator);
+            reflectionCall.AddMember("caller", jsonString(call.callerDesc, allocator), allocator);
             rapidjson::Value reflectionCallArgs(rapidjson::kArrayType);
             for (ObjcReflectionCallArg &arg : call.args) {
                 rapidjson::Value reflectionCallArg(rapidjson::kObjectType);

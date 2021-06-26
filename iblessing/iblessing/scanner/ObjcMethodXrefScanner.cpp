@@ -546,6 +546,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             // record call
             ObjcReflectionCall call = ObjcReflectionCall();
             call.pc = address;
+            call.callerDesc = ctx->currentMethod ? ctx->currentMethod->desc() : "?";
             
             // parse CFString
             uint64_t x0 = 0;
@@ -568,6 +569,19 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                     call.args.push_back(ObjcReflectionCallArg("NSString",
                                                               "",
                                                               false));
+                    // FIXME: objc runtime support
+//                    bool success;
+//                    uint64_t isa = vm2->read64(x0, &success);
+//                    if (!success) {
+//                        call.args.push_back(ObjcReflectionCallArg("NSString",
+//                                                                  "",
+//                                                                  false));
+//                    } else {
+//                        ObjcClassRuntimeInfo *info = rt->getClassInfoByAddress(isa);
+//                        if (info && info->className == "NSString") {
+//
+//                        }
+//                    }
                 }
             } else {
                 call.args.push_back(ObjcReflectionCallArg("NSString",
