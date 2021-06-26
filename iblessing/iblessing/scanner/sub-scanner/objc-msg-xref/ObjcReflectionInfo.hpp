@@ -30,6 +30,7 @@ struct ObjcReflectionCallArg {
 
 struct ObjcReflectionCall {
     uint64_t pc;
+    std::string callerDesc;
     std::vector<ObjcReflectionCallArg> args;
     bool resolved;
 };
