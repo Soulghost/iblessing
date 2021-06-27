@@ -33,36 +33,47 @@ endif()
 
 # main executable
 add_executable(iblessing iblessing/main.cpp)
+add_executable(iblessing-all iblessing/main.cpp)
 add_library(iblessing-core SHARED iblessing-core/v2/iblessing-core.cpp)
+add_library(iblessing-core-static STATIC iblessing-core/v2/iblessing-core.cpp)
 
 # vendor libs
 # target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/capstone/libcapstone.a)
 target_link_libraries(iblessing-core ${CMAKE_SOURCE_DIR}/../submodules/capstone/libcapstone.a)
+target_link_libraries(iblessing-core-static ${CMAKE_SOURCE_DIR}/../submodules/capstone/libcapstone.a)
 
 # target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/unicorn/libunicorn.a)
 target_link_libraries(iblessing-core ${CMAKE_SOURCE_DIR}/../submodules/unicorn/libunicorn.a)
+target_link_libraries(iblessing-core-static ${CMAKE_SOURCE_DIR}/../submodules/unicorn/libunicorn.a)
 
 # target_link_libraries(iblessing ${CMAKE_SOURCE_DIR}/../submodules/keystone/build/llvm/lib/libkeystone.a)
 target_link_libraries(iblessing-core ${CMAKE_SOURCE_DIR}/../submodules/keystone/build/llvm/lib/libkeystone.a)
+target_link_libraries(iblessing-core-static ${CMAKE_SOURCE_DIR}/../submodules/keystone/build/llvm/lib/libkeystone.a)
 
 target_link_libraries(iblessing iblessing-core)
+target_link_libraries(iblessing-all iblessing-core-static)
 
 if ((iblessing.PLATFORM STREQUAL "linux")) 
     target_link_libraries(iblessing dl)
+    target_link_libraries(iblessing-all dl)
     target_link_libraries(iblessing-core stdc++fs)
+    target_link_libraries(iblessing-core-static stdc++fs)
 endif()
 
 # macro inject
 if (iblessing.CSR_ENABLED) 
     target_compile_definitions(iblessing PRIVATE IB_CSR_ENABLED)
+    target_compile_definitions(iblessing-all PRIVATE IB_CSR_ENABLED)
 endif()
 
 if (iblessing.COCOA_FOUNDATION_ENABLED) 
     target_compile_definitions(iblessing PRIVATE IB_COCOA_FOUNDATION_ENABLED)
+    target_compile_definitions(iblessing-all PRIVATE IB_COCOA_FOUNDATION_ENABLED)
 endif()
 
 if (iblessing.PLATFORM STREQUAL "macos") 
     target_compile_definitions(iblessing PRIVATE IB_PLATFORM_DARWIN)
+    target_compile_definitions(iblessing-all PRIVATE IB_PLATFORM_DARWIN)
 endif()
 
 set(iblessing.VENDOR_INCLUDES
@@ -260,9 +271,14 @@ if (iblessing.COCOA_FOUNDATION_ENABLED)
     )
 
     target_link_libraries(iblessing "-framework Foundation")
+    target_link_libraries(iblessing-all "-framework Foundation")
 endif()
 
 target_include_directories(iblessing PRIVATE 
+                           ${iblessing.SOURCE_INCLUDES}
+                           ${iblessing.VENDOR_INCLUDES}
+                           )
+target_include_directories(iblessing-all PRIVATE 
                            ${iblessing.SOURCE_INCLUDES}
                            ${iblessing.VENDOR_INCLUDES}
                            )
@@ -271,6 +287,13 @@ target_include_directories(iblessing-core PRIVATE
                            ${iblessing-core.SOURCE_INCLUDES}
                            ${iblessing.VENDOR_INCLUDES}
                            )
+target_include_directories(iblessing-core-static PRIVATE 
+                           ${iblessing-core.SOURCE_INCLUDES}
+                           ${iblessing.VENDOR_INCLUDES}
+                           )
 
 target_sources(iblessing PRIVATE ${iblessing.SOURCE_LIST})
+target_sources(iblessing-all PRIVATE ${iblessing.SOURCE_LIST})
+
 target_sources(iblessing-core PRIVATE ${iblessing-core.SOURCE_LIST})
+target_sources(iblessing-core-static PRIVATE ${iblessing-core.SOURCE_LIST})
