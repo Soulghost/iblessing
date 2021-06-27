@@ -35,8 +35,10 @@ cmake --build .
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     mv iblessing iblessing-darwin
+    mv iblessing-all iblessing-darwin-all
 else
     mv iblessing iblessing-linux
+    mv iblessing-all iblessing-linux-all
 fi
 
 cd ..
