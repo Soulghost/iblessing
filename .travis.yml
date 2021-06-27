@@ -29,7 +29,9 @@ deploy:
   api_key: $deploy_token
   file: 
     - cmake-build/iblessing-darwin
+    - cmake-build/iblessing-darwin-all
     - cmake-build/iblessing-linux
+    - cmake-build/iblessing-linux-all
     - cmake-build/iblessing-framework-darwin.tar.gz
     - cmake-build/iblessing-framework-linux.tar.gz
     - iblessing/plugins/simprocedure/iblessing-simple-simprocedure.json
