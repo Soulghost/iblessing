@@ -6,7 +6,7 @@
            ██║██████╔╝███████╗███████╗███████║███████║██║██║ ╚████║╚██████╔╝
            ╚═╝╚═════╝ ╚══════╝╚══════╝╚══════╝╚══════╝╚═╝╚═╝  ╚═══╝ ╚═════╝
 
-[![Build Status](https://api.travis-ci.org/Soulghost/iblessing.svg?branch=master)](https://travis-ci.org/Soulghost/iblessing)
+[![Build Status](https://api.travis-ci.com/Soulghost/iblessing.svg?branch=master)](https://travis-ci.com/Soulghost/iblessing)
 [![Releases](https://img.shields.io/github/v/release/Soulghost/iblessing?include_prereleases)](https://github.com/Soulghost/iblessing/releases)
 
 # iblessing
@@ -45,6 +45,7 @@ In case you need support regarding iblessing or anything associated with it, you
 - send mail to xiuyutong1994#gmail.com
 
 # Changelog
+- 2021.06.27 - New arch (Shell Programm + Core Library) and plugin support (beta)
 - 2021.01.23 - Add method signatures for system libraries (Foundation, UIKit), further enhanced analytical capabilities (https://github.com/Soulghost/iblessing/wiki/System-Libraries-(Foundation,-UIKit)-Simple-SimProcedure)
 - 2020.11.30 - Objc reflection info (https://github.com/Soulghost/iblessing/wiki/Objc-Reflection-Info)
 - 2020.10.24 - Objc call snapshots (https://github.com/Soulghost/iblessing/wiki/Objc-Call-Snapshots)
@@ -62,6 +63,21 @@ In case you need support regarding iblessing or anything associated with it, you
 1. You can download the [pre-released iblessing binary](https://github.com/Soulghost/iblessing/releases) and enjoy it.
 2. run chmod +x for the binary
 3. For more tutorails, please check the [Documentation & Help](https://github.com/Soulghost/iblessing#documentation--help) below.
+
+# How to Use
+- Releases https://github.com/Soulghost/iblessing/releases
+
+## All in One Binary
+- iblessing-darwin-all/iblessing-linux
+
+## Shell Program + Dylib
+- untar iblessing-framework.tar.gz
+- iblessing-darwin/iblessing-linux + libiblessing-core.dylib/libiblessing-core.so
+
+## Develop Your Own Tools based on iblessing Framework
+- untar iblessing-framework.tar.gz
+- your binary + libiblessing-core.dylib/libiblessing-core.so + include/iblessing-core
+- sample code: iblessing-core/otool.cpp
 
 # How to Build
 ## CMake
