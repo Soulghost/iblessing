@@ -88,6 +88,16 @@ ib_return_t Memory::loadSync() {
                             if (ks_asm(ks, fixup.c_str(), targetAddr, &encode, &size, &count) == KS_ERR_OK) {
                                 needFix = true;
                             };
+                        } else if (strcmp(insn->mnemonic, "add") == 0) {
+                            string text = StringUtils::format("%s %s", insn->mnemonic, insn->op_str);
+                            uint64_t relocPage = macho->context->symtab->relocQuery(targetAddr);
+                            uint64_t pageoff = relocPage & 0xfff;
+                            vector<string> parts = StringUtils::split(text, ',');
+                            string fixup = parts[0] + ", " + parts[1];
+                            fixup += StringUtils::format(", #0x%llx", pageoff);
+                            if (ks_asm(ks, fixup.c_str(), targetAddr, &encode, &size, &count) == KS_ERR_OK) {
+                                needFix = true;
+                            };
                         }
                         
                         if (needFix) {
