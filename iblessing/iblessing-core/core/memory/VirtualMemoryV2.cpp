@@ -48,7 +48,7 @@ struct ib_dyld_info_command* VirtualMemoryV2::getDyldInfo() {
     return fileMemory->dyldinfo;
 }
 
-int VirtualMemoryV2::loadWithMachOData(uint8_t *mappedFile) {
+int VirtualMemoryV2::loadWithMachOData(shared_ptr<SymbolTable> symtab, shared_ptr<ObjcRuntime> objcRuntime, uint8_t *mappedFile) {
     // init unicorn
     if (this->uc) {
         return 1;
@@ -60,10 +60,10 @@ int VirtualMemoryV2::loadWithMachOData(uint8_t *mappedFile) {
         return 1;
     }
     
-    return mappingMachOToEngine(uc, mappedFile);
+    return mappingMachOToEngine(symtab, objcRuntime, uc, mappedFile);
 }
 
-int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
+int VirtualMemoryV2::mappingMachOToEngine(shared_ptr<SymbolTable> symtab, shared_ptr<ObjcRuntime> objcRuntime, uc_engine *uc, uint8_t *mappedFile) {
     if (!uc) {
         return 1;
     }
@@ -190,18 +190,16 @@ int VirtualMemoryV2::mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile) {
         for (pair<uint64_t, uint32_t> patch : textPatch) {
             uc_mem_write(uc, patch.first, &patch.second, sizeof(uint32_t));
         }
-        relocAllRegions(uc);
+        relocAllRegions(symtab, objcRuntime, uc);
     }
     return 0;
 }
 
-void VirtualMemoryV2::relocAllRegions(uc_engine *target) {
+void VirtualMemoryV2::relocAllRegions(shared_ptr<SymbolTable> symtab, shared_ptr<ObjcRuntime> objcRuntime, uc_engine *target) {
     if (target == nullptr) {
         target = this->uc;
     }
     // perform relocs
-    shared_ptr<SymbolTable> symtab = macho->context->symtab;
-    shared_ptr<ObjcRuntime> rt = macho->context->objcRuntime;
     for (SymbolRelocation &reloc : symtab->getAllRelocs()) {
         string relocSection = string(reloc.relocSection->sectname, std::min((int)strlen(reloc.relocSection->sectname), 16));
         if (relocSection == "__text") {
@@ -222,9 +220,9 @@ void VirtualMemoryV2::relocAllRegions(uc_engine *target) {
                 } else {
                     externalClassInfo->className = symbolName;
                 }
-                rt->externalClassRuntimeInfo[reloc.relocAddr] = externalClassInfo;
-                rt->name2ExternalClassRuntimeInfo[externalClassInfo->className] = externalClassInfo;
-                rt->runtimeInfo2address[externalClassInfo] = reloc.relocAddr;
+                objcRuntime->externalClassRuntimeInfo[reloc.relocAddr] = externalClassInfo;
+                objcRuntime->name2ExternalClassRuntimeInfo[externalClassInfo->className] = externalClassInfo;
+                objcRuntime->runtimeInfo2address[externalClassInfo] = reloc.relocAddr;
                 uc_mem_write(target, reloc.relocAddr, &reloc.relocAddr, 8);
             }
         } else {

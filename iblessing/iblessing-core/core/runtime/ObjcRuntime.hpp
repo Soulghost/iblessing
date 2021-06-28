@@ -22,6 +22,8 @@
 
 NS_IB_BEGIN
 
+class SymbolTable;
+
 class ObjcRuntime {
 public:
     ObjcRuntime(std::shared_ptr<SymbolTable> symtab, std::shared_ptr<VirtualMemoryV2> vm2) : symtab(symtab), vm2(vm2) {}
@@ -49,7 +51,7 @@ public:
     ObjcClassRuntimeInfo* getClassInfoByAddress(uint64_t address, bool needRealize = true);
     ObjcClassRuntimeInfo* evalReturnForIvarGetter(ObjcClassRuntimeInfo *targetClass, std::string getterSEL);
     void loadClassList(uint64_t vmaddr, uint64_t size);
-    void loadCatList(uint64_t vmaddr, uint64_t size);
+    void loadCatList(std::shared_ptr<SymbolTable> symtab, uint64_t vmaddr, uint64_t size);
     uint64_t getClassAddrByName(std::string className);
     ObjcClassRuntimeInfo* getClassInfoByName(std::string className);
     bool isClassObjectAtAddress(uint64_t address);

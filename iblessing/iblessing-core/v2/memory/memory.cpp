@@ -26,11 +26,11 @@ ib_return_t Memory::loadSync() {
     
     // load vm-v2
     shared_ptr<VirtualMemory> vm = macho->context->fileMemory;
-    shared_ptr<VirtualMemoryV2> vm2 = make_shared<VirtualMemoryV2>(vm, macho);
+    shared_ptr<VirtualMemoryV2> vm2 = make_shared<VirtualMemoryV2>(vm);
     this->fileMemory = vm;
     this->virtualMemory = vm2;
     
-    int code = vm2->loadWithMachOData(vm->mappedFile);
+    int code = vm2->loadWithMachOData(macho->context->symtab, macho->context->objcRuntime, vm->mappedFile);
     if (code != 0) {
         return IB_MEMORY_MAPPING_ERROR;
     }
@@ -114,7 +114,7 @@ ib_return_t Memory::loadSync() {
         }
     }
     macho->context->symtab->sync();
-    vm2->relocAllRegions();
+    vm2->relocAllRegions(macho->context->symtab, macho->context->objcRuntime);
     return IB_SUCCESS;
 }
 
@@ -128,7 +128,7 @@ ib_return_t Memory::copyToUCEngine(uc_engine *uc) {
     }
     
     shared_ptr<VirtualMemoryV2> vm2 = this->virtualMemory;
-    int ret = vm2->mappingMachOToEngine(uc, this->fileMemory->mappedFile);
+    int ret = vm2->mappingMachOToEngine(macho->context->symtab, macho->context->objcRuntime, uc, this->fileMemory->mappedFile);
     if (ret == 0) {
         return IB_SUCCESS;
     } else {

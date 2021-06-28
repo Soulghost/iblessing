@@ -28,14 +28,13 @@ using namespace iblessing;
 00000030 __objc2_category ends
 */
 
-static vector<shared_ptr<ObjcMethod>> loadMethodsFromAddress(shared_ptr<VirtualMemoryV2> vm2, uint64_t address, ObjcClassRuntimeInfo *classInfo, bool classMethod) {
+static vector<shared_ptr<ObjcMethod>> loadMethodsFromAddress(shared_ptr<SymbolTable> symtab, shared_ptr<VirtualMemoryV2> vm2, uint64_t address, ObjcClassRuntimeInfo *classInfo, bool classMethod) {
     uint32_t count = vm2->read32(address + 4, nullptr);
     if (count == 0) {
         return {};
     }
     
     vector<shared_ptr<ObjcMethod>> methods;
-    SymbolTable *symtab = SymbolTable::getInstance();
     uint64_t objc_classmethods_addr = address + 8;
     for (uint32_t i = 0; i < count; i++) {
         uint64_t sel_offset = objc_classmethods_addr;
@@ -88,12 +87,7 @@ static vector<shared_ptr<ObjcMethod>> loadMethodsFromAddress(shared_ptr<VirtualM
     return methods;
 }
 
-shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(uint64_t address) {
-    assert(false);
-    return nullptr;
-}
-
-shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(ObjcRuntime *runtime, shared_ptr<VirtualMemoryV2> vm2, uint64_t address) {
+shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(shared_ptr<SymbolTable> symtab, ObjcRuntime *runtime, shared_ptr<VirtualMemoryV2> vm2, uint64_t address) {
     shared_ptr<ObjcCategory> category = make_shared<ObjcCategory>();
     uint64_t namePtr = vm2->read64(address, nullptr);
     if (!namePtr) {
@@ -119,13 +113,13 @@ shared_ptr<ObjcCategory> ObjcCategory::loadFromAddress(ObjcRuntime *runtime, sha
     
     uint64_t instanceMethodsAddr = vm2->read64(address, nullptr);
     if (instanceMethodsAddr) {
-        category->instanceMethods = loadMethodsFromAddress(vm2, instanceMethodsAddr, category->decoratedClass->classInfo, false);
+        category->instanceMethods = loadMethodsFromAddress(symtab, vm2, instanceMethodsAddr, category->decoratedClass->classInfo, false);
     }
     address += 8;
     
     uint64_t classMethodsAddr = vm2->read64(address, nullptr);
     if (classMethodsAddr) {
-        category->classMethods = loadMethodsFromAddress(vm2, classMethodsAddr, category->decoratedClass->classInfo, true);
+        category->classMethods = loadMethodsFromAddress(symtab, vm2, classMethodsAddr, category->decoratedClass->classInfo, true);
     }
     
     if (category->decoratedClass->classInfo) {

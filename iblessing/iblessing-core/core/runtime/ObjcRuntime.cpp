@@ -77,7 +77,7 @@ void ObjcRuntime::loadClassList(uint64_t vmaddr, uint64_t size) {
     }
 }
 
-void ObjcRuntime::loadCatList(uint64_t vmaddr, uint64_t size) {
+void ObjcRuntime::loadCatList(shared_ptr<SymbolTable>, uint64_t vmaddr, uint64_t size) {
     categoryList.clear();
     
     uint64_t *cateAddrs = (uint64_t *)vm2->readBySize(vmaddr, size);
@@ -88,7 +88,7 @@ void ObjcRuntime::loadCatList(uint64_t vmaddr, uint64_t size) {
     uint64_t count = size / sizeof(void *);
     for (int i = 0; i < count; i++) {
         uint64_t cateAddr = *cateAddrs;
-        shared_ptr<ObjcCategory> category = ObjcCategory::loadFromAddress(this, vm2, cateAddr);
+        shared_ptr<ObjcCategory> category = ObjcCategory::loadFromAddress(symtab, this, vm2, cateAddr);
         if (category != nullptr) {
             categoryList.push_back(category);
         }
