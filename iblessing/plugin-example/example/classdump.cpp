@@ -8,10 +8,10 @@
 
 #include "classdump.hpp"
 #include "CoreFoundation.hpp"
-#include <iblessing-core/mach-o/mach-o.hpp>
-#include <iblessing-core/memory/memory.hpp>
-#include <iblessing-core/objc/objc.hpp>
-#include <iblessing-core/dyld/dyld.hpp>
+#include <iblessing-core/v2/mach-o/mach-o.hpp>
+#include <iblessing-core/v2/memory/memory.hpp>
+#include <iblessing-core/v2/objc/objc.hpp>
+#include <iblessing-core/v2/dyld/dyld.hpp>
 
 using namespace std;
 using namespace iblessing;
@@ -25,7 +25,7 @@ int classdump_main(int argc, const char **argv) {
     shared_ptr<Memory> memory = Memory::createFromMachO(macho);
     assert(memory->loadSync() == IB_SUCCESS);
     
-    shared_ptr<Objc> objc = Objc::create(macho, memory);
+    shared_ptr<Objc> objc = memory->objc;
     objc->loadClassList();
     objc->loadCategoryList();
     

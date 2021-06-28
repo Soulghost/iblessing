@@ -15,6 +15,10 @@
 		6829629824CBEEA500EF9251 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829629724CBEEA500EF9251 /* main.m */; };
 		6829629F24CBEEFD00EF9251 /* MethodChainClasses.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829629E24CBEEFD00EF9251 /* MethodChainClasses.m */; };
 		68666DAF25288B710014BC91 /* NSString+IBS.m in Sources */ = {isa = PBXBuildFile; fileRef = 68666DAE25288B710014BC91 /* NSString+IBS.m */; };
+		6895A1C2268A0C2400EE558D /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6895A1C1268A0C2400EE558D /* main.cpp */; };
+		6895A1C6268A0C3800EE558D /* libiblessing-core.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */; };
+		6895A1C7268A0C5000EE558D /* classdump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E0EF263BAB51000642F5 /* classdump.cpp */; };
+		6895A1C8268A0C5000EE558D /* otool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E12F263C095A000642F5 /* otool.cpp */; };
 		68AE3B1224EB9CFE003E25EF /* InsecureUnSerialization.m in Sources */ = {isa = PBXBuildFile; fileRef = 68AE3B1124EB9CFE003E25EF /* InsecureUnSerialization.m */; };
 		68B255CF26401EDE008FA1E2 /* CoreFoundation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6866173D24E51CA300C4FBB3 /* CoreFoundation.cpp */; };
 		68B255D426401EE9008FA1E2 /* mach-universal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6866173924DFF93A00C4FBB3 /* mach-universal.cpp */; };
@@ -100,6 +104,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		6895A1BD268A0C2400EE558D /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		68B256CD264025B6008FA1E2 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -287,6 +300,9 @@
 		6894E12A263BE5AB000642F5 /* dyld.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = dyld.hpp; sourceTree = "<group>"; };
 		6894E12F263C095A000642F5 /* otool.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = otool.cpp; sourceTree = "<group>"; };
 		6894E130263C095A000642F5 /* otool.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = otool.hpp; sourceTree = "<group>"; };
+		6895A1BF268A0C2400EE558D /* plugin-example */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "plugin-example"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6895A1C1268A0C2400EE558D /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		6895A1C9268A0D5B00EE558D /* plugin-example.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "plugin-example.entitlements"; sourceTree = "<group>"; };
 		68A028BE24DE7F9300077CE0 /* ScannerContextManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScannerContextManager.cpp; sourceTree = "<group>"; };
 		68A028BF24DE7F9300077CE0 /* ScannerContextManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScannerContextManager.hpp; sourceTree = "<group>"; };
 		68A028C124DE80AB00077CE0 /* ScannerContext.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScannerContext.cpp; sourceTree = "<group>"; };
@@ -387,6 +403,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		6895A1BC268A0C2400EE558D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6895A1C6268A0C3800EE558D /* libiblessing-core.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		68B255A926401DCD008FA1E2 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -462,6 +486,7 @@
 				685CE7D124C55309002CC5E8 /* iblessing */,
 				68B255AC26401DCD008FA1E2 /* iblessing-core */,
 				6829628424CBEEA300EF9251 /* iblessing-sample */,
+				6895A1C0268A0C2400EE558D /* plugin-example */,
 				685CE7D024C55309002CC5E8 /* Products */,
 				685CE82524C57145002CC5E8 /* Frameworks */,
 			);
@@ -474,6 +499,7 @@
 				6829627724CBEE4A00EF9251 /* Tests.xctest */,
 				6829628324CBEEA300EF9251 /* iblessing-sample.app */,
 				68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */,
+				6895A1BF268A0C2400EE558D /* plugin-example */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -850,7 +876,6 @@
 				6894E0EA263BA989000642F5 /* mach-o */,
 				6894E0FC263BABC8000642F5 /* iblessing-core.hpp */,
 				68B253E2263D6822008FA1E2 /* iblessing-core.cpp */,
-				6894E0EE263BAB37000642F5 /* example */,
 			);
 			path = v2;
 			sourceTree = "<group>";
@@ -908,6 +933,16 @@
 				6894E12A263BE5AB000642F5 /* dyld.hpp */,
 			);
 			path = dyld;
+			sourceTree = "<group>";
+		};
+		6895A1C0268A0C2400EE558D /* plugin-example */ = {
+			isa = PBXGroup;
+			children = (
+				6895A1C9268A0D5B00EE558D /* plugin-example.entitlements */,
+				6894E0EE263BAB37000642F5 /* example */,
+				6895A1C1268A0C2400EE558D /* main.cpp */,
+			);
+			path = "plugin-example";
 			sourceTree = "<group>";
 		};
 		68A028BD24DE7F8000077CE0 /* context */ = {
@@ -1216,6 +1251,23 @@
 			productReference = 685CE7CF24C55309002CC5E8 /* iblessing */;
 			productType = "com.apple.product-type.tool";
 		};
+		6895A1BE268A0C2400EE558D /* plugin-example */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6895A1C5268A0C2400EE558D /* Build configuration list for PBXNativeTarget "plugin-example" */;
+			buildPhases = (
+				6895A1BB268A0C2400EE558D /* Sources */,
+				6895A1BC268A0C2400EE558D /* Frameworks */,
+				6895A1BD268A0C2400EE558D /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "plugin-example";
+			productName = "plugin-example";
+			productReference = 6895A1BF268A0C2400EE558D /* plugin-example */;
+			productType = "com.apple.product-type.tool";
+		};
 		68B255AA26401DCD008FA1E2 /* iblessing-core */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 68B255B326401DCD008FA1E2 /* Build configuration list for PBXNativeTarget "iblessing-core" */;
@@ -1251,6 +1303,9 @@
 					685CE7CE24C55309002CC5E8 = {
 						CreatedOnToolsVersion = 11.5;
 					};
+					6895A1BE268A0C2400EE558D = {
+						CreatedOnToolsVersion = 13.0;
+					};
 					68B255AA26401DCD008FA1E2 = {
 						CreatedOnToolsVersion = 12.4;
 					};
@@ -1273,6 +1328,7 @@
 				6829627624CBEE4A00EF9251 /* Tests */,
 				6829628224CBEEA300EF9251 /* iblessing-sample */,
 				68B255AA26401DCD008FA1E2 /* iblessing-core */,
+				6895A1BE268A0C2400EE558D /* plugin-example */,
 			);
 		};
 /* End PBXProject section */
@@ -1350,6 +1406,16 @@
 				68B25734264029FF008FA1E2 /* TestManager.cpp in Sources */,
 				68B2573826402A01008FA1E2 /* Tester.cpp in Sources */,
 				68B2573C26402A04008FA1E2 /* TestObjcMethodXrefs.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		6895A1BB268A0C2400EE558D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6895A1C2268A0C2400EE558D /* main.cpp in Sources */,
+				6895A1C7268A0C5000EE558D /* classdump.cpp in Sources */,
+				6895A1C8268A0C5000EE558D /* otool.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1684,6 +1750,36 @@
 			};
 			name = Release;
 		};
+		6895A1C3268A0C2400EE558D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_ENTITLEMENTS = "plugin-example/plugin-example.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = FY3C8MQXF9;
+				ENABLE_HARDENED_RUNTIME = NO;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		6895A1C4268A0C2400EE558D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CODE_SIGN_ENTITLEMENTS = "plugin-example/plugin-example.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = FY3C8MQXF9;
+				ENABLE_HARDENED_RUNTIME = NO;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		68B255B426401DCD008FA1E2 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1778,6 +1874,15 @@
 			buildConfigurations = (
 				685CE7D724C55309002CC5E8 /* Debug */,
 				685CE7D824C55309002CC5E8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		6895A1C5268A0C2400EE558D /* Build configuration list for PBXNativeTarget "plugin-example" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6895A1C3268A0C2400EE558D /* Debug */,
+				6895A1C4268A0C2400EE558D /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
