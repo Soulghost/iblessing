@@ -18,9 +18,9 @@ typedef std::function<void (ObjcClassRuntimeInfo *classInfo, uint64_t current, u
 
 class Objc {
 public:
-    Objc(std::shared_ptr<MachO> macho, std::shared_ptr<Memory> memory);
+    Objc(std::shared_ptr<MachO> macho, Memory *memory);
     
-    static std::shared_ptr<Objc> create(std::shared_ptr<MachO> macho, std::shared_ptr<Memory> memory);
+    static std::shared_ptr<Objc> create(std::shared_ptr<MachO> macho, Memory *memory);
     ib_return_t loadClassList();
     ib_return_t loadCategoryList();
     
@@ -30,7 +30,7 @@ public:
 protected:
     std::shared_ptr<ObjcRuntime> runtime;
     std::shared_ptr<MachO> macho;
-    std::shared_ptr<Memory> memory;
+    Memory *memory;
 };
 
 };

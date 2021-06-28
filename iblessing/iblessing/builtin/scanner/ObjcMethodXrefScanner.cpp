@@ -1070,8 +1070,7 @@ int ObjcMethodXrefScanner::start() {
     printf("  [*] Status: Track C Symbols: %d, Anti Wrapper: %d, Find All Path Level: %d, Track Call Snapshots: %d\n", shouldTrackSymbols, shouldAntiWrapper, findAllPathLevel, trackingCallSnapshots);
     
     printf("  [*] Step 1. realize all app classes\n");
-    shared_ptr<Objc> objc = Objc::create(macho, memory);
-    this->objc = objc;
+    this->objc = memory->objc;
     objc->loadClassList();
     vector<ObjcMethod *> methods;
     set<uint64_t> impAddrs;

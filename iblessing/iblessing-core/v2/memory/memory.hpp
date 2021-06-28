@@ -15,6 +15,8 @@
 
 namespace iblessing {
 
+class Objc;
+
 class Memory {
 public:
     Memory(std::shared_ptr<MachO> macho) : macho(macho) {}
@@ -25,6 +27,7 @@ public:
     
     std::shared_ptr<VirtualMemory> fileMemory;
     std::shared_ptr<VirtualMemoryV2> virtualMemory;
+    std::shared_ptr<Objc> objc;
     
 protected:
     std::shared_ptr<MachO> macho;

@@ -8,6 +8,7 @@
 
 #include "memory.hpp"
 #include <iblessing-core/v2/util/StringUtils.h>
+#include <iblessing-core/v2/objc/objc.hpp>
 #include <iblessing-core/v2/vendor/keystone/keystone.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
 
@@ -114,6 +115,10 @@ ib_return_t Memory::loadSync() {
         }
     }
     macho->context->symtab->sync();
+    
+    shared_ptr<Objc> objc = Objc::create(macho, this);
+    this->objc = objc;
+    macho->context->objcRuntime = objc->getRuntime();
     vm2->relocAllRegions(macho->context->symtab, macho->context->objcRuntime);
     return IB_SUCCESS;
 }

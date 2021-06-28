@@ -11,7 +11,7 @@
 using namespace std;
 using namespace iblessing;
 
-Objc::Objc(shared_ptr<MachO> macho, shared_ptr<Memory> memory) {
+Objc::Objc(shared_ptr<MachO> macho, Memory *memory) {
     shared_ptr<ObjcRuntime> rt = make_shared<ObjcRuntime>(macho->context->symtab, memory->virtualMemory);
     this->runtime = rt;
     this->macho = macho;
@@ -24,7 +24,7 @@ Objc::Objc(shared_ptr<MachO> macho, shared_ptr<Memory> memory) {
     rt->catlist_size = fileMemory->objc_catlist_size;
 }
 
-shared_ptr<Objc> Objc::create(std::shared_ptr<MachO> macho, std::shared_ptr<Memory> memory) {
+shared_ptr<Objc> Objc::create(std::shared_ptr<MachO> macho, Memory *memory) {
     return make_shared<Objc>(macho, memory);
 }
 
