@@ -26,7 +26,7 @@ ib_return_t Memory::loadSync() {
     
     // load vm-v2
     shared_ptr<VirtualMemory> vm = macho->context->fileMemory;
-    shared_ptr<VirtualMemoryV2> vm2 = make_shared<VirtualMemoryV2>(vm);
+    shared_ptr<VirtualMemoryV2> vm2 = make_shared<VirtualMemoryV2>(vm, macho);
     this->fileMemory = vm;
     this->virtualMemory = vm2;
     

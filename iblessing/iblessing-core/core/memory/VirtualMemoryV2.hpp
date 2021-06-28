@@ -18,9 +18,12 @@
 
 NS_IB_BEGIN
 
+class MachO;
+
 class VirtualMemoryV2 {
 public:
-    VirtualMemoryV2(std::shared_ptr<VirtualMemory> fileMemory) : fileMemory(fileMemory) {
+    VirtualMemoryV2(std::shared_ptr<VirtualMemory> fileMemory, std::shared_ptr<MachO> macho) : fileMemory(fileMemory), macho(macho) {
+        assert(macho != nullptr);
         uc = nullptr;
     }
     std::vector<std::pair<uint64_t, uint32_t>> textPatch;
@@ -48,11 +51,15 @@ public:
     uint64_t getBaseAddr();
     uc_engine* getEngine();
     
+private:
+    VirtualMemoryV2() {};
+    
 protected:
     static VirtualMemoryV2 *_instance;
     std::map<uint64_t, std::pair<std::string, std::string>> addr2segInfo;
     uc_engine *uc;
     std::shared_ptr<VirtualMemory> fileMemory;
+    std::shared_ptr<MachO> macho;
 };
 
 NS_IB_END

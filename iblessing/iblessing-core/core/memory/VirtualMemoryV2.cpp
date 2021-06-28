@@ -10,6 +10,7 @@
 #include "VirtualMemory.hpp"
 #include <iblessing-core/v2/util/termcolor.h>
 #include <iblessing-core/v2/util/StringUtils.h>
+#include <iblessing-core/v2/mach-o/mach-o.hpp>
 #include "mach-machine.h"
 #include "ScannerContext.hpp"
 #include "SymbolTable.hpp"
@@ -199,8 +200,8 @@ void VirtualMemoryV2::relocAllRegions(uc_engine *target) {
         target = this->uc;
     }
     // perform relocs
-    SymbolTable *symtab = SymbolTable::getInstance();
-    ObjcRuntime *rt = ObjcRuntime::getInstance();
+    shared_ptr<SymbolTable> symtab = macho->context->symtab;
+    shared_ptr<ObjcRuntime> rt = macho->context->objcRuntime;
     for (SymbolRelocation &reloc : symtab->getAllRelocs()) {
         string relocSection = string(reloc.relocSection->sectname, std::min((int)strlen(reloc.relocSection->sectname), 16));
         if (relocSection == "__text") {
