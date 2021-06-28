@@ -18,6 +18,9 @@
 
 NS_IB_BEGIN
 
+class SymbolTable;
+class ObjcRuntime;
+
 class VirtualMemoryV2 {
 public:
     VirtualMemoryV2(std::shared_ptr<VirtualMemory> fileMemory) : fileMemory(fileMemory) {
@@ -27,9 +30,9 @@ public:
     std::vector<std::pair<uint64_t, uint64_t>> dataPatch;
     
     static VirtualMemoryV2* progressDefault();
-    int loadWithMachOData(uint8_t *mappedFile);
-    int mappingMachOToEngine(uc_engine *uc, uint8_t *mappedFile);
-    void relocAllRegions(uc_engine *target = nullptr);
+    int loadWithMachOData(std::shared_ptr<SymbolTable> symtab, std::shared_ptr<ObjcRuntime> objcRuntime, uint8_t *mappedFile);
+    int mappingMachOToEngine(std::shared_ptr<SymbolTable> symtab, std::shared_ptr<ObjcRuntime> objcRuntime, uc_engine *uc, uint8_t *mappedFile);
+    void relocAllRegions(std::shared_ptr<SymbolTable> symtab, std::shared_ptr<ObjcRuntime> objcRuntime, uc_engine *target = nullptr);
     uint64_t read64(uint64_t address, bool *success);
     uint32_t read32(uint64_t address, bool *success);
     bool write32(uint64_t address, uint32_t value);
@@ -47,6 +50,9 @@ public:
     struct ib_dyld_info_command* getDyldInfo();
     uint64_t getBaseAddr();
     uc_engine* getEngine();
+    
+private:
+    VirtualMemoryV2() {};
     
 protected:
     static VirtualMemoryV2 *_instance;

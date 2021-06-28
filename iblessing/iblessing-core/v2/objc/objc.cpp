@@ -41,7 +41,7 @@ ib_return_t Objc::loadClassList() {
 ib_return_t Objc::loadCategoryList() {
     shared_ptr<ObjcRuntime> rt = this->runtime;
     if (rt->catlist_addr != 0 && rt->catlist_size != 0) {
-        rt->loadCatList(rt->catlist_addr, rt->catlist_size);
+        rt->loadCatList(macho->context->symtab, rt->catlist_addr, rt->catlist_size);
     }
     return IB_SUCCESS;
 }

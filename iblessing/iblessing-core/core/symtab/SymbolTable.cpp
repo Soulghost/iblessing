@@ -24,10 +24,8 @@ SymbolTable::~SymbolTable() {
 }
 
 SymbolTable* SymbolTable::getInstance() {
-    if (SymbolTable::_instance == nullptr) {
-        SymbolTable::_instance = new SymbolTable();
-    }
-    return SymbolTable::_instance;
+    assert(false);
+    return nullptr;
 }
 
 void SymbolTable::sync() {
