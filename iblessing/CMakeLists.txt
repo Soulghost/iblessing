@@ -69,11 +69,15 @@ endif()
 if (iblessing.COCOA_FOUNDATION_ENABLED) 
     target_compile_definitions(iblessing PRIVATE IB_COCOA_FOUNDATION_ENABLED)
     target_compile_definitions(iblessing-all PRIVATE IB_COCOA_FOUNDATION_ENABLED)
+    target_compile_definitions(iblessing-core PRIVATE IB_COCOA_FOUNDATION_ENABLED)
+    target_compile_definitions(iblessing-core-static PRIVATE IB_COCOA_FOUNDATION_ENABLED)
 endif()
 
 if (iblessing.PLATFORM STREQUAL "macos") 
     target_compile_definitions(iblessing PRIVATE IB_PLATFORM_DARWIN)
     target_compile_definitions(iblessing-all PRIVATE IB_PLATFORM_DARWIN)
+    target_compile_definitions(iblessing-core PRIVATE IB_PLATFORM_DARWIN)
+    target_compile_definitions(iblessing-core-static PRIVATE IB_PLATFORM_DARWIN)
 endif()
 
 set(iblessing.VENDOR_INCLUDES
