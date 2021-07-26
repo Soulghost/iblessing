@@ -26,9 +26,9 @@ mkdir -p cmake-build
 cd cmake-build
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    cmake --clean-first -Diblessing.PLATFORM=macos ../iblessing 
+    cmake -Diblessing.PLATFORM=macos ../iblessing 
 else
-    cmake --clean-first -Diblessing.PLATFORM=linux ../iblessing 
+    cmake -Diblessing.PLATFORM=linux ../iblessing 
 fi
 
 cmake --build .
