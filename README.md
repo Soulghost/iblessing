@@ -10,7 +10,7 @@
 [![Releases](https://img.shields.io/github/v/release/Soulghost/iblessing?include_prereleases)](https://github.com/Soulghost/iblessing/releases)
 
 # iblessing
-- `iblessing` is an iOS security exploiting toolkit, it mainly includes **application information collection**, **static analysis** and **dynamic analysis**.
+- `iblessing` is an iOS security exploiting toolkit, it mainly includes **application information gathering**, **static analysis** and **dynamic analysis**.
 - `iblessing` is based on [unicorn engine](https://github.com/unicorn-engine/unicorn), [capstone engine](https://github.com/aquynh/capstone) and [keystone engine](https://github.com/keystone-engine/keystone).
 
 # Features
