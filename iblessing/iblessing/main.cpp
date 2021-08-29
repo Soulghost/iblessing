@@ -14,6 +14,7 @@
 #include "GeneratorDispatcher.hpp"
 #include "TestManager.hpp"
 #include <iblessing/registry/PluginRegistry.h>
+#include <iblessing-core/v3/mach-o/macho-loader.hpp>
 
 #ifdef IB_CSR_ENABLED
 #include "csrutil.hpp"
@@ -24,6 +25,9 @@ using namespace argparse;
 using namespace iblessing;
 
 int main(int argc, const char *argv[]) {
+    shared_ptr<MachoLoader> loader = make_shared<MachoLoader>();
+    loader->loadModuleFromFile("/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample");
+    return 0;
     // ascii art
     printf("\n\
            ☠️\n\

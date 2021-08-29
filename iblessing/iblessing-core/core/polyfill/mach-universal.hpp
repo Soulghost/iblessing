@@ -700,4 +700,32 @@ struct ib_scattered_relocation_info {
 //#endif /* __LITTLE_ENDIAN__ */
 };
 
+union ib_lc_str {
+    uint32_t    offset;    /* offset to the string */
+#ifndef __LP64__
+    char        *ptr;    /* pointer to the string */
+#endif
+};
+
+struct ib_dylib {
+    union ib_lc_str  name;            /* library's path name */
+    uint32_t timestamp;            /* library's build time stamp */
+    uint32_t current_version;        /* library's current version number */
+    uint32_t compatibility_version;    /* library's compatibility vers number*/
+};
+
+/*
+ * A dynamically linked shared library (filetype == MH_DYLIB in the mach header)
+ * contains a dylib_command (cmd == LC_ID_DYLIB) to identify the library.
+ * An object that uses a dynamically linked shared library also contains a
+ * dylib_command (cmd == LC_LOAD_DYLIB, LC_LOAD_WEAK_DYLIB, or
+ * LC_REEXPORT_DYLIB) for each library it uses.
+ */
+struct ib_dylib_command {
+    uint32_t    cmd;        /* LC_ID_DYLIB, LC_LOAD_{,WEAK_}DYLIB,
+                       LC_REEXPORT_DYLIB */
+    uint32_t    cmdsize;    /* includes pathname string */
+    struct ib_dylib    dylib;        /* the library identification */
+};
+
 #endif /* mach_universal_hpp */
