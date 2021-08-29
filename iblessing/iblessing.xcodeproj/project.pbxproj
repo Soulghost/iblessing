@@ -14,6 +14,10 @@
 		6829629524CBEEA500EF9251 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6829629324CBEEA500EF9251 /* LaunchScreen.storyboard */; };
 		6829629824CBEEA500EF9251 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829629724CBEEA500EF9251 /* main.m */; };
 		6829629F24CBEEFD00EF9251 /* MethodChainClasses.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829629E24CBEEFD00EF9251 /* MethodChainClasses.m */; };
+		6844700226D7BB2600FE4D70 /* macho-module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6844700026D7BB2600FE4D70 /* macho-module.cpp */; };
+		6844700326D7BB2600FE4D70 /* macho-module.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6844700126D7BB2600FE4D70 /* macho-module.hpp */; };
+		6844700626D7C05400FE4D70 /* macho-loader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6844700426D7C05400FE4D70 /* macho-loader.cpp */; };
+		6844700726D7C05400FE4D70 /* macho-loader.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6844700526D7C05400FE4D70 /* macho-loader.hpp */; };
 		68666DAF25288B710014BC91 /* NSString+IBS.m in Sources */ = {isa = PBXBuildFile; fileRef = 68666DAE25288B710014BC91 /* NSString+IBS.m */; };
 		6895A1C2268A0C2400EE558D /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6895A1C1268A0C2400EE558D /* main.cpp */; };
 		6895A1C6268A0C3800EE558D /* libiblessing-core.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */; };
@@ -159,6 +163,10 @@
 		684458FF257270D300A9D441 /* ObjcReflectionInfo.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcReflectionInfo.hpp; sourceTree = "<group>"; };
 		68445901257271F900A9D441 /* ObjcReflectionInfoManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcReflectionInfoManager.cpp; sourceTree = "<group>"; };
 		68445902257271F900A9D441 /* ObjcReflectionInfoManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcReflectionInfoManager.hpp; sourceTree = "<group>"; };
+		6844700026D7BB2600FE4D70 /* macho-module.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "macho-module.cpp"; sourceTree = "<group>"; };
+		6844700126D7BB2600FE4D70 /* macho-module.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "macho-module.hpp"; sourceTree = "<group>"; };
+		6844700426D7C05400FE4D70 /* macho-loader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "macho-loader.cpp"; sourceTree = "<group>"; };
+		6844700526D7C05400FE4D70 /* macho-loader.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "macho-loader.hpp"; sourceTree = "<group>"; };
 		6856E6E124E7C4370050DA19 /* IDASymbolicScriptGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IDASymbolicScriptGenerator.cpp; sourceTree = "<group>"; };
 		6856E6E224E7C4370050DA19 /* IDASymbolicScriptGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IDASymbolicScriptGenerator.hpp; sourceTree = "<group>"; };
 		685CE7CF24C55309002CC5E8 /* iblessing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = iblessing; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -478,6 +486,25 @@
 				68445902257271F900A9D441 /* ObjcReflectionInfoManager.hpp */,
 			);
 			path = "objc-msg-xref";
+			sourceTree = "<group>";
+		};
+		68446FFE26D7BAD500FE4D70 /* v3 */ = {
+			isa = PBXGroup;
+			children = (
+				68446FFF26D7BAFA00FE4D70 /* mach-o */,
+			);
+			path = v3;
+			sourceTree = "<group>";
+		};
+		68446FFF26D7BAFA00FE4D70 /* mach-o */ = {
+			isa = PBXGroup;
+			children = (
+				6844700026D7BB2600FE4D70 /* macho-module.cpp */,
+				6844700126D7BB2600FE4D70 /* macho-module.hpp */,
+				6844700426D7C05400FE4D70 /* macho-loader.cpp */,
+				6844700526D7C05400FE4D70 /* macho-loader.hpp */,
+			);
+			path = "mach-o";
 			sourceTree = "<group>";
 		};
 		685CE7C624C55309002CC5E8 = {
@@ -1088,6 +1115,7 @@
 				685CE7E224C57079002CC5E8 /* core */,
 				685CE81924C5708A002CC5E8 /* infra */,
 				685CE83524C572A0002CC5E8 /* scanner */,
+				68446FFE26D7BAD500FE4D70 /* v3 */,
 				6894E0E0263BA963000642F5 /* v2 */,
 			);
 			path = "iblessing-core";
@@ -1193,6 +1221,8 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6844700726D7C05400FE4D70 /* macho-loader.hpp in Headers */,
+				6844700326D7BB2600FE4D70 /* macho-module.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1452,9 +1482,11 @@
 				68B2562226401F73008FA1E2 /* Scanner.cpp in Sources */,
 				68B2562726401F7C008FA1E2 /* StringUtils.cpp in Sources */,
 				68B2562C26401F81008FA1E2 /* FunctionXrefAnalyser.cpp in Sources */,
+				6844700626D7C05400FE4D70 /* macho-loader.cpp in Sources */,
 				68B2563126401F84008FA1E2 /* AntiWrapper.cpp in Sources */,
 				68B2563626401F8C008FA1E2 /* FunctionPrototype.cpp in Sources */,
 				68B2563B26401F8F008FA1E2 /* SimpleWrapperAnalyser.cpp in Sources */,
+				6844700226D7BB2600FE4D70 /* macho-module.cpp in Sources */,
 				68B2564026401F9B008FA1E2 /* dyld.cpp in Sources */,
 				68B2564526401F9F008FA1E2 /* objc.cpp in Sources */,
 				68B2564A26401FA2008FA1E2 /* memory.cpp in Sources */,

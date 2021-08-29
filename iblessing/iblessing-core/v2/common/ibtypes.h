@@ -14,6 +14,10 @@
 #include <memory>
 
 typedef int ib_return_t;
+
+#define NS_IB_BEGIN namespace iblessing {
+#define NS_IB_END }
+
 #define IB_SUCCESS 0
 #define IB_MACHO_LOAD_ERROR 1
 #define IB_MEMORY_LOAD_ERROR_INVALID_MACHO 2
