@@ -26,7 +26,7 @@ using namespace iblessing;
 
 int main(int argc, const char *argv[]) {
     shared_ptr<MachoLoader> loader = make_shared<MachoLoader>();
-    loader->loadModuleFromFile("/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample");
+    loader->loadModuleFromFile("/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample", true);
     return 0;
     // ascii art
     printf("\n\
