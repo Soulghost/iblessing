@@ -26,7 +26,7 @@ public:
     std::map<std::string, std::shared_ptr<MachOModule>> name2module;
     uint64_t loaderOffset;
     
-    std::shared_ptr<MachOModule> loadModuleFromFile(std::string filePath);
+    std::shared_ptr<MachOModule> loadModuleFromFile(std::string filePath, bool loadDylibs);
     uc_engine *uc;
     ScannerWorkDirManager *workDirManager;
 };

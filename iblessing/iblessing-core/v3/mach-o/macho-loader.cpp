@@ -13,8 +13,50 @@
 #include "DyldSimulator.hpp"
 #include <mach-o/loader.h>
 
+#ifdef IB_PLATFORM_DARWIN
+#include <filesystem>
+#else
+#include <experimental/filesystem>
+#endif
+
+#ifdef IB_PLATFORM_DARWIN
+namespace fs = std::filesystem;
+#else
+namespace fs = std::experimental::filesystem;
+#endif
+
 using namespace std;
 using namespace iblessing;
+
+static string resolveLibraryPath(string &name) {
+    // FIXME: @rpath
+    string path;
+    if (name.rfind("libc++") != string::npos) {
+        StringUtils::replace(name, "libc++", "libcpp");
+    }
+    
+    static const char *versions[] = { "A", "B", "C" };
+    for (int i = 0; i < sizeof(versions) / sizeof(const char *); i++) {
+        std::string versionPart = StringUtils::format("Versions/%s/", versions[i]);
+        if (name.rfind(versionPart) != string::npos) {
+            StringUtils::replace(name, versionPart, "");
+        }
+    }
+    std::string libRoot = "/Users/soulghost/Desktop/git/iblessing/iblessing/resource/Frameworks/7.1";
+    if (StringUtils::has_prefix(name, "/System/Library/Frameworks/")) {
+        path = libRoot + name;
+    } else if (StringUtils::has_prefix(name, "/usr/lib/")) {
+        // FIXME: check file exists
+        path = libRoot + name;
+    }
+    
+    if (!filesystem::exists(path)) {
+        cout << termcolor::yellow << "[-] MachOLoader - Warn: missing library " << name;
+        cout << termcolor::reset << endl;
+        return "";
+    }
+    return path;
+}
 
 MachoLoader::MachoLoader()  {
     loaderOffset = 0;
@@ -48,7 +90,7 @@ MachoLoader::~MachoLoader() {
     delete workDirManager;
 }
  
-shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
+shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath, bool loadDylibs) {
     string moduleName = StringUtils::path_basename(filePath);
     if (name2module.find(moduleName) != name2module.end()) {
         return name2module[moduleName];
@@ -80,8 +122,7 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
     
     // parse section headers
     // vmaddr base
-    uint64_t vmaddr_base = 0;
-    uint64_t offset = loaderOffset;
+    uint64_t imageBase = loaderOffset;
     uint64_t imageSize = 0;
     vector<pair<uint64_t, uint64_t>> textSects;
     uint64_t vmaddr_bss_start = 0;
@@ -109,7 +150,9 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
     uint8_t *cmds = mappedFile + sizeof(struct ib_mach_header_64);
     
     std::vector<MachODynamicLibrary> dynamicLibraryDependencies;
-    printf("[+] MachOLoader - load module %s (%s) with offset 0x%llx\n", moduleName.c_str(), filePath.c_str(), offset);
+    std::vector<MachODynamicLibrary> dynamicLibraryOrdinalList;
+    std::vector<MachODynamicLibrary> exportDynamicLibraries;
+    printf("[+] MachOLoader - load module %s (%s) with offset 0x%llx\n", moduleName.c_str(), filePath.c_str(), imageBase);
     for (uint32_t i = 0; i < ncmds; i++) {
         struct ib_load_command *lc = (struct ib_load_command *)cmds;
         switch (lc->cmd) {
@@ -117,7 +160,10 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
                 struct ib_segment_command_64 *seg64 = (struct ib_segment_command_64 *)lc;
                 segmentHeaders.push_back(seg64);
                 
-                uint64_t addr = seg64->vmaddr + offset;
+                uint64_t addr = seg64->vmaddr + imageBase;
+                // update header
+                seg64->vmaddr = addr;
+                
                 uint64_t size = std::min(seg64->vmsize, seg64->filesize);
                 if (size == 0) {
                     cmds += lc->cmdsize;
@@ -139,14 +185,16 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
                 
                 if (strncmp(seg64->segname, "__TEXT", 6) == 0) {
                     textSeg64 = seg64;
-                    vmaddr_base = seg64->vmaddr - seg64->fileoff + offset;
                 } else if (strncmp(seg64->segname, "__LINKEDIT", 10) == 0) {
-                    linkedit_base = seg64->vmaddr - seg64->fileoff + offset;
+                    linkedit_base = seg64->vmaddr - seg64->fileoff;
                 }
                 
                 if (seg64->nsects > 0) {
                     struct ib_section_64 *sect = (struct ib_section_64 *)((uint8_t *)seg64 + sizeof(struct ib_segment_command_64));
                     for (uint32_t i = 0; i < seg64->nsects; i++) {
+                        // update sect addr
+                        sect->addr += imageBase;
+                        
                         char *sectname = (char *)malloc(17);
                         memcpy(sectname, sect->sectname, 16);
                         sectname[16] = 0;
@@ -156,23 +204,23 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
                             textSect = sect;
                         }
                         if (strcmp(sectname, "__bss") == 0) {
-                            vmaddr_bss_start = sect->addr + offset;
+                            vmaddr_bss_start = sect->addr;
                             vmaddr_bss_end = vmaddr_bss_start + sect->size;
                         }
                         if (strcmp(sectname, "__objc_classlist") == 0) {
-                            objc_classlist_addr = sect->addr + offset;
+                            objc_classlist_addr = sect->addr;
                             objc_classlist_size = sect->size;
                         }
                         if (strcmp(sectname, "__objc_catlist") == 0) {
-                            objc_catlist_addr = sect->addr + offset;
+                            objc_catlist_addr = sect->addr;
                             objc_catlist_size = sect->size;
                         }
                         
                         if (sect->reloff > 0 && sect->nreloc > 0) {
-                            allRelocs.push_back({{sect->reloff, sect->nreloc}, {sect->addr + offset, sect}});
+                            allRelocs.push_back({{sect->reloff, sect->nreloc}, {sect->addr, sect}});
                         }
                         
-                        uint64_t addr = sect->addr + offset;
+                        uint64_t addr = sect->addr;
                         uc_err err = uc_mem_write(uc, addr, mappedFile + sect->offset, sect->size);
                         if (err != UC_ERR_OK) {
                             cout << termcolor::red << "[-] VirtualMemoryV2 - Error: cannot map section ";
@@ -182,6 +230,7 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
                                                         addr + sect->size);
                             cout << ", error " << uc_strerror(err);
                             cout << termcolor::reset << endl;
+                            assert(false);
                         }
                         printf("[+]     mapping %s.%s: 0x%llx - 0x%llx\n", sect->segname, sectname, addr, addr + size);
                         sectionHeaders.push_back(sect);
@@ -191,7 +240,7 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
                 }
                 
                 // update size
-                uint64_t totalSize = seg64->vmaddr + seg64->vmsize;
+                uint64_t totalSize = seg64->vmaddr + seg64->vmsize - imageBase;
                 if (imageSize < totalSize) {
                     imageSize = totalSize;
                 }
@@ -222,6 +271,34 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
                 struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)lc;
                 const char *name = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
                 dynamicLibraryDependencies.push_back({.name = std::string(name), .upward = false, .weak = false});
+                dynamicLibraryOrdinalList.push_back({.name = std::string(name), .upward = false, .weak = false});
+                break;
+            }
+            case IB_LC_LOAD_WEAK_DYLIB: {
+                struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)lc;
+                const char *name = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                dynamicLibraryDependencies.push_back({.name = std::string(name), .upward = false, .weak = true});
+                dynamicLibraryOrdinalList.push_back({.name = std::string(name), .upward = false, .weak = true});
+                break;
+            }
+            case IB_LC_REEXPORT_DYLIB: {
+                struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)lc;
+                const char *name = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                dynamicLibraryOrdinalList.push_back({.name = std::string(name), .upward = false, .weak = false});
+                exportDynamicLibraries.push_back({.name = std::string(name), .upward = false, .weak = false});
+                break;
+            }
+            case IB_LC_LAZY_LOAD_DYLIB: {
+                struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)lc;
+                const char *name = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                dynamicLibraryOrdinalList.push_back({.name = std::string(name), .upward = false, .weak = false});
+                break;
+            }
+            case IB_LC_LOAD_UPWARD_DYLIB: {
+                struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)lc;
+                const char *name = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                dynamicLibraryDependencies.push_back({.name = std::string(name), .upward = true, .weak = false});
+                dynamicLibraryOrdinalList.push_back({.name = std::string(name), .upward = true, .weak = false});
                 break;
             }
             default:
@@ -271,17 +348,29 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
 //        }
 //        relocAllRegions(symtab, objcRuntime, uc);
 //    }
+    
+    // handle export dylibs
+    for (MachODynamicLibrary &library : exportDynamicLibraries) {
+        string path = resolveLibraryPath(library.name);
+        if (path.length() > 0) {
+            loadModuleFromFile(path, false);
+        } else {
+            cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Error: unable to export dependent dylib %s", library.name.c_str());
+            cout << termcolor::reset << endl;
+        }
+    }
+    
     modules.push_back(module);
     assert(name2module.find(moduleName) == name2module.end());
     name2module[moduleName] = module;
     
     // rebase module
-    if (offset > 0) {
-        DyldSimulator::doRebase(offset, imageSize, mappedFile, segmentHeaders, dyld_info, [&](uint64_t addr, uint64_t slide, uint8_t type) {
+    if (imageBase > 0) {
+        DyldSimulator::doRebase(imageBase, imageSize, mappedFile, segmentHeaders, dyld_info, [&](uint64_t addr, uint64_t slide, uint8_t type) {
             switch (type) {
                 case IB_REBASE_TYPE_POINTER:
                 case IB_REBASE_TYPE_TEXT_ABSOLUTE32: {
-                    uint64_t ptrAddr = offset + addr;
+                    uint64_t ptrAddr = addr;
                     uint64_t ptrValue = 0;
                     uc_err err = uc_mem_read(uc, ptrAddr, &ptrValue, 8);
                     if (err != UC_ERR_OK) {
@@ -290,7 +379,7 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
                         assert(false);
                     }
                     
-                    ptrValue += offset;
+                    ptrValue += imageBase;
                     err = uc_mem_write(uc, ptrAddr, &ptrValue, 8);
                     if (err != UC_ERR_OK) {
                         cout << termcolor::red << StringUtils::format("[-] MachOLoader - Error: cannot do rebase at 0x%llx, %s", addr, uc_strerror(err));
@@ -304,40 +393,26 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
                     break;
             }
         });
+        
+        DyldSimulator::eachBind(mappedFile, segmentHeaders, dyld_info, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
+            
+        });
     }
     
     
     loaderOffset += imageSize;
     
     // load dependencies
-    for (MachODynamicLibrary &library : dynamicLibraryDependencies) {
-        string name = library.name;
-        string path;
-        // FIXME: @rpath
-        
-        
-        // resolve path
-        printf("[+] ~ try to resolve name %s\n", name.c_str());
-        if (name.rfind("libc++") != string::npos) {
-            StringUtils::replace(name, "libc++", "libcpp");
-        }
-        
-        static const char *versions[] = { "A", "B", "C" };
-        for (int i = 0; i < sizeof(versions) / sizeof(const char *); i++) {
-            std::string versionPart = StringUtils::format("Versions/%s/", versions[i]);
-            if (name.rfind(versionPart) != string::npos) {
-                StringUtils::replace(name, versionPart, "");
+    if (loadDylibs) {
+        for (MachODynamicLibrary &library : dynamicLibraryDependencies) {
+            string path = resolveLibraryPath(library.name);
+            if (path.length() != 0) {
+                loadModuleFromFile(path, true);
+            } else {
+                cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Error: unable to load dependent dylib %s", library.name.c_str());
+                cout << termcolor::reset << endl;
             }
         }
-        std::string libRoot = "/Users/soulghost/Desktop/git/iblessing/iblessing/resource/Frameworks/7.1";
-        if (StringUtils::has_prefix(name, "/System/Library/Frameworks/")) {
-            path = libRoot + name;
-        } else if (StringUtils::has_prefix(name, "/usr/lib/")) {
-            // FIXME: check file exists
-            path = libRoot + name;
-        }
-        
-        loadModuleFromFile(path);
     }
     return module;
 }
