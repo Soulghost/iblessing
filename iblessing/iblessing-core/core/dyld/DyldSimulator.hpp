@@ -14,12 +14,14 @@
 #include <iblessing-core/core/polyfill/mach-universal.hpp>
 
 typedef std::function<void (uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg)> DyldBindHandler;
+typedef std::function<void (uint64_t addr, uint64_t slide, uint8_t type)> DyldRebaseHandler;
 
 NS_IB_BEGIN
 
 class DyldSimulator {
 public:
     static bool eachBind(uint8_t *mappedData, std::vector<struct ib_segment_command_64 *> segmentHeaders, ib_dyld_info_command *dyldinfo, DyldBindHandler handler);
+    static void doRebase(uint64_t moduleBase, uint64_t moduleSize, uint8_t *mappedData, std::vector<struct ib_segment_command_64 *> segmentHeaders, ib_dyld_info_command *dyldinfo, DyldRebaseHandler handler);
 };
 
 NS_IB_END

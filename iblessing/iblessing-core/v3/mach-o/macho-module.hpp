@@ -29,6 +29,7 @@ public:
     uint64_t addr;
     uint64_t size;
     
+    std::string name;
     std::shared_ptr<StringTable> strtab;
     std::shared_ptr<SymbolTable> symtab;
     
