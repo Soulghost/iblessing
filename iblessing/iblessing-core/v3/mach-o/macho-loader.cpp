@@ -10,6 +10,7 @@
 #include "termcolor.h"
 #include "StringUtils.h"
 #include "ScannerContext.hpp"
+#include "DyldSimulator.hpp"
 #include <mach-o/loader.h>
 
 using namespace std;
@@ -48,6 +49,11 @@ MachoLoader::~MachoLoader() {
 }
  
 shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
+    string moduleName = StringUtils::path_basename(filePath);
+    if (name2module.find(moduleName) != name2module.end()) {
+        return name2module[moduleName];
+    }
+    
     char *shadowFilePath = nullptr;
     if (workDirManager->createShadowFile(filePath, &shadowFilePath) != 0) {
         assert(false);
@@ -62,6 +68,7 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
     filePath = shadowFilePath;
     
     shared_ptr<MachOModule> module = make_shared<MachOModule>();
+    module->name = moduleName;
     uint8_t *mappedFile;
     uint64_t bufferSize;
     ib_mach_header_64 *hdr = nullptr;
@@ -102,7 +109,7 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
     uint8_t *cmds = mappedFile + sizeof(struct ib_mach_header_64);
     
     std::vector<MachODynamicLibrary> dynamicLibraryDependencies;
-    printf("[+] MachOLoader - load module %s with offset 0x%llx\n", filePath.c_str(), offset);
+    printf("[+] MachOLoader - load module %s (%s) with offset 0x%llx\n", moduleName.c_str(), filePath.c_str(), offset);
     for (uint32_t i = 0; i < ncmds; i++) {
         struct ib_load_command *lc = (struct ib_load_command *)cmds;
         switch (lc->cmd) {
@@ -264,6 +271,41 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
 //        }
 //        relocAllRegions(symtab, objcRuntime, uc);
 //    }
+    modules.push_back(module);
+    assert(name2module.find(moduleName) == name2module.end());
+    name2module[moduleName] = module;
+    
+    // rebase module
+    if (offset > 0) {
+        DyldSimulator::doRebase(offset, imageSize, mappedFile, segmentHeaders, dyld_info, [&](uint64_t addr, uint64_t slide, uint8_t type) {
+            switch (type) {
+                case IB_REBASE_TYPE_POINTER:
+                case IB_REBASE_TYPE_TEXT_ABSOLUTE32: {
+                    uint64_t ptrAddr = offset + addr;
+                    uint64_t ptrValue = 0;
+                    uc_err err = uc_mem_read(uc, ptrAddr, &ptrValue, 8);
+                    if (err != UC_ERR_OK) {
+                        cout << termcolor::red << StringUtils::format("[-] MachOLoader - Error: cannot do rebase at 0x%llx, %s", addr, uc_strerror(err));
+                        cout << termcolor::reset << endl;
+                        assert(false);
+                    }
+                    
+                    ptrValue += offset;
+                    err = uc_mem_write(uc, ptrAddr, &ptrValue, 8);
+                    if (err != UC_ERR_OK) {
+                        cout << termcolor::red << StringUtils::format("[-] MachOLoader - Error: cannot do rebase at 0x%llx, %s", addr, uc_strerror(err));
+                        cout << termcolor::reset << endl;
+                        assert(false);
+                    }
+                    break;
+                }
+                default:
+                    assert(false);
+                    break;
+            }
+        });
+    }
+    
     
     loaderOffset += imageSize;
     
@@ -271,7 +313,22 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
     for (MachODynamicLibrary &library : dynamicLibraryDependencies) {
         string name = library.name;
         string path;
+        // FIXME: @rpath
+        
+        
         // resolve path
+        printf("[+] ~ try to resolve name %s\n", name.c_str());
+        if (name.rfind("libc++") != string::npos) {
+            StringUtils::replace(name, "libc++", "libcpp");
+        }
+        
+        static const char *versions[] = { "A", "B", "C" };
+        for (int i = 0; i < sizeof(versions) / sizeof(const char *); i++) {
+            std::string versionPart = StringUtils::format("Versions/%s/", versions[i]);
+            if (name.rfind(versionPart) != string::npos) {
+                StringUtils::replace(name, versionPart, "");
+            }
+        }
         std::string libRoot = "/Users/soulghost/Desktop/git/iblessing/iblessing/resource/Frameworks/7.1";
         if (StringUtils::has_prefix(name, "/System/Library/Frameworks/")) {
             path = libRoot + name;

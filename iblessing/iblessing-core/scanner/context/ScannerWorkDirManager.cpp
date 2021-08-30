@@ -76,6 +76,7 @@ int ScannerWorkDirManager::createShadowFile(std::string filePath, char **shadowP
         fs::copy(originPath, shadowPath);
         *shadowPathOut = strdup(shadowPath.c_str());
     } catch (fs::filesystem_error e) {
+        printf("[-] fs error: %s\n", e.what());
         return 1;
     }
     return 0;
