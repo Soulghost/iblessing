@@ -21,12 +21,12 @@
 using namespace std;
 using namespace iblessing;
 
-//__attribute__((constructor))
-//static void scannerRegister() {
-//    ScannerDispatcher::getInstance()->registerScanner("symbol-wrapper", []() {
-//        return new ObjcClassXrefScanner("objc-class-xref", "scan for class xrefs");
-//    });
-//};
+__attribute__((constructor))
+static void scannerRegister() {
+    ScannerDispatcher::getInstance()->registerScanner("objc-class-xref", []() {
+        return new ObjcClassXrefScanner("objc-class-xref", "scan for class xrefs");
+    });
+};
 
 int ObjcClassXrefScanner::start() {
     assert(macho != nullptr);
@@ -38,19 +38,46 @@ int ObjcClassXrefScanner::start() {
         return 1;
     }
     
+    shared_ptr<Memory> memory = Memory::createFromMachO(macho);
+    assert(memory->loadSync() == IB_SUCCESS);
+    this->memory = memory;
+    ARM64Runtime::bindVirtualMemory(memory->virtualMemory);
+    
     string classesExpr = options["classes"];
     vector<string> classes = StringUtils::split(classesExpr, ',');
     map<string, pair<set<uint64_t>, set<uint64_t>>> classRecords;
+    
+    printf("  [*] Step 1. locate class refs\n");
+    shared_ptr<VirtualMemory> vm = memory->fileMemory;
+//    DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
+//        if (classRecords.find((symbolName)) != classRecords.end()) {
+//            uint64_t symbolAddr = addr + addend;
+//            pair<set<uint64_t>, set<uint64_t>> &record = classRecords[symbolName];
+//            if (record.first.find(symbolAddr) == record.first.end()) {
+//                record.first.insert(symbolAddr);
+//
+//                // FIXME: trick write for external symbols
+//                vm->writeBySize(new uint64_t(symbolAddr), symbolAddr, 8, MemoryUnit::MemoryType::Common);
+//            }
+//        }
+//    });
+    this->objc = memory->objc;
+    objc->loadClassList();
+    
+    shared_ptr<Dyld> dyld = Dyld::create(macho, memory, objc);
+    this->dyld = dyld;
+    dyld->doBindAll([&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
+        
+    });
     for (string clazz : classes) {
         string classSymbol = StringUtils::format("_OBJC_CLASS_$_%s", clazz.c_str());
         classRecords[classSymbol] = {};
         
-        uint64_t address = ObjcRuntime::getInstance()->getClassAddrByName(classSymbol);
+        uint64_t address = memory->objc->getRuntime()->getClassAddrByName(classSymbol);
         if (address > 0) {
             classRecords[classSymbol].first.insert(address);
         }
     }
-    
     printf("  [*] try to find ");
     bool first = true;
     for (auto it = classRecords.begin(); it != classRecords.end(); it++) {
@@ -58,24 +85,6 @@ int ObjcClassXrefScanner::start() {
         first = false;
     }
     printf("\n");
-    
-    printf("  [*] Step 1. locate class refs\n");
-    shared_ptr<Memory> memory = Memory::createFromMachO(macho);
-    assert(memory->loadSync() == IB_SUCCESS);
-    this->memory = memory;
-    shared_ptr<VirtualMemory> vm = memory->fileMemory;
-    DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
-        if (classRecords.find((symbolName)) != classRecords.end()) {
-            uint64_t symbolAddr = addr + addend;
-            pair<set<uint64_t>, set<uint64_t>> &record = classRecords[symbolName];
-            if (record.first.find(symbolAddr) == record.first.end()) {
-                record.first.insert(symbolAddr);
-                
-                // FIXME: trick write for external symbols
-                vm->writeBySize(new uint64_t(symbolAddr), symbolAddr, 8, MemoryUnit::MemoryType::Common);
-            }
-        }
-    });
     for (auto it = classRecords.begin(); it != classRecords.end(); it++) {
         for (uint64_t addr : it->second.first) {
             printf("\t[+] find %s at 0x%llx\n", it->first.c_str(), addr);
@@ -165,10 +174,19 @@ int ObjcClassXrefScanner::start() {
         }
         last_mnemonic = insn->mnemonic;
 #if 1
+#ifdef XcodeDebug
+        static long _filter = 0;
+        if (++_filter % 5000 == 0) {
+            
+#endif
         float progress = 100.0 * (insn->address - startAddr) / addrRange;
         fprintf(stdout, "\r\t[*] %c 0x%llx/0x%llx (%.2f%%)", progressChars[progressCur], insn->address, endAddr, progress);
         fflush(stdout);
         progressCur = (++progressCur) % sizeof(progressChars);
+            
+#ifdef XcodeDebug
+        }
+#endif
 #endif
     });
     delete disasm;

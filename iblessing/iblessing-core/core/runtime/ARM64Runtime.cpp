@@ -25,6 +25,12 @@
 using namespace std;
 using namespace iblessing;
 
+static shared_ptr<VirtualMemoryV2> _vm2 = nullptr;
+
+void ARM64Runtime::bindVirtualMemory(shared_ptr<VirtualMemoryV2> vm2) {
+    _vm2 = vm2;
+}
+
 bool ARM64Runtime::handleInstruction(cs_insn *insn, string *insnDesc, string *insnComment, bool fatal) {
     // analyzer
     string analyzeDesc = "";
@@ -68,7 +74,7 @@ bool ARM64Runtime::handleSTP(cs_insn *insn, string *insnDesc, string *insnCommen
     struct cs_arm64 detail = insn[0].detail->arm64;
     string analyzeDesc = "";
     
-    VirtualMemory *vm = VirtualMemory::progressDefault();
+    shared_ptr<VirtualMemory> vm = _vm2->getFileMemory();
     ARM64ThreadState *state = ARM64ThreadState::mainThreadState();
     uint64_t sp = state->sp->getValue();
 
@@ -127,7 +133,7 @@ bool ARM64Runtime::handleSTR(cs_insn *insn, std::string *insnDesc, std::string *
     struct cs_arm64 detail = insn[0].detail->arm64;
     string analyzeDesc = "";
     
-    VirtualMemory *vm = VirtualMemory::progressDefault();
+    shared_ptr<VirtualMemory> vm = _vm2->getFileMemory();
     ARM64ThreadState *state = ARM64ThreadState::mainThreadState();
     ASMAssert(opcount >= 2, fatal);
     
@@ -273,8 +279,7 @@ bool ARM64Runtime::handleLDR(cs_insn *insn, std::string *insnDesc, std::string *
     string analyzeDesc = "";
     uint8_t opcount = detail.op_count;
     
-    VirtualMemory *vm = VirtualMemory::progressDefault();
-    VirtualMemoryV2 *vm2 = VirtualMemoryV2::progressDefault();
+    shared_ptr<VirtualMemory> vm = _vm2->getFileMemory();
     ARM64ThreadState *state = ARM64ThreadState::mainThreadState();
     
     ARM64Register *dst = state->getRegisterFromOprand(detail.operands[0]);
@@ -326,7 +331,7 @@ bool ARM64Runtime::handleLDR(cs_insn *insn, std::string *insnDesc, std::string *
     // load uint64 data
     uint64_t readSize = swMode ? 4 : 8;
     if (available) {
-        void *valuePtr = (void *)vm2->readBySize(addr, readSize);
+        void *valuePtr = (void *)_vm2->readBySize(addr, readSize);
         if (valuePtr != nullptr) {
             dst->setValue(valuePtr, readSize);
         } else {

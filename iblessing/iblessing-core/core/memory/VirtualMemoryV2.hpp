@@ -50,6 +50,7 @@ public:
     struct ib_dyld_info_command* getDyldInfo();
     uint64_t getBaseAddr();
     uc_engine* getEngine();
+    std::shared_ptr<VirtualMemory> getFileMemory();
     
 private:
     VirtualMemoryV2() {};

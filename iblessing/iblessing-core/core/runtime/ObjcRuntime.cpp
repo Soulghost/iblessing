@@ -104,6 +104,10 @@ uint64_t ObjcRuntime::getClassAddrByName(string className) {
     if (classList.find(className) != classList.end()) {
         return classList[className];
     }
+    
+    if (name2ExternalClassRuntimeInfo.find(className) != name2ExternalClassRuntimeInfo.end()) {
+        return name2ExternalClassRuntimeInfo[className]->address;
+    }
     return 0;
 }
 

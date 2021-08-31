@@ -12,11 +12,13 @@
 #include <iblessing-core/infra/Object.hpp>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
 #include <iblessing-core/core/symtab/SymbolTable.hpp>
+#include <iblessing-core/core/memory/VirtualMemoryV2.hpp>
 
 NS_IB_BEGIN
 
 class ARM64Runtime {
 public:
+    static void bindVirtualMemory(std::shared_ptr<VirtualMemoryV2> vm2);
     static bool handleInstruction(cs_insn *insn, std::string *insnDesc = nullptr, std::string *insnComment = nullptr, bool fatal = true);
     static bool handleSTP(cs_insn *insn, std::string *insnDesc, std::string *insnComment, bool fatal = true);
     static bool handleSTR(cs_insn *insn, std::string *insnDesc, std::string *insnComment, bool fatal = true);

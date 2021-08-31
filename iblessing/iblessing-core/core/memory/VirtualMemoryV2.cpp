@@ -371,6 +371,10 @@ uc_engine* VirtualMemoryV2::getEngine() {
     return this->uc;
 }
 
+shared_ptr<VirtualMemory> VirtualMemoryV2::getFileMemory() {
+    return this->fileMemory;
+}
+
 pair<std::string, std::string> VirtualMemoryV2::querySegInfo(uint64_t address) {
     auto it = addr2segInfo.lower_bound(address);
     if (it->first == address) {
@@ -378,3 +382,5 @@ pair<std::string, std::string> VirtualMemoryV2::querySegInfo(uint64_t address) {
     }
     return (--it)->second;
 }
+
+
