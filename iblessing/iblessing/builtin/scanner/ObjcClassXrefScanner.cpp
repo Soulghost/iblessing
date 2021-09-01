@@ -64,7 +64,7 @@ int ObjcClassXrefScanner::start() {
     assert(memory->loadSync() == IB_SUCCESS);
     this->memory = memory;
     shared_ptr<VirtualMemory> vm = memory->fileMemory;
-    DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
+    DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int64_t libraryOrdinal, const char *msg) {
         if (classRecords.find((symbolName)) != classRecords.end()) {
             uint64_t symbolAddr = addr + addend;
             pair<set<uint64_t>, set<uint64_t>> &record = classRecords[symbolName];

@@ -90,7 +90,56 @@ MachoLoader::~MachoLoader() {
     delete workDirManager;
 }
  
-shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath, bool loadDylibs) {
+shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
+    assert(modules.size() == 0);
+    shared_ptr<MachOModule> mainModule = _loadModuleFromFile(filePath, true);
+    for (shared_ptr<MachOModule> module : modules) {
+        DyldSimulator::eachBind(module->mappedBuffer, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int64_t libraryOrdinal, const char *msg) {
+            shared_ptr<MachOModule> targetModule = nullptr;
+            if (libraryOrdinal <= 0) {
+                switch (libraryOrdinal) {
+                    case IB_BIND_SPECIAL_DYLIB_MAIN_EXECUTABLE: {
+                        assert(false);
+                        break;
+                    }
+                    case IB_BIND_SPECIAL_DYLIB_SELF: {
+                        targetModule = module;
+                        break;
+                    }
+                    default: {
+                        assert(false);
+                    }
+                }
+            } else {
+                if (libraryOrdinal - 1 >= module->dynamicLibraryOrdinalList.size()) {
+                    cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind error for %s, invalid libraryOrdinal %llu, total dylibs %lu", module->name.c_str(), libraryOrdinal, module->dynamicLibraryOrdinalList.size());
+                    cout << termcolor::reset << endl;
+                    return;
+                }
+                
+                MachODynamicLibrary &library = module->dynamicLibraryOrdinalList[libraryOrdinal - 1];
+                if (name2module.find(library.name) == name2module.end()) {
+                    assert(false);
+                }
+                targetModule = name2module[library.name];
+            }
+            assert(targetModule != nullptr);
+            
+            Symbol *sym = targetModule->symtab->getSymbolByName(symbolName);
+            
+//            uint64_t symbolAddr = 0;
+//            addr += module->addr;
+//            uc_err err = uc_mem_read(uc, addr, &symbolAddr, 8);
+//            if (err != UC_ERR_OK) {
+//                cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind error for %s, cannot read symbol from 0x%llx in %s", module->name.c_str(), addr, library.name.c_str());
+//                cout << termcolor::reset << endl;
+//            }
+        });
+    }
+    return mainModule;
+}
+
+shared_ptr<MachOModule> MachoLoader::_loadModuleFromFile(std::string filePath, bool loadDylibs) {
     string moduleName = StringUtils::path_basename(filePath);
     if (name2module.find(moduleName) != name2module.end()) {
         return name2module[moduleName];
@@ -269,36 +318,41 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath, bo
             }
             case IB_LC_LOAD_DYLIB: {
                 struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)lc;
-                const char *name = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
-                dynamicLibraryDependencies.push_back({.name = std::string(name), .upward = false, .weak = false});
-                dynamicLibraryOrdinalList.push_back({.name = std::string(name), .upward = false, .weak = false});
+                const char *path = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                string name = StringUtils::path_basename(std::string(path));
+                dynamicLibraryDependencies.push_back({.name = name, .path = std::string(path), .upward = false, .weak = false});
+                dynamicLibraryOrdinalList.push_back({.name = name, .path = std::string(path), .upward = false, .weak = false});
                 break;
             }
             case IB_LC_LOAD_WEAK_DYLIB: {
                 struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)lc;
-                const char *name = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
-                dynamicLibraryDependencies.push_back({.name = std::string(name), .upward = false, .weak = true});
-                dynamicLibraryOrdinalList.push_back({.name = std::string(name), .upward = false, .weak = true});
+                const char *path = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                string name = StringUtils::path_basename(std::string(path));
+                dynamicLibraryDependencies.push_back({.name = name, .path = std::string(path), .upward = false, .weak = true});
+                dynamicLibraryOrdinalList.push_back({.name = name, .path = std::string(path), .upward = false, .weak = true});
                 break;
             }
             case IB_LC_REEXPORT_DYLIB: {
                 struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)lc;
-                const char *name = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
-                dynamicLibraryOrdinalList.push_back({.name = std::string(name), .upward = false, .weak = false});
-                exportDynamicLibraries.push_back({.name = std::string(name), .upward = false, .weak = false});
+                const char *path = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                string name = StringUtils::path_basename(std::string(path));
+                dynamicLibraryOrdinalList.push_back({.name = name, .path = std::string(path), .upward = false, .weak = false});
+                exportDynamicLibraries.push_back({.name = name, .path = std::string(path), .upward = false, .weak = false});
                 break;
             }
             case IB_LC_LAZY_LOAD_DYLIB: {
                 struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)lc;
-                const char *name = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
-                dynamicLibraryOrdinalList.push_back({.name = std::string(name), .upward = false, .weak = false});
+                const char *path = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                string name = StringUtils::path_basename(std::string(path));
+                dynamicLibraryOrdinalList.push_back({.name = name, .path = std::string(path), .upward = false, .weak = false});
                 break;
             }
             case IB_LC_LOAD_UPWARD_DYLIB: {
                 struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)lc;
-                const char *name = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
-                dynamicLibraryDependencies.push_back({.name = std::string(name), .upward = true, .weak = false});
-                dynamicLibraryOrdinalList.push_back({.name = std::string(name), .upward = true, .weak = false});
+                const char *path = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                string name = StringUtils::path_basename(std::string(path));
+                dynamicLibraryDependencies.push_back({.name = name, .path = std::string(path), .upward = true, .weak = false});
+                dynamicLibraryOrdinalList.push_back({.name = name, .path = std::string(path), .upward = true, .weak = false});
                 break;
             }
             default:
@@ -317,6 +371,7 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath, bo
         return a->offset < b->offset;
     });
     shared_ptr<SymbolTable> symtab = make_shared<SymbolTable>(strtab);
+    symtab->moduleBase = imageBase;
     module->symtab = symtab;
     symtab->buildSymbolTable(mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
@@ -353,12 +408,21 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath, bo
     for (MachODynamicLibrary &library : exportDynamicLibraries) {
         string path = resolveLibraryPath(library.name);
         if (path.length() > 0) {
-            loadModuleFromFile(path, false);
+            _loadModuleFromFile(path, false);
         } else {
             cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Error: unable to export dependent dylib %s", library.name.c_str());
             cout << termcolor::reset << endl;
         }
     }
+    
+    module->addr = imageBase;
+    module->size = imageSize;
+    module->dynamicLibraryDependencies = dynamicLibraryDependencies;
+    module->dynamicLibraryOrdinalList = dynamicLibraryOrdinalList;
+    module->exportDynamicLibraries = exportDynamicLibraries;
+    module->dyldInfoCommand = dyld_info;
+    module->mappedBuffer = mappedFile;
+    module->segmentHeaders = segmentHeaders;
     
     modules.push_back(module);
     assert(name2module.find(moduleName) == name2module.end());
@@ -393,10 +457,6 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath, bo
                     break;
             }
         });
-        
-        DyldSimulator::eachBind(mappedFile, segmentHeaders, dyld_info, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
-            
-        });
     }
     
     
@@ -405,14 +465,15 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath, bo
     // load dependencies
     if (loadDylibs) {
         for (MachODynamicLibrary &library : dynamicLibraryDependencies) {
-            string path = resolveLibraryPath(library.name);
+            string path = resolveLibraryPath(library.path);
             if (path.length() != 0) {
-                loadModuleFromFile(path, true);
+                _loadModuleFromFile(path, true);
             } else {
-                cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Error: unable to load dependent dylib %s", library.name.c_str());
+                cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Error: unable to load dependent dylib %s", library.path.c_str());
                 cout << termcolor::reset << endl;
             }
         }
     }
+    
     return module;
 }

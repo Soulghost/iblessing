@@ -13,7 +13,7 @@
 #include <iblessing-core/infra/Object.hpp>
 #include <iblessing-core/core/polyfill/mach-universal.hpp>
 
-typedef std::function<void (uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg)> DyldBindHandler;
+typedef std::function<void (uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int64_t libraryOrdinal, const char *msg)> DyldBindHandler;
 typedef std::function<void (uint64_t addr, uint64_t slide, uint8_t type)> DyldRebaseHandler;
 
 NS_IB_BEGIN

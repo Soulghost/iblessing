@@ -29,7 +29,7 @@ int PredicateScanner::start() {
     set<uint64_t> predicateAddrs;
     set<uint64_t> ocstringAddrs;
     VirtualMemory *vm = VirtualMemory::progressDefault();
-    DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
+    DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int64_t libraryOrdinal, const char *msg) {
         if (strcmp(symbolName, "_OBJC_CLASS_$_NSPredicate") == 0 ||
             strcmp(symbolName, "_OBJC_CLASS_$_NSString") == 0 ||
             strcmp(symbolName, "_OBJC_CLASS_$_NSMutableString") == 0) {

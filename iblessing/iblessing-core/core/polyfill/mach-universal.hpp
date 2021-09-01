@@ -13,6 +13,23 @@
 #include <unistd.h>
 #include <cstdint>
 
+#define    IB_MH_OBJECT    0x1        /* relocatable object file */
+#define    IB_MH_EXECUTE    0x2        /* demand paged executable file */
+#define    IB_MH_FVMLIB    0x3        /* fixed VM shared library file */
+#define    IB_MH_CORE        0x4        /* core file */
+#define    IB_MH_PRELOAD    0x5        /* preloaded executable file */
+#define    IB_MH_DYLIB    0x6        /* dynamically bound shared library */
+#define    IB_MH_DYLINKER    0x7        /* dynamic link editor */
+#define    IB_MH_BUNDLE    0x8        /* dynamically bound bundle file */
+#define    IB_MH_DYLIB_STUB    0x9        /* shared library stub for static
+                                            linking only, no section contents */
+#define    IB_MH_DSYM        0xa        /* companion file with only debug
+                                            sections */
+#define    IB_MH_KEXT_BUNDLE    0xb    /* x86_64 kexts */
+#define    IB_MH_FILESET    0xc        /* a file composed of other Mach-Os to
+                                           be run in the same userspace sharing
+                                           a single linkedit. */
+
 /*
 * The load commands directly follow the mach_header.  The total size of all
 * of the commands is given by the sizeofcmds field in the mach_header.  All
