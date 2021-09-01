@@ -67,9 +67,14 @@ void SymbolTable::buildSymbolTable(uint8_t *data, uint64_t nSymbols) {
                 name2symbol[symName].pushBack(symbol);
                 symbol->release();
             }
+            
 //            uint64_t idx = 1 + (symbolTable.size() == 0 ? 0 : li - symbolTable.at(0).second);
 //            uint64_t addr = -idx;
 //            printf("undefined symbol addr 0x%llx\n", addr);
+        }
+        
+        if ((li->n_type & IB_N_TYPE) == IB_N_INDR) {
+            // FIXME: indirect symbols
         }
         
         symbolTable.push_back({symName, li});

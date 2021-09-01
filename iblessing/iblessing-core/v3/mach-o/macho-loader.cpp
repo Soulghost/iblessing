@@ -12,6 +12,7 @@
 #include "ScannerContext.hpp"
 #include "DyldSimulator.hpp"
 #include <mach-o/loader.h>
+#include <set>
 
 #ifdef IB_PLATFORM_DARWIN
 #include <filesystem>
@@ -93,6 +94,8 @@ MachoLoader::~MachoLoader() {
 shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
     assert(modules.size() == 0);
     shared_ptr<MachOModule> mainModule = _loadModuleFromFile(filePath, true);
+    
+    set<pair<string, string>> symbolNotFoundErrorSet;
     for (shared_ptr<MachOModule> module : modules) {
         DyldSimulator::eachBind(module->mappedBuffer, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int64_t libraryOrdinal, const char *msg) {
             shared_ptr<MachOModule> targetModule = nullptr;
@@ -118,15 +121,48 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
                 }
                 
                 MachODynamicLibrary &library = module->dynamicLibraryOrdinalList[libraryOrdinal - 1];
-                if (name2module.find(library.name) == name2module.end()) {
+                string libraryName = library.name;
+                if (libraryName.rfind("libc++") != string::npos) {
+                    StringUtils::replace(libraryName, "libc++", "libcpp");
+                }
+                if (name2module.find(libraryName) == name2module.end()) {
                     assert(false);
                 }
-                targetModule = name2module[library.name];
+                targetModule = name2module[libraryName];
             }
             assert(targetModule != nullptr);
             
             Symbol *sym = targetModule->symtab->getSymbolByName(symbolName);
-            
+            if (!sym) {
+                pair<string, string> errorPattern = {symbolName, targetModule->name};
+                if (symbolNotFoundErrorSet.find(errorPattern) == symbolNotFoundErrorSet.end()) {
+                    cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind cannot find symbol %s in %s\n", symbolName, targetModule->name.c_str());
+                    cout << termcolor::reset << endl;
+                    symbolNotFoundErrorSet.insert(errorPattern);
+                }
+                return;
+            }
+            assert(sym->info);
+            assert(sym->info->n_value > 0);
+            switch (type) {
+                case IB_BIND_TYPE_POINTER: {
+                    uint64_t symbolPtrAddr = sym->info->n_value + addend;
+                    uint64_t symbolAddr = 0;
+                    assert(uc_mem_read(uc, symbolPtrAddr, &symbolAddr, 8) == KERN_SUCCESS);
+                    assert(uc_mem_write(uc, addr, &symbolAddr, 8) == KERN_SUCCESS);
+                    printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, addr, module->name.c_str());
+                    break;
+                }
+                case IB_BIND_TYPE_TEXT_ABSOLUTE32: {
+                    uint64_t symbolAddr = sym->info->n_value + addend;
+                    assert(uc_mem_write(uc, addr, &symbolAddr, 8) == KERN_SUCCESS);
+                    printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, addr, module->name.c_str());
+                    break;
+                }
+                default:
+                    assert(false);
+                    break;
+            }
 //            uint64_t symbolAddr = 0;
 //            addr += module->addr;
 //            uc_err err = uc_mem_read(uc, addr, &symbolAddr, 8);
@@ -406,7 +442,7 @@ shared_ptr<MachOModule> MachoLoader::_loadModuleFromFile(std::string filePath, b
     
     // handle export dylibs
     for (MachODynamicLibrary &library : exportDynamicLibraries) {
-        string path = resolveLibraryPath(library.name);
+        string path = resolveLibraryPath(library.path);
         if (path.length() > 0) {
             _loadModuleFromFile(path, false);
         } else {
