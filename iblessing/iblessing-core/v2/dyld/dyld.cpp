@@ -20,7 +20,7 @@ void Dyld::doBindAll(DyldBindHandler handler) {
     shared_ptr<VirtualMemory> fvm = memory->fileMemory;
     shared_ptr<VirtualMemoryV2> vm2 = memory->virtualMemory;
     shared_ptr<SymbolTable> symtab = macho->context->symtab;
-    DyldSimulator::eachBind(fvm->mappedFile, fvm->segmentHeaders, fvm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
+    DyldSimulator::eachBind(fvm->mappedFile, fvm->segmentHeaders, fvm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int64_t libraryOrdinal, const char *msg) {
         uint64_t symbolAddr = addr + addend;
         
         // load non-lazy symbols

@@ -29,7 +29,7 @@ int ObjcUnserializationScanner::start() {
     set<uint64_t> unarchiverAddrs;
     set<uint64_t> pasteboardAddrs;
     VirtualMemory *vm = VirtualMemory::progressDefault();
-    DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, uint64_t libraryOrdinal, const char *msg) {
+    DyldSimulator::eachBind(vm->mappedFile, vm->segmentHeaders, vm->dyldinfo, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int64_t libraryOrdinal, const char *msg) {
         if (strcmp(symbolName, "_OBJC_CLASS_$_NSKeyedUnarchiver") == 0 ||
             strcmp(symbolName, "_OBJC_CLASS_$_UIPasteboard") == 0) {
             uint64_t symbolAddr = addr + addend;

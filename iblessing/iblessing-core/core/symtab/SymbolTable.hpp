@@ -31,6 +31,9 @@ typedef struct SymbolRelocation {
 
 class SymbolTable : public Object {
 public:
+    std::shared_ptr<StringTable> strtab;
+    uint64_t moduleBase;
+    
     SymbolTable(std::shared_ptr<StringTable> strtab) : strtab(strtab) {};
     virtual ~SymbolTable();
     static SymbolTable* getInstance();
@@ -45,9 +48,7 @@ public:
     Symbol* getSymbolNearByAddress(uint64_t address);
     Symbol* getSymbolByAddress(uint64_t address);
     Symbol* getSymbolByName(std::string name);
-    std::shared_ptr<StringTable> strtab;
     std::vector<SymbolRelocation> getAllRelocs();
-    
 private:
     Map<uint64_t, Symbol *> symbolMap;
     std::map<uint64_t, Symbol *> symbolMapCpp;

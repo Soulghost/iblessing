@@ -20,6 +20,7 @@ NS_IB_BEGIN
 
 struct MachODynamicLibrary {
     std::string name;
+    std::string path;
     bool upward; // a <-> b (circle)
     bool weak;
 };
@@ -29,10 +30,18 @@ public:
     uint64_t addr;
     uint64_t size;
     
+    // headers
+    uint8_t *mappedBuffer;
+    struct ib_dyld_info_command *dyldInfoCommand;
+    
     std::string name;
     std::shared_ptr<StringTable> strtab;
     std::shared_ptr<SymbolTable> symtab;
+    std::vector<MachODynamicLibrary> dynamicLibraryDependencies;
+    std::vector<MachODynamicLibrary> dynamicLibraryOrdinalList;
+    std::vector<MachODynamicLibrary> exportDynamicLibraries;
     
+    std::vector<struct ib_segment_command_64 *> segmentHeaders;
     std::map<uint64_t, std::pair<std::string, std::string>> addr2segInfo;
     std::vector<std::pair<uint64_t, uint32_t>> textPatch;
     std::vector<std::pair<uint64_t, uint64_t>> dataPatch;

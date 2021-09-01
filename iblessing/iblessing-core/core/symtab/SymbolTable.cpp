@@ -43,6 +43,10 @@ void SymbolTable::buildSymbolTable(uint8_t *data, uint64_t nSymbols) {
     struct ib_nlist_64 *li = (struct ib_nlist_64 *)data;
     
     for (uint64_t i = 0; i < nSymbols; i++) {
+        if (li->n_value > 0) {
+            li->n_value += moduleBase;
+        }
+        
         uint32_t strIdx = li->n_un.n_strx;
         std::string symName = strtab->getStringAtIndex(strIdx);
         Symbol *symbol = new Symbol();

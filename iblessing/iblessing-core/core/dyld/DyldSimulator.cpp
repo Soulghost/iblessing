@@ -63,7 +63,7 @@ bool DyldSimulator::eachBind(uint8_t *mappedData, vector<struct ib_segment_comma
     const uint8_t * const bind_end = bind_start + bind_size;
     const uint8_t * p = bind_start;
     bool done = false;
-    uint64_t libraryOrdinal = 0;
+    int64_t libraryOrdinal = 0;
     const char *symbolName = NULL;
     uint8_t symbolFlags = 0;
     uint8_t type = 0;
