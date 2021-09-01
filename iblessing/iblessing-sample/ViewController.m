@@ -22,6 +22,7 @@ void test_entry(void) {
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    test_entry();
 }
 
 
