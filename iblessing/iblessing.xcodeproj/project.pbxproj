@@ -14,6 +14,8 @@
 		6829629524CBEEA500EF9251 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6829629324CBEEA500EF9251 /* LaunchScreen.storyboard */; };
 		6829629824CBEEA500EF9251 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829629724CBEEA500EF9251 /* main.m */; };
 		6829629F24CBEEFD00EF9251 /* MethodChainClasses.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829629E24CBEEFD00EF9251 /* MethodChainClasses.m */; };
+		6838CBD226E0EF2E00315E72 /* aarch64-machine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6838CBD026E0EF2E00315E72 /* aarch64-machine.cpp */; };
+		6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6838CBD126E0EF2E00315E72 /* aarch64-machine.hpp */; };
 		6844700226D7BB2600FE4D70 /* macho-module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6844700026D7BB2600FE4D70 /* macho-module.cpp */; };
 		6844700326D7BB2600FE4D70 /* macho-module.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6844700126D7BB2600FE4D70 /* macho-module.hpp */; };
 		6844700626D7C05400FE4D70 /* macho-loader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6844700426D7C05400FE4D70 /* macho-loader.cpp */; };
@@ -156,6 +158,8 @@
 		6829632224D052AF00EF9251 /* SymbolWrapperSerializationManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SymbolWrapperSerializationManager.hpp; sourceTree = "<group>"; };
 		6829633324D2838500EF9251 /* IDASymbolWrapperNamingScriptGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IDASymbolWrapperNamingScriptGenerator.cpp; sourceTree = "<group>"; };
 		6829633424D2838500EF9251 /* IDASymbolWrapperNamingScriptGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IDASymbolWrapperNamingScriptGenerator.hpp; sourceTree = "<group>"; };
+		6838CBD026E0EF2E00315E72 /* aarch64-machine.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "aarch64-machine.cpp"; sourceTree = "<group>"; };
+		6838CBD126E0EF2E00315E72 /* aarch64-machine.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "aarch64-machine.hpp"; sourceTree = "<group>"; };
 		684458BE25432D5B00A9D441 /* ObjcMethodCall.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMethodCall.cpp; sourceTree = "<group>"; };
 		684458BF25432D5B00A9D441 /* ObjcMethodCall.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMethodCall.hpp; sourceTree = "<group>"; };
 		684458C12543E14400A9D441 /* ObjcMethodCallSnapshotSerializationManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMethodCallSnapshotSerializationManager.cpp; sourceTree = "<group>"; };
@@ -470,6 +474,15 @@
 			path = structs;
 			sourceTree = "<group>";
 		};
+		6838CBCF26E0EF1800315E72 /* machine */ = {
+			isa = PBXGroup;
+			children = (
+				6838CBD026E0EF2E00315E72 /* aarch64-machine.cpp */,
+				6838CBD126E0EF2E00315E72 /* aarch64-machine.hpp */,
+			);
+			path = machine;
+			sourceTree = "<group>";
+		};
 		684458FC2572709800A9D441 /* sub-scanner */ = {
 			isa = PBXGroup;
 			children = (
@@ -491,6 +504,7 @@
 		68446FFE26D7BAD500FE4D70 /* v3 */ = {
 			isa = PBXGroup;
 			children = (
+				6838CBCF26E0EF1800315E72 /* machine */,
 				68446FFF26D7BAFA00FE4D70 /* mach-o */,
 			);
 			path = v3;
@@ -1223,6 +1237,7 @@
 			files = (
 				6844700726D7C05400FE4D70 /* macho-loader.hpp in Headers */,
 				6844700326D7BB2600FE4D70 /* macho-module.hpp in Headers */,
+				6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1460,6 +1475,7 @@
 				68B255DF26401EFB008FA1E2 /* StringTable.cpp in Sources */,
 				68B255E026401EFB008FA1E2 /* SymbolTable.cpp in Sources */,
 				68B255E526401F05008FA1E2 /* VirtualMemory.cpp in Sources */,
+				6838CBD226E0EF2E00315E72 /* aarch64-machine.cpp in Sources */,
 				68B255E626401F05008FA1E2 /* VirtualMemoryV2.cpp in Sources */,
 				68B255EB26401F13008FA1E2 /* ARM64Registers.cpp in Sources */,
 				68B255EC26401F13008FA1E2 /* ARM64ThreadState.cpp in Sources */,

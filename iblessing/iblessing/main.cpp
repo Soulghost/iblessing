@@ -15,6 +15,7 @@
 #include "TestManager.hpp"
 #include <iblessing/registry/PluginRegistry.h>
 #include <iblessing-core/v3/mach-o/macho-loader.hpp>
+#include <iblessing-core/v3/machine/aarch64-machine.hpp>
 
 #ifdef IB_CSR_ENABLED
 #include "csrutil.hpp"
@@ -26,11 +27,10 @@ using namespace iblessing;
 
 int main(int argc, const char *argv[]) {
     shared_ptr<MachoLoader> loader = make_shared<MachoLoader>();
-    loader->loadModuleFromFile("/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample");
-    
-    
-    
-    
+    shared_ptr<MachOModule> module = loader->loadModuleFromFile("/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample");
+    shared_ptr<Aarch64Machine> machine = make_shared<Aarch64Machine>();
+    machine->uc = loader->uc;
+    machine->callModule(module, "_test_entry");
     
     
     
