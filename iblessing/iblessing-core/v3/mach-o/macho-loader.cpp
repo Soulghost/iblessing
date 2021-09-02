@@ -146,6 +146,11 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
             assert(sym->info->n_value > 0);
             switch (type) {
                 case IB_BIND_TYPE_POINTER: {
+                    if (strcmp(symbolName, "dyld_stub_binder") == 0) {
+                        printf("[+] hook %s(%s) with svc to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), addr, module->name.c_str());
+                        return;
+                    }
+                    
                     uint64_t symbolPtrAddr = sym->info->n_value + addend;
                     uint64_t symbolAddr = 0;
                     assert(uc_mem_read(uc, symbolPtrAddr, &symbolAddr, 8) == KERN_SUCCESS);
