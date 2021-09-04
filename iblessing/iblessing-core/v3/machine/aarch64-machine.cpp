@@ -14,6 +14,9 @@ using namespace iblessing;
 
 #define UnicornStackTopAddr      0x300000000
 
+// global
+static map<uc_engine *, Aarch64Machine *> uc2instance;
+
 // create disasm handle
 static csh cs_handle;
 static uc_hook insn_hook, intr_hook, memexp_hook;
@@ -43,9 +46,22 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
 }
 
 static void uc_hookintr_callback(uc_engine *uc, uint32_t intno, void *user_data) {
-    uint64_t x0;
-    uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
-    printf("x");
+    void *codes = malloc(sizeof(uint32_t));
+    uint64_t pc = 0;
+    assert(uc_reg_read(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
+    uc_err err = uc_mem_read(uc, pc, codes, sizeof(uint32_t));
+    if (err != UC_ERR_OK) {
+        free(codes);
+        return;
+    }
+    
+    uint32_t code;
+    assert(uc_mem_read(uc, pc - sizeof(uint32_t), &code, 4) == UC_ERR_OK);
+    
+    uint32_t swi = (code >> 5) & 0xffff;
+    Aarch64Machine *that = uc2instance[uc];
+    assert(that->svcManager->handleSVC(uc, intno, swi, user_data) == true);
+    free(codes);
 }
 
 static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_t address, int size, int64_t value, void *user_data) {
@@ -65,6 +81,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 }
 
 int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName) {
+    uc2instance[this->uc] = this;
     if (symbolName.length() == 0) {
         printf("[-] error: does not support call entry-point");
         assert(false);

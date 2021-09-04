@@ -12,12 +12,14 @@
 #include <iblessing-core/v2/common/ibtypes.h>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <iblessing-core/v3/mach-o/macho-module.hpp>
+#include <iblessing-core/v3/kernel/syscall/aarch64-svc-manager.hpp>
 
 NS_IB_BEGIN
 
 class Aarch64Machine {
 public:
     uc_engine *uc;
+    std::shared_ptr<Aarch64SVCManager> svcManager;
     
     int callModule(std::shared_ptr<MachOModule> module, std::string symbolName = "");
 };
