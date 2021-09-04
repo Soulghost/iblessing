@@ -20,6 +20,9 @@
 #include <experimental/filesystem>
 #endif
 
+// tmp
+#include <iblessing-core/v2/vendor/keystone/keystone.h>
+
 #ifdef IB_PLATFORM_DARWIN
 namespace fs = std::filesystem;
 #else
@@ -148,6 +151,24 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
                 case IB_BIND_TYPE_POINTER: {
                     if (strcmp(symbolName, "dyld_stub_binder") == 0) {
                         printf("[+] hook %s(%s) with svc to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), addr, module->name.c_str());
+                        uint64_t svcMemoryAddress = 0x700000000;
+                        uc_err err = uc_mem_map(uc, svcMemoryAddress, 0x1000, UC_PROT_ALL);
+                        if (err != UC_ERR_OK) {
+                            printf("svc allocate error%s\n", uc_strerror(err));
+                        }
+                        ks_engine *ks;
+                        uint64_t insnAddr = svcMemoryAddress;
+                        assert(ks_open(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN, &ks) == KS_ERR_OK);
+                        {
+                            uint32_t svcCommand = 0xd4000001 | (233 << 5);
+                            uint32_t retCommand = 0xd65f03c0;
+//                            assert(ks_asm(ks, StringUtils::format("svc #0x%x; ret", 0x233).c_str(), insnAddr, &encode, &size, &count) == KS_ERR_OK);
+                            assert(uc_mem_write(uc, svcMemoryAddress, &svcCommand, 4) == UC_ERR_OK);
+                            svcMemoryAddress += 4;
+                            assert(uc_mem_write(uc, svcMemoryAddress, &retCommand, 4) == UC_ERR_OK);
+                            assert(uc_mem_write(uc, addr, &insnAddr, 8) == UC_ERR_OK);
+                        }
+                        
                         return;
                     }
                     

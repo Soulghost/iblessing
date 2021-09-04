@@ -16,7 +16,7 @@ using namespace iblessing;
 
 // create disasm handle
 static csh cs_handle;
-static uc_hook insn_hook, memexp_hook;
+static uc_hook insn_hook, intr_hook, memexp_hook;
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     void *codes = malloc(sizeof(uint32_t));
@@ -40,6 +40,12 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     printf("[Stalker] 0x%08llx %s %s\n", insn->address, insn->mnemonic, insn->op_str);
     
     free(codes);
+}
+
+static void uc_hookintr_callback(uc_engine *uc, uint32_t intno, void *user_data) {
+    uint64_t x0;
+    uc_reg_read(uc, UC_ARM64_REG_X0, &x0);
+    printf("x");
 }
 
 static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_t address, int size, int64_t value, void *user_data) {
@@ -82,6 +88,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // setup hooks
     uc_hook_add(uc, &insn_hook, UC_HOOK_CODE, (void *)insn_hook_callback, NULL, 1, 0);
+    uc_hook_add(uc, &intr_hook, UC_HOOK_INTR, (void *)uc_hookintr_callback, NULL, 1, 0);
     uc_hook_add(uc, &memexp_hook, UC_HOOK_MEM_INVALID, (void *)mem_exception_hook_callback, NULL, 1, 0);
     
     // init context
