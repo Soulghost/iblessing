@@ -10,6 +10,7 @@
 #define macho_loader_hpp
 
 #include <iblessing-core/v3/mach-o/macho-module.hpp>
+#include <iblessing-core/v3/kernel/syscall/aarch64-svc-manager.hpp>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <iblessing-core/scanner/context/ScannerWorkDirManager.hpp>
 #include <memory>
@@ -29,6 +30,7 @@ public:
     std::shared_ptr<MachOModule> loadModuleFromFile(std::string filePath);
     uc_engine *uc;
     ScannerWorkDirManager *workDirManager;
+    std::shared_ptr<Aarch64SVCManager> svcManager;
     
 protected:
     std::shared_ptr<MachOModule> _loadModuleFromFile(std::string filePath, bool loadDylibs);
