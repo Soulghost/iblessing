@@ -109,7 +109,7 @@ void Dyld::doBindAll(DyldBindHandler handler) {
     });
 }
 
-void Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachoLoader> loader, int64_t libraryOrdinal, const char *symbolName, uint64_t addr, uint64_t addend, uint8_t type) {
+void Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> loader, int64_t libraryOrdinal, const char *symbolName, uint64_t addr, uint64_t addend, uint8_t type) {
     uc_engine *uc = loader->uc;
     shared_ptr<MachOModule> targetModule = nullptr;
     if (libraryOrdinal <= 0) {
@@ -205,7 +205,7 @@ void Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachoLoader> loader
     }
 }
 
-uint64_t Dyld::doFastLazyBind(shared_ptr<MachOModule> module, shared_ptr<MachoLoader> loader, uint64_t lazyBindingInfoOffset) {
+uint64_t Dyld::doFastLazyBind(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> loader, uint64_t lazyBindingInfoOffset) {
     uint8_t *buffer = module->mappedBuffer;
     uint8_t *lazyBindBegin = buffer + module->dyldInfoCommand->lazy_bind_off;
     uint8_t *lazyInfoEnd = lazyBindBegin + module->dyldInfoCommand->lazy_bind_size;

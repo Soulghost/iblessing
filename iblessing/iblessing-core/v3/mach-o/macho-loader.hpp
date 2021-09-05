@@ -19,10 +19,10 @@
 
 NS_IB_BEGIN
 
-class MachoLoader : public std::enable_shared_from_this<MachoLoader> {
+class MachOLoader : public std::enable_shared_from_this<MachOLoader> {
 public:
-    MachoLoader();
-    ~MachoLoader();
+    MachOLoader();
+    ~MachOLoader();
     std::vector<std::shared_ptr<MachOModule>> modules;
     std::map<std::string, std::shared_ptr<MachOModule>> name2module;
     uint64_t loaderOffset;
