@@ -26,7 +26,7 @@ using namespace argparse;
 using namespace iblessing;
 
 int main(int argc, const char *argv[]) {
-    shared_ptr<MachoLoader> loader = make_shared<MachoLoader>();
+    shared_ptr<MachOLoader> loader = make_shared<MachOLoader>();
     shared_ptr<MachOModule> module = loader->loadModuleFromFile("/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample");
     shared_ptr<Aarch64Machine> machine = make_shared<Aarch64Machine>();
     machine->svcManager = loader->svcManager;

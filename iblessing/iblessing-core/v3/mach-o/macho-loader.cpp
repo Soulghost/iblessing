@@ -63,7 +63,7 @@ static string resolveLibraryPath(string &name) {
     return path;
 }
 
-MachoLoader::MachoLoader()  {
+MachOLoader::MachOLoader()  {
     loaderOffset = 0;
     
     workDirManager = new ScannerWorkDirManager("/tmp/iblessing-workdir");
@@ -95,11 +95,11 @@ MachoLoader::MachoLoader()  {
     this->svcManager = svcManager;
 }
 
-MachoLoader::~MachoLoader() {
+MachOLoader::~MachOLoader() {
     delete workDirManager;
 }
 
-shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
+shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     assert(modules.size() == 0);
     shared_ptr<MachOModule> mainModule = _loadModuleFromFile(filePath, true);
     
@@ -112,7 +112,7 @@ shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
     return mainModule;
 }
 
-shared_ptr<MachOModule> MachoLoader::_loadModuleFromFile(std::string filePath, bool loadDylibs) {
+shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, bool loadDylibs) {
     string moduleName = StringUtils::path_basename(filePath);
     if (name2module.find(moduleName) != name2module.end()) {
         return name2module[moduleName];
