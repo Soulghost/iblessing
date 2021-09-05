@@ -7,3 +7,6 @@
 //
 
 #include "macho-module.hpp"
+
+using namespace std;
+using namespace iblessing;

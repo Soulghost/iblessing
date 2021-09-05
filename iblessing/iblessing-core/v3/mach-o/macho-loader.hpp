@@ -19,7 +19,7 @@
 
 NS_IB_BEGIN
 
-class MachoLoader {
+class MachoLoader : public std::enable_shared_from_this<MachoLoader> {
 public:
     MachoLoader();
     ~MachoLoader();

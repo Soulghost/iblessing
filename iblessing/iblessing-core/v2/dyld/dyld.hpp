@@ -15,6 +15,9 @@
 
 namespace iblessing {
 
+class MachOModule;
+class MachoLoader;
+
 class Dyld {
 public:
     Dyld(std::shared_ptr<MachO> macho, std::shared_ptr<Memory> memory, std::shared_ptr<Objc> objc = nullptr) :
@@ -22,6 +25,8 @@ public:
     static std::shared_ptr<Dyld> create(std::shared_ptr<MachO> macho, std::shared_ptr<Memory> memory, std::shared_ptr<Objc> objc = nullptr);
     
     void doBindAll(DyldBindHandler handler = nullptr);
+    static void bindAt(std::shared_ptr<MachOModule> module, std::shared_ptr<MachoLoader> loader, int64_t libraryOrdinal, const char *symbolName, uint64_t addr, uint64_t addend, uint8_t type);
+    static uint64_t doFastLazyBind(std::shared_ptr<MachOModule> module, std::shared_ptr<MachoLoader> loader, uint64_t lazyBindingInfoOffset);
     
 protected:
     std::shared_ptr<MachO> macho;
