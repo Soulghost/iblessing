@@ -7,10 +7,50 @@
 //
 
 #include "dyld.hpp"
+#include <iblessing-core/v2/util/termcolor.h>
 #include <iblessing-core/v2/util/StringUtils.h>
+#include <iblessing-core/v3/mach-o/macho-loader.hpp>
 
 using namespace std;
 using namespace iblessing;
+
+static uintptr_t read_uleb128(const uint8_t*& p, const uint8_t* end)
+{
+    uint64_t result = 0;
+    int         bit = 0;
+    do {
+        if (p == end)
+            printf("[-] malformed uleb128\n");
+
+        uint64_t slice = *p & 0x7f;
+
+        if (bit > 63)
+            printf("[-] uleb128 too big for uint64, bit=%d, result=0x%0llX\n", bit, result);
+        else {
+            result |= (slice << bit);
+            bit += 7;
+        }
+    } while (*p++ & 0x80);
+    return result;
+}
+
+static intptr_t read_sleb128(const uint8_t*& p, const uint8_t* end)
+{
+    int64_t result = 0;
+    int bit = 0;
+    uint8_t byte;
+    do {
+        if (p == end)
+            printf("[-] malformed sleb128\n");
+        byte = *p++;
+        result |= (((int64_t)(byte & 0x7f)) << bit);
+        bit += 7;
+    } while (byte & 0x80);
+    // sign extend negative numbers
+    if ( (byte & 0x40) != 0 )
+        result |= (-1LL) << bit;
+    return result;
+}
 
 shared_ptr<Dyld> Dyld::create(shared_ptr<MachO> macho, shared_ptr<Memory> memory, shared_ptr<Objc> objc) {
     return make_shared<Dyld>(macho, memory, objc);
@@ -67,4 +107,169 @@ void Dyld::doBindAll(DyldBindHandler handler) {
             handler(addr, type, symbolName, symbolFlags, addend, libraryOrdinal, msg);
         }
     });
+}
+
+void Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachoLoader> loader, int64_t libraryOrdinal, const char *symbolName, uint64_t addr, uint64_t addend, uint8_t type) {
+    uc_engine *uc = loader->uc;
+    shared_ptr<MachOModule> targetModule = nullptr;
+    if (libraryOrdinal <= 0) {
+        switch (libraryOrdinal) {
+            case IB_BIND_SPECIAL_DYLIB_MAIN_EXECUTABLE: {
+                assert(false);
+                break;
+            }
+            case IB_BIND_SPECIAL_DYLIB_SELF: {
+                targetModule = module;
+                break;
+            }
+            default: {
+                assert(false);
+            }
+        }
+    } else {
+        if (libraryOrdinal - 1 >= module->dynamicLibraryOrdinalList.size()) {
+            cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind error for %s, invalid libraryOrdinal %lld, total dylibs %lu", module->name.c_str(), libraryOrdinal, module->dynamicLibraryOrdinalList.size());
+            cout << termcolor::reset << endl;
+            return;
+        }
+        
+        MachODynamicLibrary &library = module->dynamicLibraryOrdinalList[libraryOrdinal - 1];
+        string libraryName = library.name;
+        if (libraryName.rfind("libc++") != string::npos) {
+            StringUtils::replace(libraryName, "libc++", "libcpp");
+        }
+        if (loader->name2module.find(libraryName) == loader->name2module.end()) {
+            assert(false);
+        }
+        targetModule = loader->name2module[libraryName];
+    }
+    assert(targetModule != nullptr);
+    
+    set<pair<string, string>> symbolNotFoundErrorSet;
+    Symbol *sym = targetModule->symtab->getSymbolByName(symbolName);
+    if (!sym) {
+        pair<string, string> errorPattern = {symbolName, targetModule->name};
+        if (symbolNotFoundErrorSet.find(errorPattern) == symbolNotFoundErrorSet.end()) {
+            cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind cannot find symbol %s in %s\n", symbolName, targetModule->name.c_str());
+            cout << termcolor::reset << endl;
+            symbolNotFoundErrorSet.insert(errorPattern);
+        }
+        return;
+    }
+    assert(sym->info);
+    assert(sym->info->n_value > 0);
+    switch (type) {
+        case IB_BIND_TYPE_POINTER: {
+            if (strcmp(symbolName, "dyld_stub_binder") == 0) {
+                static bool hasRegisterSVC = false;
+                if (hasRegisterSVC) {
+                    return;
+                }
+                printf("x");
+                printf("[+] hook %s(%s) with svc to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), addr, module->name.c_str());
+                uint64_t svcAddr = loader->svcManager->createSVC([&, loader](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                    uint64_t x0, x1, sp;
+                    assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
+                    assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
+                    assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
+                    
+                    uint64_t offset, imageCache;
+                    assert(uc_mem_read(uc, sp, &offset, 8) == UC_ERR_OK);
+                    assert(uc_mem_read(uc, sp + 0x8, &imageCache, 8) == UC_ERR_OK);
+                    
+                    shared_ptr<MachOModule> mainModule = loader->modules[0];
+                    Dyld::doFastLazyBind(mainModule, loader, offset);
+                });
+                assert(svcAddr > 0);
+                assert(uc_mem_write(uc, addr, &svcAddr, 8) == UC_ERR_OK);
+                hasRegisterSVC = true;
+                return;
+            }
+            
+            uint64_t symbolPtrAddr = sym->info->n_value + addend;
+            uint64_t symbolAddr = 0;
+            assert(uc_mem_read(uc, symbolPtrAddr, &symbolAddr, 8) == UC_ERR_OK);
+            assert(uc_mem_write(uc, addr, &symbolAddr, 8) == UC_ERR_OK);
+            printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, addr, module->name.c_str());
+            break;
+        }
+        case IB_BIND_TYPE_TEXT_ABSOLUTE32: {
+            uint64_t symbolAddr = sym->info->n_value + addend;
+            assert(uc_mem_write(uc, addr, &symbolAddr, 8) == UC_ERR_OK);
+            printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, addr, module->name.c_str());
+            break;
+        }
+        default:
+            assert(false);
+            break;
+    }
+}
+
+uint64_t Dyld::doFastLazyBind(shared_ptr<MachOModule> module, shared_ptr<MachoLoader> loader, uint64_t lazyBindingInfoOffset) {
+    uint8_t *buffer = module->mappedBuffer;
+    uint8_t *lazyBindBegin = buffer + module->dyldInfoCommand->lazy_bind_off;
+    uint8_t *lazyInfoEnd = lazyBindBegin + module->dyldInfoCommand->lazy_bind_size;
+    assert(lazyBindingInfoOffset < module->dyldInfoCommand->lazy_bind_size);
+    
+    bool done = false;
+    bool doneAfterBind;
+    uint8_t segIndex = 0;
+    uint64_t segOffset = 0;
+    const char *symbolName;
+    int ordinal = 0;
+    uint8_t type = IB_BIND_TYPE_POINTER;
+    const uint8_t* p = lazyBindBegin + lazyBindingInfoOffset;
+    while ( !done && (p < lazyInfoEnd) ) {
+        uint8_t immediate = *p & IB_BIND_IMMEDIATE_MASK;
+        uint8_t opcode = *p & IB_BIND_OPCODE_MASK;
+        ++p;
+        switch (opcode) {
+            case IB_BIND_OPCODE_DONE:
+                doneAfterBind = false;
+                return true;
+                break;
+            case IB_BIND_OPCODE_SET_DYLIB_ORDINAL_IMM:
+                ordinal = immediate;
+                break;
+            case IB_BIND_OPCODE_SET_DYLIB_ORDINAL_ULEB:
+                ordinal = (int)read_uleb128(p, lazyInfoEnd);
+                break;
+            case IB_BIND_OPCODE_SET_DYLIB_SPECIAL_IMM:
+                // the special ordinals are negative numbers
+                if ( immediate == 0 )
+                    ordinal = 0;
+                else {
+                    int8_t signExtended = IB_BIND_OPCODE_MASK | immediate;
+                    ordinal = signExtended;
+                }
+                break;
+            case IB_BIND_OPCODE_SET_SYMBOL_TRAILING_FLAGS_IMM:
+                symbolName = (char*)p;
+                while (*p != '\0')
+                    ++p;
+                ++p;
+                break;
+            case IB_BIND_OPCODE_SET_TYPE_IMM:
+                break;
+            case IB_BIND_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
+                segIndex  = immediate;
+                segOffset = read_uleb128(p, lazyInfoEnd);
+                break;
+            case IB_BIND_OPCODE_DO_BIND: {
+                doneAfterBind = ((*p & IB_BIND_OPCODE_MASK) == IB_BIND_OPCODE_DONE);
+                lazyBindingInfoOffset += p - lazyBindBegin;
+                uint64_t address = module->segmentHeaders[segIndex]->vmaddr + segOffset;
+                bindAt(module, loader, ordinal, symbolName, address, 0, type);
+                break;
+            }
+            case IB_BIND_OPCODE_SET_ADDEND_SLEB:
+            case IB_BIND_OPCODE_ADD_ADDR_ULEB:
+            case IB_BIND_OPCODE_DO_BIND_ADD_ADDR_ULEB:
+            case IB_BIND_OPCODE_DO_BIND_ADD_ADDR_IMM_SCALED:
+            case IB_BIND_OPCODE_DO_BIND_ULEB_TIMES_SKIPPING_ULEB:
+            default:
+                return 0;
+        }
+    }
+    return 0;
 }

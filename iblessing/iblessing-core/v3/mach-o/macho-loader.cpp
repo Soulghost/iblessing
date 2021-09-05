@@ -7,7 +7,8 @@
 //
 
 #include "macho-loader.hpp"
-#include "termcolor.h"
+#include <iblessing-core/v2/util/termcolor.h>
+#include <iblessing-core/v2/dyld/dyld.hpp>
 #include "StringUtils.h"
 #include "ScannerContext.hpp"
 #include "DyldSimulator.hpp"
@@ -97,101 +98,15 @@ MachoLoader::MachoLoader()  {
 MachoLoader::~MachoLoader() {
     delete workDirManager;
 }
- 
+
 shared_ptr<MachOModule> MachoLoader::loadModuleFromFile(std::string filePath) {
     assert(modules.size() == 0);
     shared_ptr<MachOModule> mainModule = _loadModuleFromFile(filePath, true);
     
     set<pair<string, string>> symbolNotFoundErrorSet;
     for (shared_ptr<MachOModule> module : modules) {
-        DyldSimulator::eachBind(module->mappedBuffer, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int64_t libraryOrdinal, const char *msg) {
-            shared_ptr<MachOModule> targetModule = nullptr;
-            if (libraryOrdinal <= 0) {
-                switch (libraryOrdinal) {
-                    case IB_BIND_SPECIAL_DYLIB_MAIN_EXECUTABLE: {
-                        assert(false);
-                        break;
-                    }
-                    case IB_BIND_SPECIAL_DYLIB_SELF: {
-                        targetModule = module;
-                        break;
-                    }
-                    default: {
-                        assert(false);
-                    }
-                }
-            } else {
-                if (libraryOrdinal - 1 >= module->dynamicLibraryOrdinalList.size()) {
-                    cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind error for %s, invalid libraryOrdinal %llu, total dylibs %lu", module->name.c_str(), libraryOrdinal, module->dynamicLibraryOrdinalList.size());
-                    cout << termcolor::reset << endl;
-                    return;
-                }
-                
-                MachODynamicLibrary &library = module->dynamicLibraryOrdinalList[libraryOrdinal - 1];
-                string libraryName = library.name;
-                if (libraryName.rfind("libc++") != string::npos) {
-                    StringUtils::replace(libraryName, "libc++", "libcpp");
-                }
-                if (name2module.find(libraryName) == name2module.end()) {
-                    assert(false);
-                }
-                targetModule = name2module[libraryName];
-            }
-            assert(targetModule != nullptr);
-            
-            Symbol *sym = targetModule->symtab->getSymbolByName(symbolName);
-            if (!sym) {
-                pair<string, string> errorPattern = {symbolName, targetModule->name};
-                if (symbolNotFoundErrorSet.find(errorPattern) == symbolNotFoundErrorSet.end()) {
-                    cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind cannot find symbol %s in %s\n", symbolName, targetModule->name.c_str());
-                    cout << termcolor::reset << endl;
-                    symbolNotFoundErrorSet.insert(errorPattern);
-                }
-                return;
-            }
-            assert(sym->info);
-            assert(sym->info->n_value > 0);
-            switch (type) {
-                case IB_BIND_TYPE_POINTER: {
-                    if (strcmp(symbolName, "dyld_stub_binder") == 0) {
-                        static bool hasRegisterSVC = false;
-                        if (hasRegisterSVC) {
-                            return;
-                        }
-                        printf("[+] hook %s(%s) with svc to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), addr, module->name.c_str());
-                        uint64_t svcAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                            
-                        });
-                        assert(svcAddr > 0);
-                        assert(uc_mem_write(uc, addr, &svcAddr, 8) == KERN_SUCCESS);
-                        hasRegisterSVC = true;
-                        return;
-                    }
-                    
-                    uint64_t symbolPtrAddr = sym->info->n_value + addend;
-                    uint64_t symbolAddr = 0;
-                    assert(uc_mem_read(uc, symbolPtrAddr, &symbolAddr, 8) == KERN_SUCCESS);
-                    assert(uc_mem_write(uc, addr, &symbolAddr, 8) == KERN_SUCCESS);
-                    printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, addr, module->name.c_str());
-                    break;
-                }
-                case IB_BIND_TYPE_TEXT_ABSOLUTE32: {
-                    uint64_t symbolAddr = sym->info->n_value + addend;
-                    assert(uc_mem_write(uc, addr, &symbolAddr, 8) == KERN_SUCCESS);
-                    printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, addr, module->name.c_str());
-                    break;
-                }
-                default:
-                    assert(false);
-                    break;
-            }
-//            uint64_t symbolAddr = 0;
-//            addr += module->addr;
-//            uc_err err = uc_mem_read(uc, addr, &symbolAddr, 8);
-//            if (err != UC_ERR_OK) {
-//                cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind error for %s, cannot read symbol from 0x%llx in %s", module->name.c_str(), addr, library.name.c_str());
-//                cout << termcolor::reset << endl;
-//            }
+        DyldSimulator::eachBind(module->mappedBuffer, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int libraryOrdinal, const char *msg) {
+            Dyld::bindAt(module, this->shared_from_this(), libraryOrdinal, symbolName, addr, addend, type);
         });
     }
     return mainModule;
