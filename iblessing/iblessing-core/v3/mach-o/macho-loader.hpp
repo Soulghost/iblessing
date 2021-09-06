@@ -31,6 +31,7 @@ public:
     uc_engine *uc;
     ScannerWorkDirManager *workDirManager;
     std::shared_ptr<Aarch64SVCManager> svcManager;
+    std::shared_ptr<MachOModule> findModuleByName(std::string moduleName);
     
 protected:
     std::shared_ptr<MachOModule> _loadModuleFromFile(std::string filePath, bool loadDylibs);

@@ -396,6 +396,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     module->dyldInfoCommand = dyld_info;
     module->mappedBuffer = mappedFile;
     module->segmentHeaders = segmentHeaders;
+    module->loader = shared_from_this();
     
     modules.push_back(module);
     assert(name2module.find(moduleName) == name2module.end());
@@ -449,4 +450,17 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     }
     
     return module;
+}
+
+shared_ptr<MachOModule> MachOLoader::findModuleByName(string moduleName) {
+    if (moduleName.rfind("libc++") != string::npos) {
+        StringUtils::replace(moduleName, "libc++", "libcpp");
+    }
+    if (name2module.find(moduleName) == name2module.end()) {
+        if (moduleName != "libsystem_stats.dylib") {
+            assert(false);
+        }
+        return nullptr;
+    }
+    return name2module[moduleName];
 }
