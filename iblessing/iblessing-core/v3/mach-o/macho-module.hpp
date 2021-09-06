@@ -18,6 +18,8 @@
 
 NS_IB_BEGIN
 
+class MachOLoader;
+
 struct MachODynamicLibrary {
     std::string name;
     std::string path;
@@ -29,6 +31,8 @@ class MachOModule {
 public:
     uint64_t addr;
     uint64_t size;
+    
+    std::weak_ptr<MachOLoader> loader;
     
     // headers
     uint8_t *mappedBuffer;
@@ -45,6 +49,8 @@ public:
     std::map<uint64_t, std::pair<std::string, std::string>> addr2segInfo;
     std::vector<std::pair<uint64_t, uint32_t>> textPatch;
     std::vector<std::pair<uint64_t, uint64_t>> dataPatch;
+    
+    Symbol* getSymbolByName(std::string name, bool checkDependencies);
 };
 
 NS_IB_END

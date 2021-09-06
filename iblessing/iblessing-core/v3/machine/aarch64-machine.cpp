@@ -87,7 +87,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
         assert(false);
     }
     
-    Symbol *symbol = module->symtab->getSymbolByName(symbolName);
+    Symbol *symbol = module->getSymbolByName(symbolName, true);
     assert(symbol != nullptr);
     uint64_t symbolAddr = symbol->info->n_value;
     printf("[*] call symbol %s(0x%llx) in module %s\n", symbol->name.c_str(), symbolAddr, module->name.c_str());

@@ -135,18 +135,12 @@ void Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> loader
         
         MachODynamicLibrary &library = module->dynamicLibraryOrdinalList[libraryOrdinal - 1];
         string libraryName = library.name;
-        if (libraryName.rfind("libc++") != string::npos) {
-            StringUtils::replace(libraryName, "libc++", "libcpp");
-        }
-        if (loader->name2module.find(libraryName) == loader->name2module.end()) {
-            assert(false);
-        }
-        targetModule = loader->name2module[libraryName];
+        targetModule = loader->findModuleByName(libraryName);
     }
     assert(targetModule != nullptr);
     
     set<pair<string, string>> symbolNotFoundErrorSet;
-    Symbol *sym = targetModule->symtab->getSymbolByName(symbolName);
+    Symbol *sym = targetModule->getSymbolByName(symbolName, true);
     if (!sym) {
         pair<string, string> errorPattern = {symbolName, targetModule->name};
         if (symbolNotFoundErrorSet.find(errorPattern) == symbolNotFoundErrorSet.end()) {
