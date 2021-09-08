@@ -23,7 +23,7 @@ Symbol* MachOModule::getSymbolByName(std::string name, bool checkDependencies) {
                 continue;
             }
             sym = targetModule->getSymbolByName(name, false);
-            if (sym) {
+            if (sym && !sym->isStub) {
                 break;
             }
         }
