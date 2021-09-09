@@ -162,10 +162,8 @@ uint64_t Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> lo
             return symbolAddr;
         }
         case IB_BIND_TYPE_TEXT_ABSOLUTE32: {
-            uint64_t symbolAddr = sym->info->n_value + addend;
-            assert(uc_mem_write(uc, addr, &symbolAddr, 8) == UC_ERR_OK);
-            printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, addr, module->name.c_str());
-            return symbolAddr;
+            assert(false);
+            return 0;
         }
         default:
             assert(false);
