@@ -109,7 +109,7 @@ void Dyld::doBindAll(DyldBindHandler handler) {
     });
 }
 
-void Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> loader, int64_t libraryOrdinal, const char *symbolName, uint64_t addr, uint64_t addend, uint8_t type) {
+uint64_t Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> loader, int64_t libraryOrdinal, const char *symbolName, uint64_t addr, uint64_t addend, uint8_t type) {
     uc_engine *uc = loader->uc;
     shared_ptr<MachOModule> targetModule = nullptr;
     if (libraryOrdinal <= 0) {
@@ -130,7 +130,7 @@ void Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> loader
         if (libraryOrdinal - 1 >= module->dynamicLibraryOrdinalList.size()) {
             cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind error for %s, invalid libraryOrdinal %lld, total dylibs %lu", module->name.c_str(), libraryOrdinal, module->dynamicLibraryOrdinalList.size());
             cout << termcolor::reset << endl;
-            return;
+            return 0;
         }
         
         MachODynamicLibrary &library = module->dynamicLibraryOrdinalList[libraryOrdinal - 1];
@@ -148,55 +148,78 @@ void Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> loader
             cout << termcolor::reset << endl;
             symbolNotFoundErrorSet.insert(errorPattern);
         }
-        return;
+        return 0;
     }
     assert(sym->info);
     assert(sym->info->n_value > 0);
     switch (type) {
         case IB_BIND_TYPE_POINTER: {
+            uint64_t bindToPtrAddr = addr + addend;
+            uint64_t symbolAddr = 0;
             if (strcmp(symbolName, "dyld_stub_binder") == 0) {
-                static bool hasRegisterSVC = false;
-                if (hasRegisterSVC) {
-                    return;
+                static uint64_t allocatedDyldStubAddr = 0;
+                if (allocatedDyldStubAddr > 0) {
+                    symbolAddr = allocatedDyldStubAddr;
+                } else {
+                    printf("[+] hook %s(%s) with svc to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), addr, module->name.c_str());
+                    uint64_t svcAddr = loader->svcManager->createSVC([&, loader](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t x0, x1, sp;
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
+                        assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
+                        
+                        uint64_t offset, imageCache;
+                        assert(uc_mem_read(uc, sp, &offset, 8) == UC_ERR_OK);
+                        assert(uc_mem_read(uc, sp + 0x8, &imageCache, 8) == UC_ERR_OK);
+                        
+//                        shared_ptr<MachOModule> mainModule = loader->modules[0];
+                        shared_ptr<MachOModule> targetModule = nullptr;
+                        for (shared_ptr<MachOModule> module : loader->modules) {
+                            uint64_t begin = module->addr;
+                            uint64_t end = module->addr + module->size;
+                            if (imageCache >= begin && imageCache < end) {
+                                targetModule = module;
+                                break;
+                            }
+                        }
+                        assert(targetModule != nullptr);
+                        uint64_t targetAddr = Dyld::doFastLazyBind(targetModule, loader, offset);
+                        
+                        // simulate branch to symbol
+                        // br symbol
+                        // 1. write link
+                        
+                        // 2. write pc
+                        assert(uc_reg_write(uc, UC_ARM64_REG_PC, &targetAddr) == UC_ERR_OK);
+                    });
+                    assert(svcAddr > 0);
+                    allocatedDyldStubAddr = svcAddr;
+                    symbolAddr = svcAddr;
                 }
-                printf("x");
-                printf("[+] hook %s(%s) with svc to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), addr, module->name.c_str());
-                uint64_t svcAddr = loader->svcManager->createSVC([&, loader](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                    uint64_t x0, x1, sp;
-                    assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
-                    assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
-                    assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
-                    
-                    uint64_t offset, imageCache;
-                    assert(uc_mem_read(uc, sp, &offset, 8) == UC_ERR_OK);
-                    assert(uc_mem_read(uc, sp + 0x8, &imageCache, 8) == UC_ERR_OK);
-                    
-                    shared_ptr<MachOModule> mainModule = loader->modules[0];
-                    Dyld::doFastLazyBind(mainModule, loader, offset);
-                });
-                assert(svcAddr > 0);
-                assert(uc_mem_write(uc, addr, &svcAddr, 8) == UC_ERR_OK);
-                hasRegisterSVC = true;
-                return;
+            } else {
+                symbolAddr = sym->info->n_value;
             }
             
-            uint64_t symbolPtrAddr = sym->info->n_value + addend;
-            uint64_t symbolAddr = 0;
-            assert(uc_mem_read(uc, symbolPtrAddr, &symbolAddr, 8) == UC_ERR_OK);
-            assert(uc_mem_write(uc, addr, &symbolAddr, 8) == UC_ERR_OK);
-            printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, addr, module->name.c_str());
-            break;
+//            uint64_t symbolPtrAddr = sym->info->n_value + addend;
+//            uint64_t symbolAddr = 0;
+//            assert(uc_mem_read(uc, symbolPtrAddr, &symbolAddr, 8) == UC_ERR_OK);
+//            assert(uc_mem_write(uc, addr, &symbolAddr, 8) == UC_ERR_OK);
+            assert(symbolAddr != 0);
+            assert(uc_mem_write(uc, bindToPtrAddr, &symbolAddr, 8) == UC_ERR_OK);
+            printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, bindToPtrAddr, module->name.c_str());
+            return symbolAddr;
         }
         case IB_BIND_TYPE_TEXT_ABSOLUTE32: {
             uint64_t symbolAddr = sym->info->n_value + addend;
             assert(uc_mem_write(uc, addr, &symbolAddr, 8) == UC_ERR_OK);
             printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, addr, module->name.c_str());
-            break;
+            return symbolAddr;
         }
         default:
             assert(false);
             break;
     }
+    return 0;
 }
 
 uint64_t Dyld::doFastLazyBind(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> loader, uint64_t lazyBindingInfoOffset) {
@@ -253,8 +276,8 @@ uint64_t Dyld::doFastLazyBind(shared_ptr<MachOModule> module, shared_ptr<MachOLo
                 doneAfterBind = ((*p & IB_BIND_OPCODE_MASK) == IB_BIND_OPCODE_DONE);
                 lazyBindingInfoOffset += p - lazyBindBegin;
                 uint64_t address = module->segmentHeaders[segIndex]->vmaddr + segOffset;
-                bindAt(module, loader, ordinal, symbolName, address, 0, type);
-                break;
+                uint64_t result = bindAt(module, loader, ordinal, symbolName, address, 0, type);
+                return result;
             }
             case IB_BIND_OPCODE_SET_ADDEND_SLEB:
             case IB_BIND_OPCODE_ADD_ADDR_ULEB:
