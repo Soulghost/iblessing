@@ -147,14 +147,9 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 static uint64_t _dyld_fast_stub_entryAddr = 0;
                 if (_dyld_fast_stub_entryAddr == 0) {
                     _dyld_fast_stub_entryAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        uint64_t x0, x1, sp;
-                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
-                        assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
-                        assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
-                        
-                        uint64_t offset, imageCache;
-                        assert(uc_mem_read(uc, sp, &offset, 8) == UC_ERR_OK);
-                        assert(uc_mem_read(uc, sp + 0x8, &imageCache, 8) == UC_ERR_OK);
+                        uint64_t imageCache, offset;
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &imageCache) == UC_ERR_OK);
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X1, &offset) == UC_ERR_OK);
                         
                         shared_ptr<MachOModule> targetModule = nullptr;
                         for (shared_ptr<MachOModule> module : modules) {
