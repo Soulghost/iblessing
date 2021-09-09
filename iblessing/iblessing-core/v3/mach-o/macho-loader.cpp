@@ -63,6 +63,38 @@ static string resolveLibraryPath(string &name) {
     return path;
 }
 
+static char* readString(uc_engine *uc, uint64_t address, uint64_t limit) {
+    char *charBuf = (char *)malloc(limit + 1);
+    uint64_t offset = 0;
+    uint64_t unPrintCount = 0;
+    bool ok = true;
+    while (offset < limit && (ok = (uc_mem_read(uc, address + offset, charBuf + offset, sizeof(char))) == UC_ERR_OK)) {
+        if (charBuf[offset] == 0) {
+            break;
+        }
+        if (!(charBuf[offset] >= 0x20 && charBuf[offset] <= 0x7E)) {
+            unPrintCount++;
+            if (unPrintCount > 10) {
+                ok = false;
+                break;
+            }
+        }
+        offset++;
+    }
+    
+    if (!ok) {
+        free(charBuf);
+        return NULL;
+    }
+    
+    charBuf[offset] = 0;
+    char *strBuffer = (char *)malloc(offset + 1);
+    memcpy(strBuffer, charBuf, offset + 1);
+    free(charBuf);
+    return strBuffer;
+}
+
+
 MachOLoader::MachOLoader()  {
     loaderOffset = 0;
     
@@ -108,6 +140,64 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
         DyldSimulator::eachBind(module->mappedBuffer, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int libraryOrdinal, const char *msg) {
             Dyld::bindAt(module, this->shared_from_this(), libraryOrdinal, symbolName, addr, addend, type);
         });
+        
+        for (struct ib_section_64 *sect : module->sectionHeaders) {
+            if (strncmp(sect->segname, "__DATA", 16) == 0 &&
+                strncmp(sect->sectname, "__dyld", 16) == 0) {
+                static uint64_t _dyld_fast_stub_entryAddr = 0;
+                if (_dyld_fast_stub_entryAddr == 0) {
+                    _dyld_fast_stub_entryAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t x0, x1, sp;
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
+                        assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
+                        
+                        uint64_t offset, imageCache;
+                        assert(uc_mem_read(uc, sp, &offset, 8) == UC_ERR_OK);
+                        assert(uc_mem_read(uc, sp + 0x8, &imageCache, 8) == UC_ERR_OK);
+                        
+                        shared_ptr<MachOModule> targetModule = nullptr;
+                        for (shared_ptr<MachOModule> module : modules) {
+                            uint64_t begin = module->addr;
+                            uint64_t end = module->addr + module->size;
+                            if (imageCache >= begin && imageCache < end) {
+                                targetModule = module;
+                                break;
+                            }
+                        }
+                        assert(targetModule != nullptr);
+                        uint64_t targetAddr = Dyld::doFastLazyBind(targetModule, shared_from_this(), offset);
+                        
+                        // write return value to x0
+                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &targetAddr) == UC_ERR_OK);
+                    });
+                }
+                static uint64_t dyldLazyBinderAddr = 0, dyldFunctionLookupAddr = 0;
+                if (dyldLazyBinderAddr == 0) {
+                    dyldLazyBinderAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        assert(false);
+                    });
+                }
+                if (dyldFunctionLookupAddr == 0) {
+                    dyldFunctionLookupAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t dyldFuncNameAddr = 0, dyldFuncBindToAddr;
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &dyldFuncNameAddr) == UC_ERR_OK);
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X1, &dyldFuncBindToAddr) == UC_ERR_OK);
+                        char *dyldFuncName = readString(uc, dyldFuncNameAddr, 10000);
+                        if (strcmp(dyldFuncName, "__dyld_fast_stub_entry") == 0) {
+                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_fast_stub_entryAddr, dyldFuncBindToAddr);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_fast_stub_entryAddr, 8) == UC_ERR_OK);
+                        } else {
+                            assert(false);
+                        }
+                        free(dyldFuncName);
+                    });
+                }
+                uint64_t addr = sect->addr;
+                assert(uc_mem_write(uc, addr, &dyldLazyBinderAddr, 8) == UC_ERR_OK);
+                assert(uc_mem_write(uc, addr + 8, &dyldFunctionLookupAddr, 8) == UC_ERR_OK);
+            }
+        }
     }
     return mainModule;
 }
@@ -396,6 +486,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     module->dyldInfoCommand = dyld_info;
     module->mappedBuffer = mappedFile;
     module->segmentHeaders = segmentHeaders;
+    module->sectionHeaders = sectionHeaders;
     module->loader = shared_from_this();
     
     modules.push_back(module);
