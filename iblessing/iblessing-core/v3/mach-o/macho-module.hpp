@@ -46,6 +46,7 @@ public:
     std::vector<MachODynamicLibrary> exportDynamicLibraries;
     
     std::vector<struct ib_segment_command_64 *> segmentHeaders;
+    std::vector<struct ib_section_64 *> sectionHeaders;
     std::map<uint64_t, std::pair<std::string, std::string>> addr2segInfo;
     std::vector<std::pair<uint64_t, uint32_t>> textPatch;
     std::vector<std::pair<uint64_t, uint64_t>> dataPatch;
