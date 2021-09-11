@@ -7,6 +7,7 @@
 //
 
 #include "aarch64-machine.hpp"
+#include <iblessing-core/v2/util/StringUtils.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
 
 using namespace std;
@@ -40,7 +41,14 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         return;
     }
     
-    printf("[Stalker] 0x%08llx %s %s\n", insn->address, insn->mnemonic, insn->op_str);
+    string comments = "";
+    if (strcmp(insn->mnemonic, "blr") == 0) {
+        uint64_t regValue = 0;
+        assert(uc_reg_read(uc, insn->detail->arm64.operands[1].reg, &regValue) == UC_ERR_OK);
+        comments = StringUtils::format("#0x%llx", regValue);
+
+    }
+    printf("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str());
     
     free(codes);
 }
@@ -113,7 +121,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     uc_reg_write(uc, UC_ARM64_REG_SP, &unicorn_sp_start);
     
     printf("[*] execute in engine, pc = 0x%llx\n", symbolAddr);
-    uc_err err = uc_emu_start(uc, symbolAddr, 0000000100007e84, 0, 0);
+    uc_err err = uc_emu_start(uc, symbolAddr, 0, 0, 0);
     printf("[*] execute in engine result %s\n", uc_strerror(err));
     return 0;
 }

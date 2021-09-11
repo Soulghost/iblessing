@@ -72,6 +72,12 @@ bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, v
     return true;
 }
 
+// FIXME: call to mod_init_func
+// 0x100d96e94 -> 0x100d84924 -> 0x100d74310 -> getrlimit -> 0x100d32d08 -> 0x100d84928
+// -> 0x100d84988 -> 0x100d75c84 -> 0x100d75d38 -> 0x100d75d6c(fstat lr)
+// -> 0x100d75c88 -> 0x100d75c98(isatty) -> 0x100d3debc(call to ioctl)
+// -> 0x100d3dec0(ioctl lr) -> 0x100d75cc8(malloc)
+// -> 0x100e9e308(libsystem_malloc)
 bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
     int64_t trap_no = 0;
     assert(uc_reg_read(uc, UC_ARM64_REG_X16, &trap_no) == UC_ERR_OK);
@@ -86,8 +92,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_read(uc, UC_ARM64_REG_W0, &fd) == UC_ERR_OK);
                 assert(uc_reg_read(uc, UC_ARM64_REG_X1, &request) == UC_ERR_OK);
                 
-                if (fd >= 0 && fd < 3) {
+                if (fd == 1) {
+                    uint64_t argpAddr = 0;
+                    assert(uc_reg_read(uc, UC_ARM64_REG_X2, &argpAddr) == UC_ERR_OK);
                     
+                    int arg0Val = 3;
+                    assert(uc_mem_write(uc, argpAddr, &arg0Val, 4) == UC_ERR_OK);
                 } else {
                     ret = 1;
                     assert(false);
@@ -139,20 +149,27 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     }
                     
                     int blockSize = 0x4000;
+                    struct posix_timesec {
+                        long tv_sec;
+                        long tv_nsec;
+                    };
                     struct posix_stat {
                         dev_t     st_dev;     /* ID of device containing file 32 */
-                        ino_t     st_ino;     /* inode number 64 */
                         mode_t    st_mode;    /* protection 16 */
                         nlink_t   st_nlink;   /* number of hard links 16 */
+                        ino_t     st_ino;     /* inode number 64 */
                         uid_t     st_uid;     /* user ID of owner 32 */
                         gid_t     st_gid;     /* group ID of owner 32 */
                         dev_t     st_rdev;    /* device ID (if special file) 32 */
+                        struct posix_timesec st_atimespec;  /* time of last access */
+                        struct posix_timesec st_mtimespec;  /* time of last data modification */
+                        struct posix_timesec st_ctimespec;  /* time of last status change */
+                        struct posix_timesec st_birthtimespec; /* time of file creation(birth) */
                         off_t     st_size;    /* total size, in bytes */
-                        blksize_t st_blksize; /* blocksize for file system I/O */
                         blkcnt_t  st_blocks;  /* number of 512B blocks allocated */
-                        time_t    _st_atime;   /* time of last access */
-                        time_t    _st_mtime;   /* time of last modification */
-                        time_t    _st_ctime;   /* time of last status change */
+                        blksize_t st_blksize; /* blocksize for file system I/O */
+                        uint32_t    st_flags; /* user defined flags for file */
+                        uint32_t    st_gen;   /* file generation number */
                     };
                     struct posix_stat s = { 0 };
                     s.st_dev = 1;
