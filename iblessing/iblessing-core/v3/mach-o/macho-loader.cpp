@@ -114,8 +114,15 @@ MachOLoader::MachOLoader()  {
     // heap using vm_base ~ vmbase + 12G
     // stack using vmbase + 12G ~ .
     uint64_t unicorn_vm_size = 12UL * 1024 * 1024 * 1024;
-    uint64_t unicorn_vm_start = 0x100000000;
-    err = uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size, UC_PROT_ALL);
+    uint64_t unicorn_pagezero_size = 0x100000000;
+    uint64_t unicorn_vm_start = unicorn_pagezero_size;
+    err = uc_mem_map(uc, 0, unicorn_pagezero_size, UC_PROT_NONE);
+    if (err != UC_ERR_OK) {
+        cout << termcolor::red << "[-] MachOLoader - Error: unicorn error " << uc_strerror(err);
+        cout << termcolor::reset << endl;
+        assert(false);
+    }
+    err = uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size - unicorn_pagezero_size, UC_PROT_ALL);
     if (err != UC_ERR_OK) {
         cout << termcolor::red << "[-] MachOLoader - Error: unicorn error " << uc_strerror(err);
         cout << termcolor::reset << endl;
@@ -193,6 +200,12 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 assert(uc_mem_write(uc, addr + 8, &dyldFunctionLookupAddr, 8) == UC_ERR_OK);
             }
         }
+    }
+    
+    {
+        // trick setups
+        int malloc_check_start = 0;
+        assert(uc_mem_write(uc, 0x100EB664C, &malloc_check_start, 4) == UC_ERR_OK);
     }
     return mainModule;
 }
