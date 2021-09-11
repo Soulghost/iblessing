@@ -7,11 +7,11 @@ cmake-build/
 # Build Products
 *.o
 *.a
-*.dylib
-*.so
-*.dll
-*.exe
-*.out
+# *.dylib
+# *.so
+# *.dll
+# *.exe
+# *.out
 
 # Logs
 logs
