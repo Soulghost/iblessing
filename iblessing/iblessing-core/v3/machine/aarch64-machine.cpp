@@ -81,11 +81,15 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
         // FIXME: fill zero
         void *dummy_bytes = calloc(1, size);
         uc_mem_write(uc, address, dummy_bytes, size);
+        return true;
     } else if (type == UC_MEM_FETCH_UNMAPPED) {
+        // FIXME: pthread [Stalker] 0x100f38410 mrs x8, tpidrro_el0 ;
+        // see unidbg-ios/src/main/java/com/github/unidbg/ios/MachOLoader.java initializeTSD
 //        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
         assert(false);
     }
-    return true;
+    assert(false);
+    return false;
 }
 
 int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName) {
@@ -118,7 +122,26 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // init context
     uint64_t unicorn_sp_start = UnicornStackTopAddr;
-    uc_reg_write(uc, UC_ARM64_REG_SP, &unicorn_sp_start);
+    uint64_t sp = unicorn_sp_start;
+    
+    /**
+        set sysregs
+     */
+    // pthread begin
+    // allocate tsdObject
+    sp -= 3 * 8;
+    uint64_t tsdObjectAddr = sp;
+    uint64_t pthreadSelf = tsdObjectAddr;
+    assert(uc_mem_write(uc, tsdObjectAddr, &pthreadSelf, 8) == UC_ERR_OK);
+    uint64_t pthreadErrno = 0;
+    assert(uc_mem_write(uc, tsdObjectAddr + 8, &pthreadErrno, 8) == UC_ERR_OK);
+    uint64_t pthreadMigReply = 0;
+    assert(uc_mem_write(uc, tsdObjectAddr + 16, &pthreadMigReply, 8) == UC_ERR_OK);
+    assert(uc_reg_write(uc, UC_ARM64_REG_TPIDRRO_EL0, &tsdObjectAddr) == UC_ERR_OK);
+    // pthread end
+    
+    // set sp
+    uc_reg_write(uc, UC_ARM64_REG_SP, &sp);
     
     printf("[*] execute in engine, pc = 0x%llx\n", symbolAddr);
     uc_err err = uc_emu_start(uc, symbolAddr, 0, 0, 0);
