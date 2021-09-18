@@ -92,6 +92,34 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
     return false;
 }
 
+void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
+    if (module->hasInit) {
+        return;
+    }
+    printf("[+] init module %s\n", module->name.c_str());
+    // FIXME: vars, envs
+    printf("  [+] process routines\n");
+    for (MachORoutine &routine: module->routines) {
+        uint64_t addr = routine.addr;
+        printf("  [*] execute routine in engine, pc = 0x%llx\n", addr);
+        uc_err err = uc_emu_start(uc, addr, 0, 0, 0);
+        printf("  [*] execute routine in engine result %s\n", uc_strerror(err));
+    }
+    printf("  [+] process mod_init_funcs\n");
+    for (MachODynamicLibrary &lib : module->dynamicLibraryDependencies) {
+        shared_ptr<MachOModule> dependModule = loader->findModuleByName(lib.name);
+        assert(dependModule != nullptr);
+        initModule(dependModule);
+    }
+    for (MachOModInitFunc &initFunc : module->modInitFuncs) {
+        uint64_t addr = initFunc.addr;
+        printf("  [*] execute mod_init_func in engine, pc = 0x%llx\n", addr);
+        uc_err err = uc_emu_start(uc, addr, 0, 0, 0);
+        printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
+    }
+    module->hasInit = true;
+}
+
 int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName) {
     uc2instance[this->uc] = this;
     if (symbolName.length() == 0) {
@@ -142,6 +170,11 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // set sp
     uc_reg_write(uc, UC_ARM64_REG_SP, &sp);
+    
+    // call init funcs
+    for (shared_ptr<MachOModule> module : loader->modules) {
+        initModule(module);
+    }
     
     printf("[*] execute in engine, pc = 0x%llx\n", symbolAddr);
     uc_err err = uc_emu_start(uc, symbolAddr, 0, 0, 0);
