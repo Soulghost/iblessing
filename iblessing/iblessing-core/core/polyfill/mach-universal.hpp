@@ -745,4 +745,18 @@ struct ib_dylib_command {
     struct ib_dylib    dylib;        /* the library identification */
 };
 
+struct ib_routines_command_64 { /* for 64-bit architectures */
+    uint32_t    cmd;        /* LC_ROUTINES_64 */
+    uint32_t    cmdsize;    /* total size of this command */
+    uint64_t    init_address;    /* address of initialization routine */
+    uint64_t    init_module;    /* index into the module table that */
+                    /*  the init routine is defined in */
+    uint64_t    reserved1;
+    uint64_t    reserved2;
+    uint64_t    reserved3;
+    uint64_t    reserved4;
+    uint64_t    reserved5;
+    uint64_t    reserved6;
+};
+
 #endif /* mach_universal_hpp */

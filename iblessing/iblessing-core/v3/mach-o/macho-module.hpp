@@ -27,10 +27,21 @@ struct MachODynamicLibrary {
     bool weak;
 };
 
+struct MachOModInitFunc {
+    uint64_t addr;
+};
+
+struct MachORoutine {
+    uint64_t addr;
+};
+
 class MachOModule {
 public:
     uint64_t addr;
     uint64_t size;
+    bool hasInit;
+    
+    MachOModule();
     
     std::weak_ptr<MachOLoader> loader;
     
@@ -44,6 +55,8 @@ public:
     std::vector<MachODynamicLibrary> dynamicLibraryDependencies;
     std::vector<MachODynamicLibrary> dynamicLibraryOrdinalList;
     std::vector<MachODynamicLibrary> exportDynamicLibraries;
+    std::vector<MachOModInitFunc> modInitFuncs;
+    std::vector<MachORoutine> routines;
     
     std::vector<struct ib_segment_command_64 *> segmentHeaders;
     std::vector<struct ib_section_64 *> sectionHeaders;

@@ -205,7 +205,9 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     {
         // trick setups
         int malloc_check_start = 0;
-        assert(uc_mem_write(uc, 0x100EB664C, &malloc_check_start, 4) == UC_ERR_OK);
+        // 100EB664C
+        
+        assert(uc_mem_write(uc, 0x100EC264C, &malloc_check_start, 4) == UC_ERR_OK);
     }
     return mainModule;
 }
@@ -269,9 +271,11 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     uint32_t ncmds = hdr->ncmds;
     uint8_t *cmds = mappedFile + sizeof(struct ib_mach_header_64);
     
-    std::vector<MachODynamicLibrary> dynamicLibraryDependencies;
-    std::vector<MachODynamicLibrary> dynamicLibraryOrdinalList;
-    std::vector<MachODynamicLibrary> exportDynamicLibraries;
+    vector<MachODynamicLibrary> dynamicLibraryDependencies;
+    vector<MachODynamicLibrary> dynamicLibraryOrdinalList;
+    vector<MachODynamicLibrary> exportDynamicLibraries;
+    vector<MachOModInitFunc> modInitFuncList;
+    vector<MachORoutine> routineList;
     printf("[+] MachOLoader - load module %s (%s) with offset 0x%llx\n", moduleName.c_str(), filePath.c_str(), imageBase);
     for (uint32_t i = 0; i < ncmds; i++) {
         struct ib_load_command *lc = (struct ib_load_command *)cmds;
@@ -353,7 +357,25 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
                             assert(false);
                         }
                         printf("[+]     mapping %s.%s: 0x%llx - 0x%llx\n", sect->segname, sectname, addr, addr + size);
+                        if (addr == 0x100bfbb30) {
+                            uint32_t bytes;
+                            assert(uc_mem_read(uc, addr, &bytes, 4) == UC_ERR_OK);
+                            printf("");
+                        }
                         sectionHeaders.push_back(sect);
+                        
+                        // check mod_init_func
+                        uint32_t type = sect->flags & IB_SECTION_TYPE;
+                        if (type == IB_S_MOD_INIT_FUNC_POINTERS) {
+                            uint64_t count = sect->size / sizeof(uint64_t);
+                            uint64_t *modInitFuncs = (uint64_t *)(mappedFile + sect->offset);
+                            for (uint64_t i = 0; i < count; i++) {
+                                uint64_t funcAddr = *modInitFuncs + imageBase;
+                                modInitFuncList.push_back({ .addr = funcAddr });
+                                modInitFuncs += 1;
+                            }
+                        }
+                        
                         free(sectname);
                         sect += 1;
                     }
@@ -364,6 +386,12 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
                 if (imageSize < totalSize) {
                     imageSize = totalSize;
                 }
+                break;
+            }
+            case IB_LC_ROUTINES_64: {
+                struct ib_routines_command_64 *routine_cmd = (struct ib_routines_command_64 *)lc;
+                uint64_t addr = routine_cmd->init_address + imageBase;
+                routineList.push_back({ .addr = addr });
                 break;
             }
             case IB_LC_SYMTAB: {
@@ -431,6 +459,10 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
         }
         cmds += lc->cmdsize;
     }
+    
+    loaderOffset += imageSize;
+    module->modInitFuncs = modInitFuncList;
+    module->routines = routineList;
     
     shared_ptr<StringTable> strtab = make_shared<StringTable>();
     module->strtab = strtab;
@@ -531,9 +563,6 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
             }
         });
     }
-    
-    
-    loaderOffset += imageSize;
     
     // load dependencies
     if (loadDylibs) {

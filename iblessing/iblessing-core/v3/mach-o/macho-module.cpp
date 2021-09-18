@@ -12,6 +12,10 @@
 using namespace std;
 using namespace iblessing;
 
+MachOModule::MachOModule() {
+    hasInit = false;
+}
+
 Symbol* MachOModule::getSymbolByName(std::string name, bool checkDependencies) {
     Symbol *sym = symtab->getSymbolByName(name);
     shared_ptr<MachOLoader> _loader = loader.lock();
