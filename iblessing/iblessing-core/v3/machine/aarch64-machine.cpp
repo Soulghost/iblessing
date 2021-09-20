@@ -46,9 +46,28 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         uint64_t regValue = 0;
         assert(uc_reg_read(uc, insn->detail->arm64.operands[1].reg, &regValue) == UC_ERR_OK);
         comments = StringUtils::format("#0x%llx", regValue);
-
+    } else {
+        if (address == 0x100E3A7FC) {
+            int w8;
+            assert(uc_reg_read(uc, UC_ARM64_REG_W8, &w8) == UC_ERR_OK);
+            comments = StringUtils::format("w8 = %d", w8);
+        } else if (address == 0x100E3A888) {
+            int w9;
+            assert(uc_reg_read(uc, UC_ARM64_REG_W8, &w9) == UC_ERR_OK);
+            comments = StringUtils::format("w9 = %d", w9);
+        } else if (address == 0x100E3A89C) {
+            int w20;
+            assert(uc_reg_read(uc, UC_ARM64_REG_W20, &w20) == UC_ERR_OK);
+            comments = StringUtils::format("w20 = %d", w20);
+        }
     }
-    printf("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str());
+    
+    shared_ptr<MachOModule> module = uc2instance[uc]->loader->findModuleByAddr(address);
+    if (module) {
+        printf("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr);
+    } else {
+        printf("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str());
+    }
     
     free(codes);
 }

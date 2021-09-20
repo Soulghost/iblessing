@@ -14,6 +14,8 @@
 using namespace std;
 using namespace iblessing;
 
+std::map<std::string, DyldBindHook> Dyld::bindHooks;
+
 static uintptr_t read_uleb128(const uint8_t*& p, const uint8_t* end)
 {
     uint64_t result = 0;
@@ -157,6 +159,10 @@ uint64_t Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> lo
             uint64_t bindToPtrAddr = addr + addend;
             uint64_t symbolAddr = sym->info->n_value;
             assert(symbolAddr != 0);
+            
+            if (bindHooks.find(symbolName) != bindHooks.end()) {
+                symbolAddr = bindHooks[symbolName](symbolName, symbolAddr);
+            }
             assert(uc_mem_write(uc, bindToPtrAddr, &symbolAddr, 8) == UC_ERR_OK);
             printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, bindToPtrAddr, module->name.c_str());
             return symbolAddr;
