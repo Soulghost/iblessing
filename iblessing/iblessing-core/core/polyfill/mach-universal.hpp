@@ -759,4 +759,46 @@ struct ib_routines_command_64 { /* for 64-bit architectures */
     uint64_t    reserved6;
 };
 
+// mach
+typedef uint32_t ib_mach_port_name_t;
+typedef unsigned int ib_mach_msg_bits_t;
+typedef uint32_t ib_mach_msg_size_t;
+typedef int32_t ib_mach_msg_id_t;
+typedef uint32_t ib_mach_port_t;
+typedef unsigned int ib_mach_msg_type_name_t;
+typedef unsigned int ib_mach_msg_descriptor_type_t;
+
+typedef struct{
+    ib_mach_msg_bits_t       msgh_bits;
+    ib_mach_msg_size_t       msgh_size;
+    ib_mach_port_t           msgh_remote_port;
+    ib_mach_port_t           msgh_local_port;
+    ib_mach_port_name_t      msgh_voucher_port;
+    ib_mach_msg_id_t         msgh_id;
+} ib_mach_msg_header_t;
+
+typedef struct {
+    unsigned char       mig_vers;
+    unsigned char       if_vers;
+    unsigned char       reserved1;
+    unsigned char       mig_encoding;
+    unsigned char       int_rep;
+    unsigned char       char_rep;
+    unsigned char       float_rep;
+    unsigned char       reserved2;
+} ib_NDR_record_t;
+
+typedef struct{
+    ib_mach_msg_size_t msgh_descriptor_count;
+} ib_mach_msg_body_t;
+
+typedef struct{
+    ib_mach_port_t                   name;
+// Pad to 8 bytes everywhere except the K64 kernel where mach_port_t is 8 bytes
+    ib_mach_msg_size_t               pad1;
+    unsigned int                     pad2 : 16;
+    ib_mach_msg_type_name_t          disposition : 8;
+    ib_mach_msg_descriptor_type_t    type : 8;
+} ib_mach_msg_port_descriptor_t;
+
 #endif /* mach_universal_hpp */

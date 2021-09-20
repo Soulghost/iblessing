@@ -18,8 +18,12 @@ namespace iblessing {
 class MachOModule;
 class MachOLoader;
 
+typedef std::function<uint64_t (std::string symbolName, uint64_t symbolAddr)> DyldBindHook;
+
 class Dyld {
 public:
+    static std::map<std::string, DyldBindHook> bindHooks;
+    
     Dyld(std::shared_ptr<MachO> macho, std::shared_ptr<Memory> memory, std::shared_ptr<Objc> objc = nullptr) :
         macho(macho), memory(memory), objc(objc) {};
     static std::shared_ptr<Dyld> create(std::shared_ptr<MachO> macho, std::shared_ptr<Memory> memory, std::shared_ptr<Objc> objc = nullptr);

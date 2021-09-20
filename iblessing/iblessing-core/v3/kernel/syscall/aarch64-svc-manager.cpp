@@ -8,9 +8,13 @@
 
 #include "aarch64-svc-manager.hpp"
 #include <sys/stat.h>
+#include "mach-universal.hpp"
 
 using namespace std;
 using namespace iblessing;
+
+#define TASK_BOOTSTRAP_PORT 4
+#define BOOTSTRAP_PORT 11
 
 Aarch64SVCManager::Aarch64SVCManager(uc_engine *uc, uint64_t addr, uint64_t size, int swiInitValue) {
     this->uc = uc;
@@ -193,6 +197,99 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
         }
     } else if (trap_no < 0) {
         // mach
+        int64_t call_number = -trap_no;
+        switch (call_number) {
+            case 26: { // mach_reply_port
+                int ret = 4;
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
+            case 28: { // task_self_trap
+                int ret = 1;
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
+            case 31: { // mach_msg_trap
+//                PAD_ARG_(user_addr_t, msg);
+//                PAD_ARG_(mach_msg_option_t, option);
+//                PAD_ARG_(mach_msg_size_t, send_size);
+//                PAD_ARG_(mach_msg_size_t, rcv_size);
+//                PAD_ARG_(mach_port_name_t, rcv_name);
+//                PAD_ARG_(mach_msg_timeout_t, timeout);
+//                PAD_ARG_(mach_msg_priority_t, priority);
+//                PAD_ARG_8
+//                    PAD_ARG_(user_addr_t, rcv_msg); /* Unused on mach_msg_trap */
+                uint64_t msg;
+                int option;
+                uint32_t send_size, rcv_size, rcv_name, timeout, priority;
+                assert(uc_reg_read(uc, UC_ARM64_REG_X0, &msg) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W1, &option) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W2, &send_size) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W3, &rcv_size) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W4, &rcv_name) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W5, &timeout) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W6, &priority) == UC_ERR_OK);
+                
+                uint32_t msgSize = std::max(send_size, rcv_size);
+                ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)malloc(msgSize);
+                assert(hdr != NULL);
+                assert(uc_mem_read(uc, msg, hdr, msgSize) == UC_ERR_OK);
+                switch (hdr->msgh_id) {
+                    case 3409: { // task_get_special_port
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            int which_port;
+                        } Request __attribute__((unused));
+                        #pragma pack(pop)
+                        Request *request = (Request *)hdr;
+                        assert(request->which_port == TASK_BOOTSTRAP_PORT);
+                        
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            /* start of the kernel processed data */
+                            ib_mach_msg_body_t msgh_body;
+                            ib_mach_msg_port_descriptor_t special_port;
+                            /* end of the kernel processed data */
+                        } Reply __attribute__((unused));
+                        #pragma pack(pop)
+                        Reply *OutP = (Reply *)hdr;
+                        #define IB_MACH_MSGH_BITS_COMPLEX          0x80000000U     /* message is complex */
+                        #define IB_MACH_MSG_PORT_DESCRIPTOR  0
+
+                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        OutP->Head.msgh_local_port = 0;
+                        OutP->Head.msgh_id += 100;
+                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(Reply));
+                        
+                        OutP->msgh_body.msgh_descriptor_count = 1;
+                        OutP->special_port.name = BOOTSTRAP_PORT;
+                        OutP->special_port.pad1 = 0;
+                        OutP->special_port.pad2 = 0;
+                        OutP->special_port.disposition = 19; // FIXME: unidbg set to 17
+                        OutP->special_port.type = IB_MACH_MSG_PORT_DESCRIPTOR;
+                        assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
+                        
+                        int ret = 0;
+                        assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                        return true;
+                        break;
+                    }
+                    default:
+                        assert(false);
+                        break;
+                }
+                
+                free(hdr);
+            }
+            default:
+                assert(false);
+                break;
+        }
     }
+    assert(false);
     return false;
 }

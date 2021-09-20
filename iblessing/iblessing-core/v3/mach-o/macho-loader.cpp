@@ -153,6 +153,18 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 strncmp(sect->sectname, "__dyld", 16) == 0) {
                 static uint64_t _dyld_fast_stub_entryAddr = 0;
                 if (_dyld_fast_stub_entryAddr == 0) {
+                    Dyld::bindHooks["_abort"] = [&](string symbolName, uint64_t symbolAddr) {
+                        static uint64_t _abortAddr = 0;
+                        if (_abortAddr == 0) {
+                            _abortAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                                cout << termcolor::red << "[-] Error: abort raised !!!";
+                                cout << termcolor::reset << endl;
+                                assert(false);
+                            });
+                        }
+                        return _abortAddr;
+                    };
+                    
                     _dyld_fast_stub_entryAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
                         uint64_t imageCache, offset;
                         assert(uc_reg_read(uc, UC_ARM64_REG_X0, &imageCache) == UC_ERR_OK);
@@ -532,6 +544,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     modules.push_back(module);
     assert(name2module.find(moduleName) == name2module.end());
     name2module[moduleName] = module;
+    addr2module[module->addr] = module;
     
     // rebase module
     if (imageBase > 0) {
@@ -591,4 +604,24 @@ shared_ptr<MachOModule> MachOLoader::findModuleByName(string moduleName) {
         return nullptr;
     }
     return name2module[moduleName];
+}
+
+shared_ptr<MachOModule> MachOLoader::findModuleByAddr(uint64_t addr) {
+    auto moduleIt = addr2module.lower_bound(addr);
+    if (moduleIt == addr2module.end()) {
+        return nullptr;
+    }
+
+    shared_ptr<MachOModule> module = moduleIt->second;
+    if (addr >= module->addr && addr < (module->addr + module->size)) {
+        return module;
+    }
+    assert(moduleIt != addr2module.begin());
+    module = (--moduleIt)->second;
+    if (addr >= module->addr && addr < (module->addr + module->size)) {
+        return module;
+    }
+    
+    assert(false);
+    return nullptr;
 }
