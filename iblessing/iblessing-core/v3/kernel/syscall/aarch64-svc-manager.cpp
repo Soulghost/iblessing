@@ -209,6 +209,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
+            case 29: { // host_self_trap
+                int ret = 2;
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
             case 31: { // mach_msg_trap
 //                PAD_ARG_(user_addr_t, msg);
 //                PAD_ARG_(mach_msg_option_t, option);
@@ -235,6 +240,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(hdr != NULL);
                 assert(uc_mem_read(uc, msg, hdr, msgSize) == UC_ERR_OK);
                 switch (hdr->msgh_id) {
+                    case 200: { // host_info
+                        
+                        
+                        break;
+                    }
                     case 3409: { // task_get_special_port
                         #pragma pack(push, 4)
                         typedef struct {
@@ -269,7 +279,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         OutP->special_port.name = BOOTSTRAP_PORT;
                         OutP->special_port.pad1 = 0;
                         OutP->special_port.pad2 = 0;
-                        OutP->special_port.disposition = 19; // FIXME: unidbg set to 17
+                        // check libsystem_kernel.dylib task_get_special_port
+                        OutP->special_port.disposition = 17;
                         OutP->special_port.type = IB_MACH_MSG_PORT_DESCRIPTOR;
                         assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
                         

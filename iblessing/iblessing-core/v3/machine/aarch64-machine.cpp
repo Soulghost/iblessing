@@ -59,6 +59,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             int w20;
             assert(uc_reg_read(uc, UC_ARM64_REG_W20, &w20) == UC_ERR_OK);
             comments = StringUtils::format("w20 = %d", w20);
+        } else if (address == 0x100E3A878) {
+            int w9;
+            assert(uc_reg_read(uc, UC_ARM64_REG_W9, &w9) == UC_ERR_OK);
+            comments = StringUtils::format("w9 = %d(0x%x)", w9, w9);
         }
     }
     
