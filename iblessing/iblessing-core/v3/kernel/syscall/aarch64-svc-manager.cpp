@@ -93,7 +93,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 int fd;
                 int ret = 0;
                 uint64_t request;
-                assert(uc_reg_read(uc, UC_ARM64_REG_W0, &fd) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_X0, &fd) == UC_ERR_OK);
                 assert(uc_reg_read(uc, UC_ARM64_REG_X1, &request) == UC_ERR_OK);
                 
                 if (fd == 1) {
@@ -199,19 +199,28 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
         // mach
         int64_t call_number = -trap_no;
         switch (call_number) {
+            case 18: { // _kernelrpc_mach_port_deallocate_trap
+                int task, name;
+                assert(uc_reg_read(uc, UC_ARM64_REG_X0, &task) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_X1, &name) == UC_ERR_OK);
+                printf("[+] _kernelrpc_mach_port_deallocate_trap for port %d in task %d\n", name, task);
+                int ret = 0;
+                assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+                return true;
+            }
             case 26: { // mach_reply_port
                 int ret = 4;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
                 return true;
             }
             case 28: { // task_self_trap
                 int ret = 1;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
                 return true;
             }
             case 29: { // host_self_trap
                 int ret = 2;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
                 return true;
             }
             case 31: { // mach_msg_trap
@@ -241,8 +250,74 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_mem_read(uc, msg, hdr, msgSize) == UC_ERR_OK);
                 switch (hdr->msgh_id) {
                     case 200: { // host_info
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            ib_host_flavor_t flavor;
+                            ib_mach_msg_type_number_t host_info_outCnt;
+                            ib_mach_msg_trailer_t trailer;
+                        } Request __attribute__((unused));
+                        #pragma pack(pop)
                         
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            ib_kern_return_t RetCode;
+                            ib_mach_msg_type_number_t host_info_outCnt;
+                            int host_info_out[68];
+                        } Reply __attribute__((unused));
+                        #pragma pack(pop)
                         
+                        Request *request = (Request *)hdr;
+                        switch (request->flavor) {
+                            case 5: { // HOST_PRIORITY_INFO
+                                struct host_priority_info {
+                                    integer_t       kernel_priority;
+                                    integer_t       system_priority;
+                                    integer_t       server_priority;
+                                    integer_t       user_priority;
+                                    integer_t       depress_priority;
+                                    integer_t       idle_priority;
+                                    integer_t       minimum_priority;
+                                    integer_t       maximum_priority;
+                                };
+                                
+                                #pragma pack(push, 4)
+                                typedef struct {
+                                    ib_mach_msg_header_t Head;
+                                    ib_NDR_record_t NDR;
+                                    ib_kern_return_t RetCode;
+                                    ib_mach_msg_type_number_t host_info_outCnt;
+                                    struct host_priority_info info;
+                                } HostPriorityReply __attribute__((unused));
+                                #pragma pack(pop)
+                                HostPriorityReply *reply = (HostPriorityReply *)hdr;
+                                reply->Head.msgh_remote_port = hdr->msgh_local_port;
+                                reply->Head.msgh_local_port = 0;
+                                reply->Head.msgh_id += 100;
+                                reply->Head.msgh_bits &= 0xff;
+                                reply->Head.msgh_size = sizeof(HostPriorityReply);
+                                reply->info.kernel_priority    = 0;
+                                reply->info.system_priority    = 0;
+                                reply->info.server_priority    = 0;
+                                reply->info.user_priority    = 0;
+                                reply->info.depress_priority    = 0;
+                                reply->info.idle_priority    = 0;
+                                reply->info.minimum_priority    = -10;
+                                reply->info.maximum_priority    = 10;
+                                reply->RetCode = 0;
+                                reply->host_info_outCnt = 8;
+                                assert(uc_mem_write(uc, msg, reply, reply->Head.msgh_size) == UC_ERR_OK);
+                                int ret = 0;
+                                assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+                                return true;
+                                break;
+                            }
+                            default:
+                                break;
+                        }
                         break;
                     }
                     case 3409: { // task_get_special_port
@@ -285,7 +360,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
                         
                         int ret = 0;
-                        assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
                         return true;
                         break;
                     }

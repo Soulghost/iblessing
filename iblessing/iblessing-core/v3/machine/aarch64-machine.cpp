@@ -53,7 +53,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             comments = StringUtils::format("w8 = %d", w8);
         } else if (address == 0x100E3A888) {
             int w9;
-            assert(uc_reg_read(uc, UC_ARM64_REG_W8, &w9) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_W9, &w9) == UC_ERR_OK);
             comments = StringUtils::format("w9 = %d", w9);
         } else if (address == 0x100E3A89C) {
             int w20;
@@ -63,6 +63,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             int w9;
             assert(uc_reg_read(uc, UC_ARM64_REG_W9, &w9) == UC_ERR_OK);
             comments = StringUtils::format("w9 = %d(0x%x)", w9, w9);
+        } else if (address == 0x100E3C4EC) {
+            int w8;
+            assert(uc_reg_read(uc, UC_ARM64_REG_W8, &w8) == UC_ERR_OK);
+            comments = StringUtils::format("w8 = %d", w8);
         }
     }
     
