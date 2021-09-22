@@ -760,6 +760,8 @@ struct ib_routines_command_64 { /* for 64-bit architectures */
 };
 
 // mach
+typedef int integer_t;
+typedef unsigned int natural_t;
 typedef uint32_t ib_mach_port_name_t;
 typedef unsigned int ib_mach_msg_bits_t;
 typedef uint32_t ib_mach_msg_size_t;
@@ -767,6 +769,12 @@ typedef int32_t ib_mach_msg_id_t;
 typedef uint32_t ib_mach_port_t;
 typedef unsigned int ib_mach_msg_type_name_t;
 typedef unsigned int ib_mach_msg_descriptor_type_t;
+typedef integer_t ib_host_flavor_t;
+typedef natural_t ib_mach_msg_type_size_t;
+typedef natural_t ib_mach_msg_type_number_t;
+typedef unsigned int ib_mach_msg_trailer_type_t;
+typedef unsigned int ib_mach_msg_trailer_size_t;
+typedef int ib_kern_return_t;
 
 typedef struct{
     ib_mach_msg_bits_t       msgh_bits;
@@ -800,5 +808,10 @@ typedef struct{
     ib_mach_msg_type_name_t          disposition : 8;
     ib_mach_msg_descriptor_type_t    type : 8;
 } ib_mach_msg_port_descriptor_t;
+
+typedef struct{
+    ib_mach_msg_trailer_type_t       msgh_trailer_type;
+    ib_mach_msg_trailer_size_t       msgh_trailer_size;
+} ib_mach_msg_trailer_t;
 
 #endif /* mach_universal_hpp */
