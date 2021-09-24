@@ -135,6 +135,16 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
+            
+            // sysctl
+            case 202: {
+#if 0
+                int sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
+                int sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
+                int sysctlnametomib(const char *name, int *mibp, size_t *sizep);
+#endif
+                return true;
+            }
                 
             // fstat64
             case 339: {
