@@ -67,12 +67,35 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             int w8;
             assert(uc_reg_read(uc, UC_ARM64_REG_W8, &w8) == UC_ERR_OK);
             comments = StringUtils::format("w8 = %d", w8);
+        } else if (address == 0x100F4335C) {
+            uint64_t x0, x1, x2, sp;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_X2, &x2) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
+            comments = StringUtils::format("x0 = 0x%llx, x1 = 0x%llx, x2 = 0x%llx, sp = 0x%llx", x0, x1, x2, sp);
+        } else if (address == 0x100E3A6DC) {
+            uint64_t x0, x1, x2, sp;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_X2, &x2) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
+            comments = StringUtils::format("x0 = 0x%llx, x1 = 0x%llx, x2 = 0x%llx, sp = 0x%llx", x0, x1, x2, sp);
+        } else if (address == 0x100F4332C) {
+            uint64_t x0, x1, x2, sp;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_X2, &x2) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
+            comments = StringUtils::format("x0 = 0x%llx, x1 = 0x%llx, x2 = 0x%llx, sp = 0x%llx", x0, x1, x2, sp);
         }
     }
     
     shared_ptr<MachOModule> module = uc2instance[uc]->loader->findModuleByAddr(address);
     if (module) {
-        printf("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr);
+        if (module->name != "libdyld.dylib") {
+            printf("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr);
+        }
     } else {
         printf("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str());
     }

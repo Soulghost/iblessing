@@ -93,15 +93,15 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 int fd;
                 int ret = 0;
                 uint64_t request;
-                assert(uc_reg_read(uc, UC_ARM64_REG_X0, &fd) == UC_ERR_OK);
-                assert(uc_reg_read(uc, UC_ARM64_REG_X1, &request) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W0, &fd) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W1, &request) == UC_ERR_OK);
                 
                 if (fd == 1) {
                     uint64_t argpAddr = 0;
                     assert(uc_reg_read(uc, UC_ARM64_REG_X2, &argpAddr) == UC_ERR_OK);
                     
                     int arg0Val = 3;
-                    assert(uc_mem_write(uc, argpAddr, &arg0Val, 4) == UC_ERR_OK);
+                    assert(uc_mem_write(uc, argpAddr, &arg0Val, sizeof(int)) == UC_ERR_OK);
                 } else {
                     ret = 1;
                     assert(false);
@@ -143,6 +143,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 int sysctlbyname(const char *name, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
                 int sysctlnametomib(const char *name, int *mibp, size_t *sizep);
 #endif
+                uint64_t nameAddr = 0;
+                int nameLen = 0;
+                assert(uc_reg_read(uc, UC_ARM64_REG_X0, &nameAddr) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W1, &nameLen) == UC_ERR_OK);
+                int name = 0;
+                assert(uc_mem_read(uc, nameAddr, &name, sizeof(int)) == UC_ERR_OK);
                 return true;
             }
                 
@@ -211,26 +217,26 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
         switch (call_number) {
             case 18: { // _kernelrpc_mach_port_deallocate_trap
                 int task, name;
-                assert(uc_reg_read(uc, UC_ARM64_REG_X0, &task) == UC_ERR_OK);
-                assert(uc_reg_read(uc, UC_ARM64_REG_X1, &name) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W0, &task) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_W1, &name) == UC_ERR_OK);
                 printf("[+] _kernelrpc_mach_port_deallocate_trap for port %d in task %d\n", name, task);
                 int ret = 0;
-                assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
             case 26: { // mach_reply_port
                 int ret = 4;
-                assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
             case 28: { // task_self_trap
                 int ret = 1;
-                assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
             case 29: { // host_self_trap
                 int ret = 2;
-                assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
             case 31: { // mach_msg_trap
@@ -321,7 +327,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                                 reply->host_info_outCnt = 8;
                                 assert(uc_mem_write(uc, msg, reply, reply->Head.msgh_size) == UC_ERR_OK);
                                 int ret = 0;
-                                assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+                                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                                 return true;
                                 break;
                             }
@@ -370,7 +376,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
                         
                         int ret = 0;
-                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+                        assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                         return true;
                         break;
                     }

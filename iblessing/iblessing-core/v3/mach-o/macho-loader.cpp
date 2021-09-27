@@ -472,6 +472,15 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
         cmds += lc->cmdsize;
     }
     
+    // init bss
+    uint64_t bssSize = vmaddr_bss_end - vmaddr_bss_start;
+    if (bssSize > 0) {
+        void *bssData = calloc(1, bssSize);
+        assert(uc_mem_write(uc, vmaddr_bss_start, bssData, bssSize) == UC_ERR_OK);
+        free(bssData);
+    }
+    
+    
     loaderOffset += imageSize;
     module->modInitFuncs = modInitFuncList;
     module->routines = routineList;
