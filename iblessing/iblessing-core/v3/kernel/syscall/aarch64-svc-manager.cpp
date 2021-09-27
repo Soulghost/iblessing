@@ -8,7 +8,9 @@
 
 #include "aarch64-svc-manager.hpp"
 #include <sys/stat.h>
+#include "ib_pthread.hpp"
 #include "mach-universal.hpp"
+#include "aarch64-machine.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -16,7 +18,10 @@ using namespace iblessing;
 #define TASK_BOOTSTRAP_PORT 4
 #define BOOTSTRAP_PORT 11
 
+#define ensure_uc_reg_read(reg, value) assert(uc_reg_read(uc, reg, value) == UC_ERR_OK)
+
 Aarch64SVCManager::Aarch64SVCManager(uc_engine *uc, uint64_t addr, uint64_t size, int swiInitValue) {
+    
     this->uc = uc;
     this->addr = addr;
     this->curAddr = addr;
@@ -149,6 +154,37 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_read(uc, UC_ARM64_REG_W1, &nameLen) == UC_ERR_OK);
                 int name = 0;
                 assert(uc_mem_read(uc, nameAddr, &name, sizeof(int)) == UC_ERR_OK);
+                uint64_t bufferAddr = 0, bufferSizeAddr = 0;
+                assert(uc_reg_read(uc, UC_ARM64_REG_X2, &bufferAddr) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_X3, &bufferSizeAddr) == UC_ERR_OK);
+                switch (name) {
+                    case 0: // CTL_UNSPEC
+                        assert(false);
+                        break;
+                    case 1: {// KERN
+                        uint32_t action = 0;
+                        assert(uc_mem_read(uc, nameAddr + 4, &action, sizeof(int)) == UC_ERR_OK);
+                        switch (action) {
+                            case 59: { // KERN_USRSTACK64
+                                if (bufferSizeAddr != 0) {
+                                    uint64_t bufferSize = 8;
+                                    assert(uc_mem_write(uc, bufferSizeAddr, &bufferSize, sizeof(uint64_t)) == UC_ERR_OK);
+                                }
+                                if (bufferAddr != 0) {
+                                    uint64_t stackBase = UnicornStackTopAddr;
+                                    assert(uc_mem_write(uc, bufferAddr, &stackBase, sizeof(uint64_t)) == UC_ERR_OK);
+                                }
+                                int ret = 0;
+                                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                                return true;
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        assert(false);
+                        break;
+                }
                 return true;
             }
                 
@@ -208,6 +244,55 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
+            case 366: { // bsdthread_register
+                uint64_t thread_start, start_wqthread;
+                int page_size;
+                uint64_t data, offset;
+                int data_size;
+            
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &thread_start);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &start_wqthread);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &page_size);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &data);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &data_size);
+                ensure_uc_reg_read(UC_ARM64_REG_X5, &offset);
+                
+                printf("[Stalker][+] handle bsdthread_register: thread_start: 0x%llx, start_wqthread 0x%llx, page_size 0x%x, data 0x%llx, data_size 0x%x, offset 0x%llx\n", thread_start, start_wqthread, page_size, data, data_size, offset);
+                
+                int ret = 0;
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
+            case 372: { // thread_selfid
+                int ret = 1;
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
+            case 0x80000000: { // pthread_set_self
+                uint64_t x3 = 0;
+                assert(uc_reg_read(uc, UC_ARM64_REG_X3, &x3) == UC_ERR_OK);
+                switch (x3) {
+                    case 2: { // pthread_set_self
+                        uint64_t selfAddr = 0;
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &selfAddr) == UC_ERR_OK);
+                        uint64_t threadAddr = 0;
+                        assert(uc_mem_read(uc, selfAddr, &threadAddr, sizeof(uint64_t)) == UC_ERR_OK);
+                        ib_pthread *pthread = (ib_pthread *)malloc(sizeof(ib_pthread));
+                        assert(uc_mem_read(uc, threadAddr, pthread, sizeof(ib_pthread)) == UC_ERR_OK);
+                        
+                        uint64_t tsdAddr = threadAddr + __offsetof(ib_pthread, self);
+                        assert(uc_reg_write(uc, UC_ARM64_REG_TPIDRRO_EL0, &tsdAddr) == UC_ERR_OK);
+                        
+                        // FIXME: set errno
+                        int ret = 0;
+                        assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                        return true;
+                    }
+                    default:
+                        assert(false);
+                        break;
+                }
+            }
             default:
                 break;
         }
@@ -226,6 +311,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             }
             case 26: { // mach_reply_port
                 int ret = 4;
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
+            case 27: {
+                int ret = 3;
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
@@ -378,7 +468,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         int ret = 0;
                         assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                         return true;
-                        break;
                     }
                     default:
                         assert(false);

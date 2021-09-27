@@ -16,6 +16,8 @@
 
 NS_IB_BEGIN
 
+#define UnicornStackTopAddr      0x300000000
+
 class Aarch64Machine {
 public:
     uc_engine *uc;
