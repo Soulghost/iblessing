@@ -7,13 +7,12 @@
 //
 
 #include "aarch64-machine.hpp"
+#include "ib_pthread.hpp"
 #include <iblessing-core/v2/util/StringUtils.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
 
 using namespace std;
 using namespace iblessing;
-
-#define UnicornStackTopAddr      0x300000000
 
 // global
 static map<uc_engine *, Aarch64Machine *> uc2instance;
@@ -206,16 +205,32 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
         set sysregs
      */
     // pthread begin
+    uint64_t pthreadSize = sizeof(ib_pthread);
+    // alloca
+    sp -= pthreadSize;
+    sp &= (~15);
+    uint64_t pthreadAddr = sp;
+    uint64_t pthreadTSD = pthreadAddr + __offsetof(ib_pthread, self);
+    
+    // init
+    ib_pthread *thread = (ib_pthread *)calloc(1, pthreadSize);
+    thread->self = pthreadAddr;
+    thread->err_no = 0;
+    thread->mig_reply = 0;
+    assert(uc_mem_write(uc, pthreadAddr, (void *)thread, pthreadSize) == UC_ERR_OK);
+    assert(uc_reg_write(uc, UC_ARM64_REG_TPIDRRO_EL0, &pthreadTSD) == UC_ERR_OK);
+    free(thread);
+    
     // allocate tsdObject
-    sp -= 3 * 8;
-    uint64_t tsdObjectAddr = sp;
-    uint64_t pthreadSelf = tsdObjectAddr;
-    assert(uc_mem_write(uc, tsdObjectAddr, &pthreadSelf, 8) == UC_ERR_OK);
-    uint64_t pthreadErrno = 0;
-    assert(uc_mem_write(uc, tsdObjectAddr + 8, &pthreadErrno, 8) == UC_ERR_OK);
-    uint64_t pthreadMigReply = 0;
-    assert(uc_mem_write(uc, tsdObjectAddr + 16, &pthreadMigReply, 8) == UC_ERR_OK);
-    assert(uc_reg_write(uc, UC_ARM64_REG_TPIDRRO_EL0, &tsdObjectAddr) == UC_ERR_OK);
+//    sp -= 3 * 8;
+//    uint64_t tsdObjectAddr = sp;
+//    uint64_t pthreadSelf = tsdObjectAddr;
+//    assert(uc_mem_write(uc, tsdObjectAddr, &pthreadSelf, 8) == UC_ERR_OK);
+//    uint64_t pthreadErrno = 0;
+//    assert(uc_mem_write(uc, tsdObjectAddr + 8, &pthreadErrno, 8) == UC_ERR_OK);
+//    uint64_t pthreadMigReply = 0;
+//    assert(uc_mem_write(uc, tsdObjectAddr + 16, &pthreadMigReply, 8) == UC_ERR_OK);
+//    assert(uc_reg_write(uc, UC_ARM64_REG_TPIDRRO_EL0, &tsdObjectAddr) == UC_ERR_OK);
     // pthread end
     
     // set sp

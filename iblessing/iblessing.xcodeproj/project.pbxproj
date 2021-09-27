@@ -99,6 +99,8 @@
 		68B258B726429CE6008FA1E2 /* PredicateScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685CE84124C572A0002CC5E8 /* PredicateScanner.cpp */; };
 		68B258BF26429D01008FA1E2 /* ObjcUnserializationScanner.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6861982824E9645D003AB00A /* ObjcUnserializationScanner.cpp */; };
 		68C362FA24C9C9D100441950 /* libSystem.B.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 68C362F924C9C9D000441950 /* libSystem.B.tbd */; };
+		68EC52822701DBBD003D9148 /* ib_pthread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68EC52802701DBBD003D9148 /* ib_pthread.cpp */; };
+		68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68EC52812701DBBD003D9148 /* ib_pthread.hpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -393,6 +395,8 @@
 		68D755D824C714EC0057E092 /* libcapstone.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libcapstone.a; sourceTree = "<group>"; };
 		68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMsgXREFServerGenerator.cpp; sourceTree = "<group>"; };
 		68D755DB24C8012A0057E092 /* ObjcMsgXREFServerGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMsgXREFServerGenerator.hpp; sourceTree = "<group>"; };
+		68EC52802701DBBD003D9148 /* ib_pthread.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ib_pthread.cpp; sourceTree = "<group>"; };
+		68EC52812701DBBD003D9148 /* ib_pthread.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ib_pthread.hpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -508,6 +512,7 @@
 		68446FFE26D7BAD500FE4D70 /* v3 */ = {
 			isa = PBXGroup;
 			children = (
+				68EC527F2701DB9F003D9148 /* posix */,
 				68496FDD26E3A496000DEE11 /* kernel */,
 				6838CBCF26E0EF1800315E72 /* machine */,
 				68446FFF26D7BAFA00FE4D70 /* mach-o */,
@@ -1250,6 +1255,15 @@
 			path = macos;
 			sourceTree = "<group>";
 		};
+		68EC527F2701DB9F003D9148 /* posix */ = {
+			isa = PBXGroup;
+			children = (
+				68EC52802701DBBD003D9148 /* ib_pthread.cpp */,
+				68EC52812701DBBD003D9148 /* ib_pthread.hpp */,
+			);
+			path = posix;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -1261,6 +1275,7 @@
 				6844700326D7BB2600FE4D70 /* macho-module.hpp in Headers */,
 				6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */,
 				68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */,
+				68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1498,6 +1513,7 @@
 				68B255DF26401EFB008FA1E2 /* StringTable.cpp in Sources */,
 				68B255E026401EFB008FA1E2 /* SymbolTable.cpp in Sources */,
 				68B255E526401F05008FA1E2 /* VirtualMemory.cpp in Sources */,
+				68EC52822701DBBD003D9148 /* ib_pthread.cpp in Sources */,
 				6838CBD226E0EF2E00315E72 /* aarch64-machine.cpp in Sources */,
 				68B255E626401F05008FA1E2 /* VirtualMemoryV2.cpp in Sources */,
 				68B255EB26401F13008FA1E2 /* ARM64Registers.cpp in Sources */,
