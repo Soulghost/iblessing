@@ -289,6 +289,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     vector<MachOModInitFunc> modInitFuncList;
     vector<MachORoutine> routineList;
     printf("[+] MachOLoader - load module %s (%s) with offset 0x%llx\n", moduleName.c_str(), filePath.c_str(), imageBase);
+    uint64_t machHeader = 0;
     for (uint32_t i = 0; i < ncmds; i++) {
         struct ib_load_command *lc = (struct ib_load_command *)cmds;
         switch (lc->cmd) {
@@ -321,6 +322,9 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
                 
                 if (strncmp(seg64->segname, "__TEXT", 6) == 0) {
                     textSeg64 = seg64;
+                    if (!machHeader) {
+                        machHeader = seg64->vmaddr;
+                    }
                 } else if (strncmp(seg64->segname, "__LINKEDIT", 10) == 0) {
                     linkedit_base = seg64->vmaddr - seg64->fileoff;
                 }
@@ -482,6 +486,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     
     
     loaderOffset += imageSize;
+    module->machHeader = machHeader;
     module->modInitFuncs = modInitFuncList;
     module->routines = routineList;
     
