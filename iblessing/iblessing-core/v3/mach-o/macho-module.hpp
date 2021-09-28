@@ -39,6 +39,7 @@ class MachOModule {
 public:
     uint64_t addr;
     uint64_t size;
+    uint64_t machHeader;
     bool hasInit;
     
     MachOModule();

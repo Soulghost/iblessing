@@ -87,6 +87,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             assert(uc_reg_read(uc, UC_ARM64_REG_X2, &x2) == UC_ERR_OK);
             assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
             comments = StringUtils::format("x0 = 0x%llx, x1 = 0x%llx, x2 = 0x%llx, sp = 0x%llx", x0, x1, x2, sp);
+        } else if (address == 0x100bfbbb4) {
+            uint64_t x0;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
+            comments = StringUtils::format("x0 = 0x%llx", x0);
         }
     }
     
@@ -160,9 +164,22 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
         assert(dependModule != nullptr);
         initModule(dependModule);
     }
+    
+    // FIXME: vars
     for (MachOModInitFunc &initFunc : module->modInitFuncs) {
         uint64_t addr = initFunc.addr;
         printf("  [*] execute mod_init_func in engine, pc = 0x%llx\n", addr);
+        // FIXME: set mach_header
+        // argc
+        uint64_t nullval = 0;
+        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &nullval) == UC_ERR_OK);
+        // argv
+        assert(uc_reg_write(uc, UC_ARM64_REG_X1, &nullval) == UC_ERR_OK);
+        // envp
+        assert(uc_reg_write(uc, UC_ARM64_REG_X2, &nullval) == UC_ERR_OK);
+        // apple
+        assert(uc_reg_write(uc, UC_ARM64_REG_X3, &nullval) == UC_ERR_OK);
+        // vars
         uc_err err = uc_emu_start(uc, addr, 0, 0, 0);
         printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
     }
