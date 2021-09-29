@@ -145,7 +145,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
     return false;
 }
 
-void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
+void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
     if (module->hasInit) {
         return;
     }
@@ -162,7 +162,7 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
     for (MachODynamicLibrary &lib : module->dynamicLibraryDependencies) {
         shared_ptr<MachOModule> dependModule = loader->findModuleByName(lib.name);
         assert(dependModule != nullptr);
-        initModule(dependModule);
+        initModule(dependModule, env);
     }
     
     // FIXME: vars
@@ -180,10 +180,18 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
         // apple
         assert(uc_reg_write(uc, UC_ARM64_REG_X3, &nullval) == UC_ERR_OK);
         // vars
+        assert(uc_reg_write(uc, UC_ARM64_REG_X4, &env.varsAddr) == UC_ERR_OK);
+        
         uc_err err = uc_emu_start(uc, addr, 0, 0, 0);
         printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
     }
     module->hasInit = true;
+}
+
+static uint64_t uc_alloca(uint64_t sp, uint64_t size) {
+    sp -= size;
+    sp &= (~15);
+    return sp;
 }
 
 int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName) {
@@ -219,13 +227,53 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     uint64_t sp = unicorn_sp_start;
     
     /**
+        setup vars
+     */
+    // env
+    uint64_t null64 = 0;
+    sp = uc_alloca(sp, sizeof(uint64_t));
+    uint64_t envPtr = sp;
+    assert(uc_mem_write(uc, envPtr, &null64, sizeof(uint64_t)) == UC_ERR_OK);
+    
+    // _NSGetEnviron
+    sp = uc_alloca(sp, sizeof(uint64_t));
+    uint64_t _NSGetEnv = sp;
+    assert(uc_mem_write(uc, _NSGetEnv, &null64, sizeof(uint64_t)) == UC_ERR_OK);
+    
+    // ProgramName
+    const char *programName = module->name.c_str();
+    sp = uc_alloca(sp, strlen(programName) + 1);
+    uint64_t programNamePtr = sp;
+    assert(uc_mem_write(uc, programNamePtr, &programName, strlen(programName)) == UC_ERR_OK);
+    assert(uc_mem_write(uc, programNamePtr + strlen(programName), &null64, 1) == UC_ERR_OK);
+    
+    // _NSGetArgc
+    sp = uc_alloca(sp, sizeof(uint64_t));
+    uint64_t _NSGetArgc = sp;
+    uint64_t argcVal = 1;
+    assert(uc_mem_write(uc, _NSGetArgc, &argcVal, sizeof(uint64_t)) == UC_ERR_OK);
+    
+    // _NSGetArgv
+    sp = uc_alloca(sp, sizeof(uint64_t));
+    uint64_t _NSGetArgv = sp;
+    assert(uc_mem_write(uc, _NSGetArgv, &null64, sizeof(uint64_t)) == UC_ERR_OK);
+    
+    // vars
+    uint64_t varsSize = 5 * sizeof(uint64_t);
+    sp = uc_alloca(sp, varsSize);
+    uint64_t varsAddr = sp;
+    assert(uc_mem_write(uc, varsAddr, &module->machHeader, sizeof(uint64_t)) == UC_ERR_OK);
+    assert(uc_mem_write(uc, varsAddr + sizeof(uint64_t), &_NSGetArgc, sizeof(uint64_t)) == UC_ERR_OK);
+    assert(uc_mem_write(uc, varsAddr + 2 * sizeof(uint64_t), &_NSGetArgv, sizeof(uint64_t)) == UC_ERR_OK);
+    assert(uc_mem_write(uc, varsAddr + 3 * sizeof(uint64_t), &_NSGetEnv, sizeof(uint64_t)) == UC_ERR_OK);
+    assert(uc_mem_write(uc, varsAddr + 4 * sizeof(uint64_t), &programNamePtr, sizeof(uint64_t)) == UC_ERR_OK);
+    /**
         set sysregs
      */
     // pthread begin
     uint64_t pthreadSize = sizeof(ib_pthread);
     // alloca
-    sp -= pthreadSize;
-    sp &= (~15);
+    sp = uc_alloca(sp, pthreadSize);
     uint64_t pthreadAddr = sp;
     uint64_t pthreadTSD = pthreadAddr + __offsetof(ib_pthread, self);
     
@@ -254,8 +302,10 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     uc_reg_write(uc, UC_ARM64_REG_SP, &sp);
     
     // call init funcs
+    ib_module_init_env initEnv;
+    initEnv.varsAddr = varsAddr;
     for (shared_ptr<MachOModule> module : loader->modules) {
-        initModule(module);
+        initModule(module, initEnv);
     }
     
     printf("[*] execute in engine, pc = 0x%llx\n", symbolAddr);
