@@ -469,6 +469,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                         return true;
                     }
+                    case 3418: {
+                        
+                        break;
+                    }
                     default:
                         assert(false);
                         break;

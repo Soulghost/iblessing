@@ -18,6 +18,10 @@ NS_IB_BEGIN
 
 #define UnicornStackTopAddr      0x300000000
 
+typedef struct ib_module_init_env {
+    uint64_t varsAddr;
+} ib_module_init_env;
+
 class Aarch64Machine {
 public:
     uc_engine *uc;
@@ -25,7 +29,7 @@ public:
     std::shared_ptr<MachOLoader> loader;
     
     int callModule(std::shared_ptr<MachOModule> module, std::string symbolName = "");
-    void initModule(std::shared_ptr<MachOModule> module);
+    void initModule(std::shared_ptr<MachOModule> module, ib_module_init_env &env);
 };
 
 NS_IB_END
