@@ -11,14 +11,22 @@
 #include "ib_pthread.hpp"
 #include "mach-universal.hpp"
 #include "aarch64-machine.hpp"
+#include "macho-memory.hpp"
 
 using namespace std;
 using namespace iblessing;
 
 #define TASK_BOOTSTRAP_PORT 4
 #define BOOTSTRAP_PORT 11
+#define CLOCK_SERVER_PORT 13
+#define SEMAPHORE_PORT 14
 
 #define ensure_uc_reg_read(reg, value) assert(uc_reg_read(uc, reg, value) == UC_ERR_OK)
+#define syscall_return_success syscall_return_value(0)
+#define syscall_return_value(value) do {\
+int ret = value;\
+assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK); \
+} while(0);
 
 Aarch64SVCManager::Aarch64SVCManager(uc_engine *uc, uint64_t addr, uint64_t size, int swiInitValue) {
     
@@ -268,6 +276,16 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
+            case 398: { // open_NOCANCEL
+                uint64_t pathAddr;
+                int oflags, mode;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &oflags);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &mode);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                free(path);
+                break;
+            }
             case 0x80000000: { // pthread_set_self
                 uint64_t x3 = 0;
                 assert(uc_reg_read(uc, UC_ARM64_REG_X3, &x3) == UC_ERR_OK);
@@ -426,6 +444,47 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         }
                         break;
                     }
+                    case 206: { // host_get_clock_service
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            int clock_id;
+                            ib_mach_msg_trailer_t trailer;
+                        } Request __attribute__((unused));
+                        #pragma pack(pop)
+                        
+                        Request *request = (Request *)hdr;
+                        printf("[+][Stalker][Syscall][Mach] receive client host_get_clock_service mach_msg with clock_id %d\n", request->clock_id);
+                        
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            /* start of the kernel processed data */
+                            ib_mach_msg_body_t msgh_body;
+                            ib_mach_msg_port_descriptor_t clock_server;
+                            /* end of the kernel processed data */
+                        } Reply __attribute__((unused));
+                        #pragma pack(pop)
+                        
+                        Reply *OutP = (Reply *)hdr;
+                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        OutP->Head.msgh_local_port = 0;
+                        OutP->Head.msgh_id += 100;
+                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(Reply));
+                        
+                        OutP->msgh_body.msgh_descriptor_count = 1;
+                        OutP->clock_server.name = CLOCK_SERVER_PORT;
+                        OutP->clock_server.pad1 = 0;
+                        OutP->clock_server.pad2 = 0;
+                        OutP->clock_server.disposition = 17;
+                        OutP->clock_server.type = IB_MACH_MSG_PORT_DESCRIPTOR;
+                        assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
+                        
+                        syscall_return_success;
+                        return true;
+                    }
                     case 3409: { // task_get_special_port
                         #pragma pack(push, 4)
                         typedef struct {
@@ -447,9 +506,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         } Reply __attribute__((unused));
                         #pragma pack(pop)
                         Reply *OutP = (Reply *)hdr;
-                        #define IB_MACH_MSGH_BITS_COMPLEX          0x80000000U     /* message is complex */
-                        #define IB_MACH_MSG_PORT_DESCRIPTOR  0
-
                         OutP->Head.msgh_remote_port = hdr->msgh_local_port;
                         OutP->Head.msgh_local_port = 0;
                         OutP->Head.msgh_id += 100;
@@ -469,9 +525,48 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                         return true;
                     }
-                    case 3418: {
+                    case 3418: { // semaphore_create
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            int policy;
+                            int value;
+                            ib_mach_msg_trailer_t trailer;
+                        } Request __attribute__((unused));
+                        #pragma pack(pop)
                         
-                        break;
+                        Request *request = (Request *)hdr;
+                        printf("[+][Stalker][Syscall][Mach] receive client semaphore_create mach_msg with policy %d, value %d\n", request->policy, request->value);
+                        
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            /* start of the kernel processed data */
+                            ib_mach_msg_body_t msgh_body;
+                            ib_mach_msg_port_descriptor_t semaphore;
+                            /* end of the kernel processed data */
+                        } Reply __attribute__((unused));
+                        #pragma pack(pop)
+                        
+                        Reply *OutP = (Reply *)hdr;
+                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        OutP->Head.msgh_local_port = 0;
+                        OutP->Head.msgh_id += 100;
+                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(Reply));
+                        
+                        OutP->msgh_body.msgh_descriptor_count = 1;
+                        OutP->semaphore.name = SEMAPHORE_PORT;
+                        OutP->semaphore.pad1 = 0;
+                        OutP->semaphore.pad2 = 0;
+                        OutP->semaphore.disposition = 17;
+                        OutP->semaphore.type = IB_MACH_MSG_PORT_DESCRIPTOR;
+                        assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
+                        
+                        int ret = 0;
+                        assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                        return true;
                     }
                     default:
                         assert(false);
@@ -479,6 +574,14 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 }
                 
                 free(hdr);
+            }
+            case 36: { // semaphore_wait_trap
+                ib_mach_port_t semaphore_port = 0;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &semaphore_port);
+                assert(semaphore_port == SEMAPHORE_PORT);
+                printf("[+][Stalker][Syscall][Mach] semaphore_wait_trap for port %d\n", semaphore_port);
+                syscall_return_success;
+                return true;
             }
             default:
                 assert(false);

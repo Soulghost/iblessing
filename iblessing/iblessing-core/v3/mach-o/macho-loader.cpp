@@ -11,6 +11,7 @@
 #include <iblessing-core/v2/dyld/dyld.hpp>
 #include "StringUtils.h"
 #include "ScannerContext.hpp"
+#include "macho-memory.hpp"
 #include "DyldSimulator.hpp"
 #include <mach-o/loader.h>
 #include <set>
@@ -62,38 +63,6 @@ static string resolveLibraryPath(string &name) {
     }
     return path;
 }
-
-static char* readString(uc_engine *uc, uint64_t address, uint64_t limit) {
-    char *charBuf = (char *)malloc(limit + 1);
-    uint64_t offset = 0;
-    uint64_t unPrintCount = 0;
-    bool ok = true;
-    while (offset < limit && (ok = (uc_mem_read(uc, address + offset, charBuf + offset, sizeof(char))) == UC_ERR_OK)) {
-        if (charBuf[offset] == 0) {
-            break;
-        }
-        if (!(charBuf[offset] >= 0x20 && charBuf[offset] <= 0x7E)) {
-            unPrintCount++;
-            if (unPrintCount > 10) {
-                ok = false;
-                break;
-            }
-        }
-        offset++;
-    }
-    
-    if (!ok) {
-        free(charBuf);
-        return NULL;
-    }
-    
-    charBuf[offset] = 0;
-    char *strBuffer = (char *)malloc(offset + 1);
-    memcpy(strBuffer, charBuf, offset + 1);
-    free(charBuf);
-    return strBuffer;
-}
-
 
 MachOLoader::MachOLoader()  {
     loaderOffset = 0;
@@ -197,7 +166,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         uint64_t dyldFuncNameAddr = 0, dyldFuncBindToAddr;
                         assert(uc_reg_read(uc, UC_ARM64_REG_X0, &dyldFuncNameAddr) == UC_ERR_OK);
                         assert(uc_reg_read(uc, UC_ARM64_REG_X1, &dyldFuncBindToAddr) == UC_ERR_OK);
-                        char *dyldFuncName = readString(uc, dyldFuncNameAddr, 10000);
+                        char *dyldFuncName = MachoMemoryUtils::uc_read_string(uc, dyldFuncNameAddr, 10000);
                         if (strcmp(dyldFuncName, "__dyld_fast_stub_entry") == 0) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_fast_stub_entryAddr, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_fast_stub_entryAddr, 8) == UC_ERR_OK);

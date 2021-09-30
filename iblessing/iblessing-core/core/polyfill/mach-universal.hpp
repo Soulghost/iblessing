@@ -814,4 +814,7 @@ typedef struct{
     ib_mach_msg_trailer_size_t       msgh_trailer_size;
 } ib_mach_msg_trailer_t;
 
+#define IB_MACH_MSGH_BITS_COMPLEX          0x80000000U     /* message is complex */
+#define IB_MACH_MSG_PORT_DESCRIPTOR  0
+
 #endif /* mach_universal_hpp */
