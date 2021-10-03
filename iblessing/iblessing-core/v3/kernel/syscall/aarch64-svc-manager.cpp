@@ -21,7 +21,11 @@ using namespace iblessing;
 #define CLOCK_SERVER_PORT 13
 #define SEMAPHORE_PORT 14
 
+#define IB_FD_URANDOM 3
+
+#define ensure_uc_mem_write(addr, bytes, size) assert(uc_mem_write(uc, addr, bytes, size) == UC_ERR_OK)
 #define ensure_uc_reg_read(reg, value) assert(uc_reg_read(uc, reg, value) == UC_ERR_OK)
+#define ensure_uc_reg_write(reg, value) assert(uc_reg_write(uc, reg, value) == UC_ERR_OK)
 #define syscall_return_success syscall_return_value(0)
 #define syscall_return_value(value) do {\
 int ret = value;\
@@ -276,6 +280,28 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
+            case 396: { // read_NOCANCEL
+                int fd, count;
+                uint64_t bufferAddr;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &bufferAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &count);
+                if (fd == IB_FD_URANDOM) {
+                    int chunkCnt = count / sizeof(int);
+                    int rest = count % sizeof(int);
+                    for (int i = 0; i < chunkCnt; i++) {
+                        int val = i % 255;
+                        ensure_uc_mem_write(bufferAddr, &val, 1);
+                        bufferAddr += 1;
+                    }
+                    int tailVal = 255;
+                    ensure_uc_mem_write(bufferAddr, &tailVal, rest);
+                } else {
+                    assert(false);
+                }
+                syscall_return_success;
+                return true;
+            }
             case 398: { // open_NOCANCEL
                 uint64_t pathAddr;
                 int oflags, mode;
@@ -283,8 +309,24 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_W1, &oflags);
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &mode);
                 char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                int fd = -1;
+                if (strcmp(path, "/dev/urandom") == 0 ||
+                    strcmp(path, "/dev/random") == 0 ||
+                    strcmp(path, "/dev/srandom") == 0) {
+                    fd = IB_FD_URANDOM;
+                } else {
+                    assert(false);
+                }
                 free(path);
-                break;
+                ensure_uc_reg_write(UC_ARM64_REG_W0, &fd);
+                return true;
+            }
+            case 399: { // close_NOCANCEL
+                int fd;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
+                assert(fd == IB_FD_URANDOM);
+                printf("[Stalker][+] handle close_NOCANCEL with fd %d\n", fd);
+                return true;
             }
             case 0x80000000: { // pthread_set_self
                 uint64_t x3 = 0;
