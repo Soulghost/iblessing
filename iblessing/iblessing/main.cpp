@@ -32,7 +32,7 @@ int main(int argc, const char *argv[]) {
     machine->loader = loader;
     machine->svcManager = loader->svcManager;
     machine->uc = loader->uc;
-    machine->callModule(module, "_test_entry");
+    machine->callModule(module, "_test_malloc");
     
     
     
