@@ -14,6 +14,11 @@ void test_entry(void) {
     printf("xxx %d\n", a + b);
 }
 
+uint64_t test_malloc(void) {
+    uint64_t addr = (uint64_t)malloc(1024);
+    return addr;
+}
+
 @interface ViewController ()
 
 @end

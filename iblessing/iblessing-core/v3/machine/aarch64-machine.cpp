@@ -91,6 +91,18 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             uint64_t x0;
             assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
             comments = StringUtils::format("x0 = 0x%llx", x0);
+        } else if (address == 0x100D41940) {
+            uint64_t x20;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X20, &x20) == UC_ERR_OK);
+            comments = StringUtils::format("x20 = 0x%llx", x20);
+        } else if (address == 0x100D41914) {
+            uint64_t w19;
+            assert(uc_reg_read(uc, UC_ARM64_REG_W19, &w19) == UC_ERR_OK);
+            comments = StringUtils::format("w19 = 0x%llx", w19);
+        } else if (address == 0x100D41910) {
+            uint64_t w0;
+            assert(uc_reg_read(uc, UC_ARM64_REG_W0, &w0) == UC_ERR_OK);
+            comments = StringUtils::format("w0 = 0x%llx", w0);
         }
     }
     

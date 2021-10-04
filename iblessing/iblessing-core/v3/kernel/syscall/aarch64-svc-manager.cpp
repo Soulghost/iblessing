@@ -299,7 +299,9 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 } else {
                     assert(false);
                 }
-                syscall_return_success;
+                
+                uint64_t readLen = count;
+                ensure_uc_reg_write(UC_ARM64_REG_X0, &readLen);
                 return true;
             }
             case 398: { // open_NOCANCEL
@@ -319,6 +321,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 }
                 free(path);
                 ensure_uc_reg_write(UC_ARM64_REG_W0, &fd);
+                
+                uint64_t cspr = 0;
+                assert(uc_reg_read(uc, UC_ARM64_REG_NZCV, &cspr) == UC_ERR_OK);
+                // clear carry
+                cspr &= ~(1UL << 29);
+                ensure_uc_reg_write(UC_ARM64_REG_NZCV, &cspr);
                 return true;
             }
             case 399: { // close_NOCANCEL
