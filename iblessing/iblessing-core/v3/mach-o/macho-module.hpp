@@ -66,6 +66,9 @@ public:
     std::vector<std::pair<uint64_t, uint64_t>> dataPatch;
     
     Symbol* getSymbolByName(std::string name, bool checkDependencies);
+    
+private:
+    Symbol* _getSymbolByName(std::string name, bool checkDependencies);
 };
 
 NS_IB_END

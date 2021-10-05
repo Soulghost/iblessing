@@ -121,6 +121,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
             if (strncmp(sect->segname, "__DATA", 16) == 0 &&
                 strncmp(sect->sectname, "__dyld", 16) == 0) {
                 static uint64_t _dyld_fast_stub_entryAddr = 0;
+                static uint64_t _dyld_register_thread_helpersAddr = 0;
                 if (_dyld_fast_stub_entryAddr == 0) {
                     Dyld::bindHooks["_abort"] = [&](string symbolName, uint64_t symbolAddr) {
                         static uint64_t _abortAddr = 0;
@@ -155,6 +156,15 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         assert(uc_reg_write(uc, UC_ARM64_REG_X0, &targetAddr) == UC_ERR_OK);
                     });
                 }
+                if (_dyld_register_thread_helpersAddr == 0) {
+                    _dyld_register_thread_helpersAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t ptr;
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &ptr) == UC_ERR_OK);
+                        printf("[Stalker][+][dyld] dyld_register_thread_helpers 0x%llx\n", ptr);
+                        uint64_t ret = 0;
+                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+                    });
+                }
                 static uint64_t dyldLazyBinderAddr = 0, dyldFunctionLookupAddr = 0;
                 if (dyldLazyBinderAddr == 0) {
                     dyldLazyBinderAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
@@ -170,8 +180,9 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         if (strcmp(dyldFuncName, "__dyld_fast_stub_entry") == 0) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_fast_stub_entryAddr, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_fast_stub_entryAddr, 8) == UC_ERR_OK);
-                        } else {
-                            assert(false);
+                        } else if (strcmp(dyldFuncName, "__dyld_register_thread_helpers") == 0) {
+                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_thread_helpersAddr, dyldFuncBindToAddr);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_thread_helpersAddr, 8) == UC_ERR_OK);
                         }
                         free(dyldFuncName);
                     });
@@ -471,7 +482,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     shared_ptr<SymbolTable> symtab = make_shared<SymbolTable>(strtab);
     symtab->moduleBase = imageBase;
     module->symtab = symtab;
-    symtab->buildSymbolTable(mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
+    symtab->buildSymbolTable(moduleName, mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
         symtab->buildDynamicSymbolTable(sectionHeaders, mappedFile + dysymtab_cmd->indirectsymoff, dysymtab_cmd->nindirectsyms, mappedFile);
     }

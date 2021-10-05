@@ -33,7 +33,7 @@ void SymbolTable::sync() {
     this->symbolMapCpp = mm;
 }
 
-void SymbolTable::buildSymbolTable(uint8_t *data, uint64_t nSymbols) {
+void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64_t nSymbols) {
     symbols.clear();
     name2symbol.clear();
     symbolMap.clear();
@@ -43,26 +43,31 @@ void SymbolTable::buildSymbolTable(uint8_t *data, uint64_t nSymbols) {
     struct ib_nlist_64 *li = (struct ib_nlist_64 *)data;
     
     for (uint64_t i = 0; i < nSymbols; i++) {
-        if (li->n_value > 0) {
-            li->n_value += moduleBase;
-        }
-        
         uint32_t strIdx = li->n_un.n_strx;
         std::string symName = strtab->getStringAtIndex(strIdx);
         Symbol *symbol = new Symbol();
         symbol->name = symName;
         symbol->info = li;
         
-        if ((li->n_type & IB_N_STAB) == 0) {
-            uint64_t symAddr = li->n_value;
+        uint8_t type = li->n_type & IB_N_TYPE;
+        if ((type == IB_N_SECT || type == IB_N_ABS) && ((type & IB_N_STAB) == 0)) {
             // non-lazy symbol
-            if (symAddr != 0) {
-                symbolMap.insert(symAddr, symbol);
+            if (li->n_value != 0) {
+                li->n_value += moduleBase;
+                symbolMap.insert(li->n_value, symbol);
                 name2symbol[symName].pushBack(symbol);
                 symbol->release();
             }
+        } else if (type == IB_N_INDR) {
+            // FIXME: indirect symbols
+            string indirectSymbolName = strtab->getStringAtIndex(li->n_value);
+            symbol->isIndirect = true;
+            symbol->realName = indirectSymbolName;
+            name2symbol[symName].pushBack(symbol);
+            symbol->release();
         } else {
             if (!symName.empty() && li->n_value > 0) {
+                li->n_value += moduleBase;
                 symbolMap.insert(li->n_value, symbol);
                 name2symbol[symName].pushBack(symbol);
                 symbol->release();
@@ -71,10 +76,6 @@ void SymbolTable::buildSymbolTable(uint8_t *data, uint64_t nSymbols) {
 //            uint64_t idx = 1 + (symbolTable.size() == 0 ? 0 : li - symbolTable.at(0).second);
 //            uint64_t addr = -idx;
 //            printf("undefined symbol addr 0x%llx\n", addr);
-        }
-        
-        if ((li->n_type & IB_N_TYPE) == IB_N_INDR) {
-            // FIXME: indirect symbols
         }
         
         symbolTable.push_back({symName, li});
@@ -226,6 +227,9 @@ Symbol* SymbolTable::getSymbolNearByAddress(uint64_t address) {
 
 
 Symbol* SymbolTable::getSymbolByName(std::string name) {
+    if (indirectSymbolMap.find(name) != indirectSymbolMap.end()) {
+        name = indirectSymbolMap[name].name;
+    }
     if (name2symbol.find(name) != name2symbol.end() &&
         name2symbol[name].size() > 0) {
         return name2symbol[name].at(0);

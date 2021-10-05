@@ -20,7 +20,9 @@ public:
     virtual ~Symbol();
     
     std::string name;
+    std::string realName;
     bool isStub;
+    bool isIndirect;
     struct ib_nlist_64 *info;
 };
 

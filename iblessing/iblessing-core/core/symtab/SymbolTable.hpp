@@ -29,6 +29,10 @@ typedef struct SymbolRelocation {
     ib_section_64 *relocSection;
 } SymbolRelocation;
 
+typedef struct IndirectSymbol {
+    std::string name;
+} IndirectSymbol;
+
 class SymbolTable : public Object {
 public:
     std::shared_ptr<StringTable> strtab;
@@ -38,7 +42,7 @@ public:
     virtual ~SymbolTable();
     static SymbolTable* getInstance();
     
-    void buildSymbolTable(uint8_t *data, uint64_t nSymbols);
+    void buildSymbolTable(std::string moduleName, uint8_t *data, uint64_t nSymbols);
     void buildDynamicSymbolTable(std::vector<struct ib_section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols, uint8_t *mappedData);
     void insertSymbol(Symbol *symbol);
     void sync();
@@ -51,6 +55,7 @@ public:
     std::vector<SymbolRelocation> getAllRelocs();
 private:
     Map<uint64_t, Symbol *> symbolMap;
+    std::map<std::string, IndirectSymbol> indirectSymbolMap;
     std::map<uint64_t, Symbol *> symbolMapCpp;
     std::map<std::string, Vector<Symbol *>> name2symbol;
     std::vector<std::pair<std::string, struct ib_nlist_64 *>> symbolTable;
