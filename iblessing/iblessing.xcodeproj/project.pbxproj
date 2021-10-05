@@ -27,6 +27,8 @@
 		6895A1C6268A0C3800EE558D /* libiblessing-core.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */; };
 		6895A1C7268A0C5000EE558D /* classdump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E0EF263BAB51000642F5 /* classdump.cpp */; };
 		6895A1C8268A0C5000EE558D /* otool.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E12F263C095A000642F5 /* otool.cpp */; };
+		68A44D46270C473600C91CC6 /* uc_debugger_utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68A44D44270C473600C91CC6 /* uc_debugger_utils.cpp */; };
+		68A44D47270C473600C91CC6 /* uc_debugger_utils.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68A44D45270C473600C91CC6 /* uc_debugger_utils.hpp */; };
 		68AE3B1224EB9CFE003E25EF /* InsecureUnSerialization.m in Sources */ = {isa = PBXBuildFile; fileRef = 68AE3B1124EB9CFE003E25EF /* InsecureUnSerialization.m */; };
 		68B255CF26401EDE008FA1E2 /* CoreFoundation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6866173D24E51CA300C4FBB3 /* CoreFoundation.cpp */; };
 		68B255D426401EE9008FA1E2 /* mach-universal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6866173924DFF93A00C4FBB3 /* mach-universal.cpp */; };
@@ -331,6 +333,8 @@
 		68A028CA24DE897F00077CE0 /* ScannerDispatcher.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ScannerDispatcher.hpp; sourceTree = "<group>"; };
 		68A028D424DE8F5400077CE0 /* ScannerDisassemblyDriver.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ScannerDisassemblyDriver.cpp; sourceTree = "<group>"; };
 		68A028D524DE8F5400077CE0 /* ScannerDisassemblyDriver.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ScannerDisassemblyDriver.hpp; sourceTree = "<group>"; };
+		68A44D44270C473600C91CC6 /* uc_debugger_utils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = uc_debugger_utils.cpp; sourceTree = "<group>"; };
+		68A44D45270C473600C91CC6 /* uc_debugger_utils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = uc_debugger_utils.hpp; sourceTree = "<group>"; };
 		68AE3B1024EB9CFE003E25EF /* InsecureUnSerialization.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = InsecureUnSerialization.h; sourceTree = "<group>"; };
 		68AE3B1124EB9CFE003E25EF /* InsecureUnSerialization.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = InsecureUnSerialization.m; sourceTree = "<group>"; };
 		68B253E2263D6822008FA1E2 /* iblessing-core.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "iblessing-core.cpp"; sourceTree = "<group>"; };
@@ -516,6 +520,7 @@
 		68446FFE26D7BAD500FE4D70 /* v3 */ = {
 			isa = PBXGroup;
 			children = (
+				68A44D43270C472700C91CC6 /* debugger */,
 				68EC527F2701DB9F003D9148 /* posix */,
 				68496FDD26E3A496000DEE11 /* kernel */,
 				6838CBCF26E0EF1800315E72 /* machine */,
@@ -1050,6 +1055,15 @@
 			path = driver;
 			sourceTree = "<group>";
 		};
+		68A44D43270C472700C91CC6 /* debugger */ = {
+			isa = PBXGroup;
+			children = (
+				68A44D44270C473600C91CC6 /* uc_debugger_utils.cpp */,
+				68A44D45270C473600C91CC6 /* uc_debugger_utils.hpp */,
+			);
+			path = debugger;
+			sourceTree = "<group>";
+		};
 		68AE3B0F24EB9CDD003E25EF /* insecureUnserialization */ = {
 			isa = PBXGroup;
 			children = (
@@ -1278,6 +1292,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				68D341A62705AD4A00810C77 /* macho-memory.hpp in Headers */,
+				68A44D47270C473600C91CC6 /* uc_debugger_utils.hpp in Headers */,
 				6844700726D7C05400FE4D70 /* macho-loader.hpp in Headers */,
 				6844700326D7BB2600FE4D70 /* macho-module.hpp in Headers */,
 				6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */,
@@ -1544,6 +1559,7 @@
 				68B2561826401F63008FA1E2 /* ScannerContext.cpp in Sources */,
 				68B2561D26401F65008FA1E2 /* ScannerWorkDirManager.cpp in Sources */,
 				68B2562226401F73008FA1E2 /* Scanner.cpp in Sources */,
+				68A44D46270C473600C91CC6 /* uc_debugger_utils.cpp in Sources */,
 				68B2562726401F7C008FA1E2 /* StringUtils.cpp in Sources */,
 				68B2562C26401F81008FA1E2 /* FunctionXrefAnalyser.cpp in Sources */,
 				6844700626D7C05400FE4D70 /* macho-loader.cpp in Sources */,

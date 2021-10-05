@@ -12,6 +12,7 @@
 #include "mach-universal.hpp"
 #include "aarch64-machine.hpp"
 #include "macho-memory.hpp"
+#include "uc_debugger_utils.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -23,6 +24,7 @@ using namespace iblessing;
 
 #define IB_FD_URANDOM 3
 
+#define ensure_uc_mem_read(addr, bytes, size) assert(uc_mem_read(uc, addr, bytes, size) == UC_ERR_OK)
 #define ensure_uc_mem_write(addr, bytes, size) assert(uc_mem_write(uc, addr, bytes, size) == UC_ERR_OK)
 #define ensure_uc_reg_read(reg, value) assert(uc_reg_read(uc, reg, value) == UC_ERR_OK)
 #define ensure_uc_reg_write(reg, value) assert(uc_reg_write(uc, reg, value) == UC_ERR_OK)
@@ -105,6 +107,13 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
     if (trap_no > 0) {
         // posix
         switch (trap_no) {
+            case 24:   // getuid
+            case 25:   // geteuid
+            case 43:   // getegid
+            case 47: { // getgid
+                syscall_return_value(0);
+                return true;
+            }
             // ioctl
             case 54: {
                 int fd;
@@ -372,6 +381,59 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
         // mach
         int64_t call_number = -trap_no;
         switch (call_number) {
+            case 12: { // _kernelrpc_mach_vm_deallocate_trap
+                // FIXME: mumap
+                ib_mach_port_t target;
+                uint64_t addr, size;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &target);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &addr);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &size);
+                printf("[Stalker][+][Mach] mach_vm_deallocate for task %d at 0x%llx, size 0x%llx\n", target, addr, size);
+                syscall_return_success;
+                return true;
+            }
+            case 15: { // _kernelrpc_mach_vm_map_trap
+#if 0
+                extern kern_return_t _kernelrpc_mach_vm_map_trap(
+                    mach_port_name_t target,
+                    mach_vm_offset_t *address,
+                    mach_vm_size_t size,
+                    mach_vm_offset_t mask,
+                    int flags,
+                    vm_prot_t cur_protection
+                );
+#endif
+                ib_mach_port_t target;
+                uint64_t addrPtr, size, mask;
+                int flags, cur_port;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &target);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &addrPtr);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &size);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &mask);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &flags);
+                ensure_uc_reg_read(UC_ARM64_REG_W5, &cur_port);
+                uint64_t addr;
+                ensure_uc_mem_read(addrPtr, &addr, sizeof(uint64_t));
+                
+                uint64_t aligned_size = ((size - 1) / 16384 + 1) * 16384;
+                assert(!(flags & IB_MAP_FIXED));
+                assert(!(flags & IB_MAP_FILE));
+                assert(!mask);
+                // FIXME: tricky kern_mmap
+                static uint64_t mmapHeapPtr = 0x400000000;
+                print_uc_mem_regions(uc);
+                uc_err err = uc_mem_map(uc, mmapHeapPtr, aligned_size, cur_port);
+                if (err) {
+                    printf("[-] cannot mmap at 0x%llx, error %s\n", mmapHeapPtr, uc_strerror(err));
+                    assert(false);
+                }
+                print_uc_mem_regions(uc);
+                mmapHeapPtr += aligned_size;
+                
+                ensure_uc_mem_write(addrPtr, &mmapHeapPtr, sizeof(uint64_t));
+                syscall_return_success;
+                return true;
+            }
             case 18: { // _kernelrpc_mach_port_deallocate_trap
                 int task, name;
                 assert(uc_reg_read(uc, UC_ARM64_REG_W0, &task) == UC_ERR_OK);

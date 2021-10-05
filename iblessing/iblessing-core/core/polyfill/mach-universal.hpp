@@ -817,4 +817,13 @@ typedef struct{
 #define IB_MACH_MSGH_BITS_COMPLEX          0x80000000U     /* message is complex */
 #define IB_MACH_MSG_PORT_DESCRIPTOR  0
 
+/**
+ mmap
+ */
+#define IB_MAP_FILE      0x0000 /* map from file (default) */
+#define IB_MAP_SHARED    0x0001 /* [MF|SHM] share changes */
+#define IB_MAP_PRIVATE   0x0002 /* [MF|SHM] changes are private */
+#define IB_MAP_FIXED     0x0010 /* [MF|SHM] interpret addr exactly */
+#define IB_MAP_ANONYMOUS 0x1000 /* allocated from memory, swap space */
+
 #endif /* mach_universal_hpp */
