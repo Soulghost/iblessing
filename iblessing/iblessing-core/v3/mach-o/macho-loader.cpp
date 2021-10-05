@@ -241,6 +241,8 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     vector<pair<uint64_t, uint64_t>> textSects;
     uint64_t vmaddr_bss_start = 0;
     uint64_t vmaddr_bss_end = 0;
+    uint64_t got_start = 0, got_size = 0;
+    uint64_t common_start = 0, common_size = 0;
     
     // offset, size, baseAddr, sect
     vector<pair<pair<uint64_t, uint64_t>, pair<uint64_t, ib_section_64 *>>> allRelocs;
@@ -335,7 +337,14 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
                             objc_catlist_addr = sect->addr;
                             objc_catlist_size = sect->size;
                         }
-                        
+                        if (strcmp(sectname, "__got") == 0) {
+                            got_start = sect->addr;
+                            got_size = sect->size;
+                        }
+                        if (strcmp(sectname, "__common") == 0) {
+                            common_start = sect->addr;
+                            common_size = sect->size;
+                        }
                         if (sect->reloff > 0 && sect->nreloc > 0) {
                             allRelocs.push_back({{sect->reloff, sect->nreloc}, {sect->addr, sect}});
                         }
@@ -464,6 +473,12 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
         free(bssData);
     }
     
+    // init common
+    if (common_start > 0 && common_size > 0) {
+        void *data = calloc(1, common_size);
+        assert(uc_mem_write(uc, common_start, data, common_size) == UC_ERR_OK);
+        free(data);
+    }
     
     loaderOffset += imageSize;
     module->machHeader = machHeader;

@@ -107,6 +107,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             uint64_t x0;
             assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
             comments = StringUtils::format("x0 = 0x%llx", x0);
+        } else if (address == 0x100E3ED9C) {
+            uint64_t x8;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X8, &x8) == UC_ERR_OK);
+            comments = StringUtils::format("x8 = 0x%llx", x8);
         }
     }
     
@@ -142,22 +146,22 @@ static void uc_hookintr_callback(uc_engine *uc, uint32_t intno, void *user_data)
 }
 
 static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_t address, int size, int64_t value, void *user_data) {
-    if (type == UC_MEM_READ_UNMAPPED || type == UC_MEM_WRITE_UNMAPPED) {
-#define UC_PAGE_SIZE 0x1000
-        uint64_t page_begin = address & ~(UC_PAGE_SIZE - 1);
-        uc_mem_map(uc, page_begin, UC_PAGE_SIZE, UC_PROT_READ | UC_PROT_WRITE);
-        
-        // FIXME: fill zero
-        void *dummy_bytes = calloc(1, size);
-        uc_mem_write(uc, address, dummy_bytes, size);
-        return true;
-    } else if (type == UC_MEM_FETCH_UNMAPPED) {
-        // FIXME: pthread [Stalker] 0x100f38410 mrs x8, tpidrro_el0 ;
-        // see unidbg-ios/src/main/java/com/github/unidbg/ios/MachOLoader.java initializeTSD
-//        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
-        assert(false);
-    }
-    assert(false);
+//    if (type == UC_MEM_READ_UNMAPPED || type == UC_MEM_WRITE_UNMAPPED) {
+//#define UC_PAGE_SIZE 0x1000
+//        uint64_t page_begin = address & ~(UC_PAGE_SIZE - 1);
+//        uc_mem_map(uc, page_begin, UC_PAGE_SIZE, UC_PROT_READ | UC_PROT_WRITE);
+//        
+//        // FIXME: fill zero
+//        void *dummy_bytes = calloc(1, size);
+//        uc_mem_write(uc, address, dummy_bytes, size);
+//        return true;
+//    } else if (type == UC_MEM_FETCH_UNMAPPED) {
+//        // FIXME: pthread [Stalker] 0x100f38410 mrs x8, tpidrro_el0 ;
+//        // see unidbg-ios/src/main/java/com/github/unidbg/ios/MachOLoader.java initializeTSD
+////        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
+//        assert(false);
+//    }
+//    assert(false);
     return false;
 }
 
@@ -165,6 +169,13 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
     if (module->hasInit) {
         return;
     }
+    static set<string> blist{};
+    if (blist.find(module->name) != blist.end()) {
+        module->hasInit = true;
+        return;
+    }
+    // FIXME: recursive initModule
+    module->hasInit = true;
     printf("[+] init module %s\n", module->name.c_str());
     // FIXME: vars, envs
     printf("  [+] process routines\n");
@@ -201,7 +212,7 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
         uc_err err = uc_emu_start(uc, addr, 0, 0, 0);
         printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
     }
-    module->hasInit = true;
+//    module->hasInit = true;
 }
 
 static uint64_t uc_alloca(uint64_t sp, uint64_t size) {
@@ -332,6 +343,15 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // call init funcs
     ib_module_init_env initEnv;
     initEnv.varsAddr = varsAddr;
+    
+    uint64_t dbg = 0;
+    assert(uc_mem_read(uc, 0x100E5E0B0, &dbg, 8) == UC_ERR_OK);
+//    static set<string> moduleInitBlackList{"CoreFoundation", "Foundation"};
+//    if (moduleInitBlackList.find(module->name) != moduleInitBlackList.end()) {
+//        printf("[Stalker][!][Warn] skip mod init for %s\n", module->name.c_str());
+//        module->hasInit = true;
+//        continue;
+//    }
     for (shared_ptr<MachOModule> module : loader->modules) {
         initModule(module, initEnv);
     }

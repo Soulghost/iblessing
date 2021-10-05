@@ -142,9 +142,6 @@ uint64_t Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> lo
     assert(targetModule != nullptr);
     
     set<pair<string, string>> symbolNotFoundErrorSet;
-    if (strcmp(symbolName, "_strncmp") == 0) {
-        printf("");
-    }
     Symbol *sym = targetModule->getSymbolByName(symbolName, true);
     if (!sym) {
         pair<string, string> errorPattern = {symbolName, targetModule->name};
