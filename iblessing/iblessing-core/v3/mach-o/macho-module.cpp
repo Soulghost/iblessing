@@ -17,7 +17,26 @@ MachOModule::MachOModule() {
 }
 
 Symbol* MachOModule::getSymbolByName(std::string name, bool checkDependencies) {
+    Symbol *sym = _getSymbolByName(name, checkDependencies);
+    if (!sym) {
+        return nullptr;
+    }
+    if (sym->isIndirect) {
+        Symbol *resolvedSymbol = _getSymbolByName(sym->realName, checkDependencies);
+        if (resolvedSymbol) {
+            return resolvedSymbol;
+        }
+    }
+    return sym;
+}
+
+Symbol* MachOModule::_getSymbolByName(std::string name, bool checkDependencies) {
     Symbol *sym = symtab->getSymbolByName(name);
+    if (sym) {
+        if (sym->isIndirect) {
+            return sym;
+        }
+    }
     shared_ptr<MachOLoader> _loader = loader.lock();
     assert(_loader != nullptr);
     if (!sym && checkDependencies) {
@@ -29,6 +48,15 @@ Symbol* MachOModule::getSymbolByName(std::string name, bool checkDependencies) {
             sym = targetModule->getSymbolByName(name, false);
             if (sym && !sym->isStub) {
                 break;
+            }
+        }
+        if (!sym) {
+            // find in modules
+            for (shared_ptr<MachOModule> module : _loader->modules) {
+                sym = module->getSymbolByName(name, false);
+                if (sym && !sym->isStub) {
+                    break;
+                }
             }
         }
     }

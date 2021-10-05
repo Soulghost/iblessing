@@ -439,7 +439,8 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     // symtab vmaddr will be loaded base on linkedit_base
     shared_ptr<SymbolTable> symtab = make_shared<SymbolTable>(strtab);
     this->symtab = symtab;
-    symtab->buildSymbolTable(mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
+    assert(false);
+    symtab->buildSymbolTable("", mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
         symtab->buildDynamicSymbolTable(sectionHeaders, mappedFile + dysymtab_cmd->indirectsymoff, dysymtab_cmd->nindirectsyms, mappedFile);
     }

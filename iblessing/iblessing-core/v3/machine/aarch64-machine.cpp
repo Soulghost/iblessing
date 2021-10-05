@@ -103,6 +103,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             uint64_t w0;
             assert(uc_reg_read(uc, UC_ARM64_REG_W0, &w0) == UC_ERR_OK);
             comments = StringUtils::format("w0 = 0x%llx", w0);
+        } else if (address == 0x100419790) {
+            uint64_t x0;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
+            comments = StringUtils::format("x0 = 0x%llx", x0);
         }
     }
     
@@ -242,15 +246,26 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
         setup vars
      */
     // env
+    // environ
+    vector<string> envList = {"MallocCorruptionAbort=0"};
+    sp = uc_alloca(sp, sizeof(uint64_t) * (envList.size() + 1));
+    uint64_t environ = sp;
+    
     uint64_t null64 = 0;
-    sp = uc_alloca(sp, sizeof(uint64_t));
-    uint64_t envPtr = sp;
-    assert(uc_mem_write(uc, envPtr, &null64, sizeof(uint64_t)) == UC_ERR_OK);
+    uint64_t environ_cursor = environ;
+    for (string &env : envList) {
+        sp = uc_alloca(sp, env.length() + 1);
+        assert(uc_mem_write(uc, sp, env.c_str(), env.length()) == UC_ERR_OK);
+        assert(uc_mem_write(uc, sp + env.length(), &null64, 1) == UC_ERR_OK);
+        assert(uc_mem_write(uc, environ_cursor, &sp, sizeof(uint64_t)) == UC_ERR_OK);
+        environ_cursor += sizeof(uint64_t);
+    }
+    assert(uc_mem_write(uc, environ_cursor, &null64, sizeof(uint64_t)) == UC_ERR_OK);
     
     // _NSGetEnviron
     sp = uc_alloca(sp, sizeof(uint64_t));
     uint64_t _NSGetEnv = sp;
-    assert(uc_mem_write(uc, _NSGetEnv, &null64, sizeof(uint64_t)) == UC_ERR_OK);
+    assert(uc_mem_write(uc, _NSGetEnv, &environ, sizeof(uint64_t)) == UC_ERR_OK);
     
     // ProgramName
     const char *programName = module->name.c_str();
@@ -274,6 +289,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     uint64_t varsSize = 5 * sizeof(uint64_t);
     sp = uc_alloca(sp, varsSize);
     uint64_t varsAddr = sp;
+    printf("[Stalker][+] varsAddr at 0x%llx\n", varsAddr);
     assert(uc_mem_write(uc, varsAddr, &module->machHeader, sizeof(uint64_t)) == UC_ERR_OK);
     assert(uc_mem_write(uc, varsAddr + sizeof(uint64_t), &_NSGetArgc, sizeof(uint64_t)) == UC_ERR_OK);
     assert(uc_mem_write(uc, varsAddr + 2 * sizeof(uint64_t), &_NSGetArgv, sizeof(uint64_t)) == UC_ERR_OK);
