@@ -825,5 +825,16 @@ typedef struct{
 #define IB_MAP_PRIVATE   0x0002 /* [MF|SHM] changes are private */
 #define IB_MAP_FIXED     0x0010 /* [MF|SHM] interpret addr exactly */
 #define IB_MAP_ANONYMOUS 0x1000 /* allocated from memory, swap space */
+#define IB_AlignSize(size, align) (((size - 1) / align + 1) * align)
+/**
+ Common Page
+ */
+#define IB_KERNEL_BASE64            0xffffff80001f0000L
+#define IB_COMM_PAGE_START_ADDRESS  (IB_KERNEL_BASE64 + 0xc000) /* In TTBR0 */
+#define IB_COMM_PAGE_NCPUS          (IB_COMM_PAGE_START_ADDRESS+0x022)    /* uint8_t number of configured CPUs (hw.logicalcpu at boot time) */
+#define IB_COMM_PAGE_ACTIVE_CPUS    (IB_COMM_PAGE_START_ADDRESS+0x034)    /* uint8_t number of active CPUs (hw.activecpu) */
+#define IB_COMM_PAGE_PHYSICAL_CPUS  (IB_COMM_PAGE_START_ADDRESS+0x035)    /* uint8_t number of physical CPUs (hw.physicalcpu_max) */
+#define IB_COMM_PAGE_LOGICAL_CPUS   (IB_COMM_PAGE_START_ADDRESS+0x036)    /* uint8_t number of logical CPUs (hw.logicalcpu_max) */
+#define IB_COMM_PAGE_MEMORY_SIZE    (IB_COMM_PAGE_START_ADDRESS+0x038)    /* uint64_t max memory size */
 
 #endif /* mach_universal_hpp */
