@@ -8,6 +8,7 @@
 
 #include "aarch64-machine.hpp"
 #include "ib_pthread.hpp"
+#include "uc_debugger_utils.hpp"
 #include <iblessing-core/v2/util/StringUtils.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
 
@@ -111,6 +112,27 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             uint64_t x8;
             assert(uc_reg_read(uc, UC_ARM64_REG_X8, &x8) == UC_ERR_OK);
             comments = StringUtils::format("x8 = 0x%llx", x8);
+        } else if (address == 0x100F31250) {
+            uint64_t x8;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X8, &x8) == UC_ERR_OK);
+            comments = StringUtils::format("x8 = 0x%llx", x8);
+        } else if (address == 0x100eb539c) {
+            uint64_t x8;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X8, &x8) == UC_ERR_OK);
+            comments = StringUtils::format("x8 = 0x%llx", x8);
+        } else if (address == 0x100eb531c) {
+            uint64_t x0;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
+            comments = StringUtils::format("x0 = 0x%llx", x0);
+        } else if (address == 0x100EB5338) {
+            uint64_t x19;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X19, &x19) == UC_ERR_OK);
+            comments = StringUtils::format("x19 = 0x%llx", x19);
+        } else if (address == 0x100EB53A4) {
+            uint64_t x8, x19;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X8, &x8) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_X19, &x19) == UC_ERR_OK);
+            comments = StringUtils::format("x8 = 0x%llx, x19 = 0x%llx", x8, x19);
         }
     }
     
@@ -161,7 +183,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 ////        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
 //        assert(false);
 //    }
-//    assert(false);
+    assert(false);
     return false;
 }
 
@@ -169,13 +191,6 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
     if (module->hasInit) {
         return;
     }
-    static set<string> blist{};
-    if (blist.find(module->name) != blist.end()) {
-        module->hasInit = true;
-        return;
-    }
-    // FIXME: recursive initModule
-    module->hasInit = true;
     printf("[+] init module %s\n", module->name.c_str());
     // FIXME: vars, envs
     printf("  [+] process routines\n");
@@ -211,8 +226,12 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
         
         uc_err err = uc_emu_start(uc, addr, 0, 0, 0);
         printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
+        if (err != UC_ERR_OK) {
+            print_uc_mem_regions(uc);
+            assert(false);
+        }
     }
-//    module->hasInit = true;
+    module->hasInit = true;
 }
 
 static uint64_t uc_alloca(uint64_t sp, uint64_t size) {
@@ -344,8 +363,14 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     ib_module_init_env initEnv;
     initEnv.varsAddr = varsAddr;
     
-    uint64_t dbg = 0;
-    assert(uc_mem_read(uc, 0x100E5E0B0, &dbg, 8) == UC_ERR_OK);
+    // setup kern common pages
+    assert(uc_mem_map(uc, IB_KERNEL_BASE64, 0x10000, UC_PROT_READ) == UC_ERR_OK);
+    uint64_t cpuCount = 1;
+    assert(uc_mem_write(uc, IB_COMM_PAGE_NCPUS, &cpuCount, 1) == UC_ERR_OK);
+    assert(uc_mem_write(uc, IB_COMM_PAGE_ACTIVE_CPUS, &cpuCount, 1) == UC_ERR_OK);
+    assert(uc_mem_write(uc, IB_COMM_PAGE_PHYSICAL_CPUS, &cpuCount, 1) == UC_ERR_OK);
+    assert(uc_mem_write(uc, IB_COMM_PAGE_LOGICAL_CPUS, &cpuCount, 1) == UC_ERR_OK);
+    assert(uc_mem_write(uc, IB_COMM_PAGE_MEMORY_SIZE, &null64, 8) == UC_ERR_OK);
 //    static set<string> moduleInitBlackList{"CoreFoundation", "Foundation"};
 //    if (moduleInitBlackList.find(module->name) != moduleInitBlackList.end()) {
 //        printf("[Stalker][!][Warn] skip mod init for %s\n", module->name.c_str());

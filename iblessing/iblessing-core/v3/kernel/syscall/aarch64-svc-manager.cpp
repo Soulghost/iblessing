@@ -135,6 +135,20 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
+            case 74: { // mprotect
+                uint64_t addr, length;
+                int prot;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &length);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &prot);
+                uint64_t alignedAddr = addr / 0x1000 * 0x1000;
+                uint64_t offset = addr - alignedAddr;
+                uint64_t alignedLength = IB_AlignSize(length + offset, 0x4000);
+                uc_err err = uc_mem_protect(uc, alignedAddr, alignedLength, prot);
+                assert(err == UC_ERR_OK);
+                syscall_return_success;
+                return true;
+            }
             // getrlimit
             case 194: {
                 int resource = 0;
@@ -206,6 +220,16 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(false);
                         break;
                 }
+                return true;
+            }
+            case 286: { // pthread_getugid_np
+                uint64_t uidAddr, gidAddr;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &uidAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &gidAddr);
+                uint64_t zero = 0;
+                ensure_uc_mem_write(uidAddr, &zero, sizeof(uint64_t));
+                ensure_uc_mem_write(gidAddr, &zero, sizeof(uint64_t));
+                syscall_return_success;
                 return true;
             }
             case 327: { // issetugid
@@ -428,9 +452,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     assert(false);
                 }
                 print_uc_mem_regions(uc);
-                mmapHeapPtr += aligned_size;
-                
                 ensure_uc_mem_write(addrPtr, &mmapHeapPtr, sizeof(uint64_t));
+                mmapHeapPtr += aligned_size;
                 syscall_return_success;
                 return true;
             }
