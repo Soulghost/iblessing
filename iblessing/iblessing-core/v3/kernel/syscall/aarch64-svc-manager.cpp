@@ -34,6 +34,24 @@ int ret = value;\
 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK); \
 } while(0);
 
+static uint64_t uc_mmap(uc_engine *uc, uint64_t start, uint64_t size, int prot, int flags, int fd, int offset) {
+    uint64_t aligned_size = ((size - 1) / 16384 + 1) * 16384;
+    assert(!(flags & IB_MAP_FIXED));
+    assert(!(flags & IB_MAP_FILE));
+    // FIXME: tricky kern_mmap
+    static uint64_t mmapHeapPtr = 0x400000000;
+    print_uc_mem_regions(uc);
+    uc_err err = uc_mem_map(uc, mmapHeapPtr, aligned_size, prot);
+    if (err) {
+        printf("[-] cannot mmap at 0x%llx, error %s\n", mmapHeapPtr, uc_strerror(err));
+        assert(false);
+    }
+    print_uc_mem_regions(uc);
+    uint64_t addr = mmapHeapPtr;
+    mmapHeapPtr += aligned_size;
+    return addr;
+}
+
 Aarch64SVCManager::Aarch64SVCManager(uc_engine *uc, uint64_t addr, uint64_t size, int swiInitValue) {
     
     this->uc = uc;
@@ -405,6 +423,23 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
         // mach
         int64_t call_number = -trap_no;
         switch (call_number) {
+            case 10: { // _kernelrpc_mach_vm_allocate_trap
+                int target, flags;
+                uint64_t size, addrPtr;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &target);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &addrPtr);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &size);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &flags);
+//                int tag = flags >> 24;
+                assert(flags & IB_VM_FLAGS_ANYWHERE);
+                uint64_t addr = uc_mmap(uc, 0, IB_AlignSize(size, 0x4000), UC_PROT_READ | UC_PROT_WRITE, 0, -1, 0);
+                void *zeros = calloc(1, size);
+                uc_mem_write(uc, addr, zeros, size);
+                free(zeros);
+                ensure_uc_mem_write(addrPtr, &addr, sizeof(uint64_t));
+                syscall_return_success;
+                return true;
+            }
             case 12: { // _kernelrpc_mach_vm_deallocate_trap
                 // FIXME: mumap
                 ib_mach_port_t target;
@@ -438,22 +473,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_W5, &cur_port);
                 uint64_t addr;
                 ensure_uc_mem_read(addrPtr, &addr, sizeof(uint64_t));
-                
-                uint64_t aligned_size = ((size - 1) / 16384 + 1) * 16384;
-                assert(!(flags & IB_MAP_FIXED));
-                assert(!(flags & IB_MAP_FILE));
-                assert(!mask);
+                // FIXME: mem mask
+//                assert(!mask);
                 // FIXME: tricky kern_mmap
-                static uint64_t mmapHeapPtr = 0x400000000;
-                print_uc_mem_regions(uc);
-                uc_err err = uc_mem_map(uc, mmapHeapPtr, aligned_size, cur_port);
-                if (err) {
-                    printf("[-] cannot mmap at 0x%llx, error %s\n", mmapHeapPtr, uc_strerror(err));
-                    assert(false);
-                }
-                print_uc_mem_regions(uc);
-                ensure_uc_mem_write(addrPtr, &mmapHeapPtr, sizeof(uint64_t));
-                mmapHeapPtr += aligned_size;
+                uint64_t allocatedAddr = uc_mmap(uc, 0, size, cur_port, flags, -1, 0);
+                ensure_uc_mem_write(addrPtr, &allocatedAddr, sizeof(uint64_t));
                 syscall_return_success;
                 return true;
             }

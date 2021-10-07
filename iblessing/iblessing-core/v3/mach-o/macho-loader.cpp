@@ -123,6 +123,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 static uint64_t _dyld_fast_stub_entryAddr = 0;
                 static uint64_t _dyld_register_thread_helpersAddr = 0;
                 static uint64_t _dyld_get_image_slide = 0;
+                static uint64_t _dyld_register_func_for_remove_image = 0;
                 if (_dyld_fast_stub_entryAddr == 0) {
                     Dyld::bindHooks["_abort"] = [&](string symbolName, uint64_t symbolAddr) {
                         static uint64_t _abortAddr = 0;
@@ -176,6 +177,16 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
                     });
                 }
+                if (_dyld_register_func_for_remove_image == 0) {
+                    _dyld_register_func_for_remove_image = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        // FIXME: dyld image slide
+                        uint64_t callbackAddr;
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &callbackAddr) == UC_ERR_OK);
+                        printf("[Stalker][+][dyld] dyld_register_func_for_remove_image with callback 0x%llx\n", callbackAddr);
+                        uint64_t ret = 0;
+                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+                    });
+                }
                 static uint64_t dyldLazyBinderAddr = 0, dyldFunctionLookupAddr = 0;
                 if (dyldLazyBinderAddr == 0) {
                     dyldLazyBinderAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
@@ -194,9 +205,14 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         } else if (strcmp(dyldFuncName, "__dyld_register_thread_helpers") == 0) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_thread_helpersAddr, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_thread_helpersAddr, 8) == UC_ERR_OK);
-                        } else if (strcmp(dyldFuncName, "__dyld_get_image_slide") == 0){
+                        } else if (strcmp(dyldFuncName, "__dyld_get_image_slide") == 0) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_get_image_slide, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_get_image_slide, 8) == UC_ERR_OK);
+                        } else if (strcmp(dyldFuncName, "__dyld_register_func_for_remove_image") == 0) {
+                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_func_for_remove_image, dyldFuncBindToAddr);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_func_for_remove_image, 8) == UC_ERR_OK);
+                        } else {
+                            assert(false);
                         }
                         free(dyldFuncName);
                     });

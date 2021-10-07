@@ -826,6 +826,11 @@ typedef struct{
 #define IB_MAP_FIXED     0x0010 /* [MF|SHM] interpret addr exactly */
 #define IB_MAP_ANONYMOUS 0x1000 /* allocated from memory, swap space */
 #define IB_AlignSize(size, align) (((size - 1) / align + 1) * align)
+
+#define IB_VM_FLAGS_FIXED      0x0000
+#define IB_VM_FLAGS_ANYWHERE   0x0001
+#define IB_VM_FLAGS_OVERWRITE  0x4000 /* delete any existing mappings first */
+
 /**
  Common Page
  */
