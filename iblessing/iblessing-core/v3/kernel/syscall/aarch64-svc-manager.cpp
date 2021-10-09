@@ -125,6 +125,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
     if (trap_no > 0) {
         // posix
         switch (trap_no) {
+            case 20: {
+                syscall_return_value(2333);
+                return true;
+            }
             case 24:   // getuid
             case 25:   // geteuid
             case 43:   // getegid
@@ -333,6 +337,19 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             case 372: { // thread_selfid
                 int ret = 1;
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
+            case 381: { // sandbox_ms
+                uint64_t policyAddr, args;
+                int call;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &policyAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &call);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &args);
+                char *policy = MachoMemoryUtils::uc_read_string(uc, policyAddr, 100);
+                assert(policy != NULL);
+                printf("[Stalker][+][Sandbox] apply sandbox check by sandbox_ms with policy %s, call %d, args 0x%llx\n", policy, call, args);
+                free(policy);
+                syscall_return_success;
                 return true;
             }
             case 396: { // read_NOCANCEL
