@@ -120,6 +120,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
         for (struct ib_section_64 *sect : module->sectionHeaders) {
             if (strncmp(sect->segname, "__DATA", 16) == 0 &&
                 strncmp(sect->sectname, "__dyld", 16) == 0) {
+                static uint64_t _dyld_nopAddr = 0;
                 static uint64_t _dyld_fast_stub_entryAddr = 0;
                 static uint64_t _dyld_register_thread_helpersAddr = 0;
                 static uint64_t _dyld_get_image_slide = 0;
@@ -156,6 +157,13 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         
                         // write return value to x0
                         assert(uc_reg_write(uc, UC_ARM64_REG_X0, &targetAddr) == UC_ERR_OK);
+                    });
+                }
+                if (_dyld_nopAddr == 0) {
+                    _dyld_nopAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        printf("[Stalker][-][Warn][dyld] dyld_nop\n");
+                        uint64_t ret = 0;
+                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
                     });
                 }
                 if (_dyld_register_thread_helpersAddr == 0) {
@@ -211,6 +219,10 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         } else if (strcmp(dyldFuncName, "__dyld_register_func_for_remove_image") == 0) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_func_for_remove_image, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_func_for_remove_image, 8) == UC_ERR_OK);
+                        } else if (strcmp(dyldFuncName, "__dyld_dyld_register_image_state_change_handler") == 0) {
+                            // FIXME: objc init
+                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_nopAddr, dyldFuncBindToAddr);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_nopAddr, 8) == UC_ERR_OK);
                         } else {
                             assert(false);
                         }
