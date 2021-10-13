@@ -386,6 +386,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 char *content = MachoMemoryUtils::uc_read_string(uc, bufferAddr, count);
                 printf("[Stalker][STDOUT] %s", content);
                 free(content);
+                syscall_return_success;
                 return true;
             }
             case 398: { // open_NOCANCEL
