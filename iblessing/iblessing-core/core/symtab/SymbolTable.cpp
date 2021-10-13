@@ -49,6 +49,15 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64
         symbol->name = symName;
         symbol->info = li;
         
+        // FIXME: libsystem_kernel dummy symbols
+        if (moduleName == "libsystem_kernel.dylib") {
+            if (symName == "_malloc" ||
+                symName == "_free") {
+                li += 1;
+                continue;
+            }
+        }
+        
         uint8_t type = li->n_type & IB_N_TYPE;
         if ((type == IB_N_SECT || type == IB_N_ABS) && ((type & IB_N_STAB) == 0)) {
             // non-lazy symbol

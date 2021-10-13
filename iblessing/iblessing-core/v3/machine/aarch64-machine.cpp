@@ -22,6 +22,11 @@ static map<uc_engine *, Aarch64Machine *> uc2instance;
 static csh cs_handle;
 static uc_hook insn_hook, intr_hook, memexp_hook;
 
+// FIXME: dirty trick
+static bool ignoreZeroRET = false;
+static bool zeroRETMagicAddr = 0x1fee1c01d;
+static bool hitZeroRET = false;
+
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     void *codes = malloc(sizeof(uint32_t));
     uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
@@ -133,6 +138,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             assert(uc_reg_read(uc, UC_ARM64_REG_X8, &x8) == UC_ERR_OK);
             assert(uc_reg_read(uc, UC_ARM64_REG_X19, &x19) == UC_ERR_OK);
             comments = StringUtils::format("x8 = 0x%llx, x19 = 0x%llx", x8, x19);
+        } else if (address == 0x100007E74) {
+            uint64_t x0;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
+            comments = StringUtils::format("x0 = 0x%llx", x0);
         }
     }
     
@@ -183,14 +192,29 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 ////        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
 //        assert(false);
 //    }
+    hitZeroRET = false;
+    if (type == UC_MEM_FETCH_PROT) {
+        if (ignoreZeroRET && address == zeroRETMagicAddr) {
+            printf("Warn: [*] ignore zero return ~~");
+            hitZeroRET = true;
+            return false;
+        }
+    }
     assert(false);
     return false;
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
+    static set<string> blackListModule{"libobjc.A.dylib", "CoreFoundation", "Security", "libsystem_configuration.dylib", "libremovefile.dylib", "libcopyfile.dylib"};
+    if (blackListModule.find(module->name) != blackListModule.end()) {
+        module->hasInit = true;
+        return;
+    }
+    
     if (module->hasInit) {
         return;
     }
+    module->hasInit = true;
     printf("[+] init module %s\n", module->name.c_str());
     // FIXME: vars, envs
     printf("  [+] process routines\n");
@@ -224,14 +248,19 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
         // vars
         assert(uc_reg_write(uc, UC_ARM64_REG_X4, &env.varsAddr) == UC_ERR_OK);
         
+        ignoreZeroRET = true;
+        assert(uc_reg_write(uc, UC_ARM64_REG_LR, &zeroRETMagicAddr) == UC_ERR_OK);
         uc_err err = uc_emu_start(uc, addr, 0, 0, 0);
+        ignoreZeroRET = false;
         printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
         if (err != UC_ERR_OK) {
-            print_uc_mem_regions(uc);
-            assert(false);
+            if (!hitZeroRET) {
+                assert(false);
+            } else {
+                hitZeroRET = false;
+            }
         }
     }
-    module->hasInit = true;
 }
 
 static uint64_t uc_alloca(uint64_t sp, uint64_t size) {
@@ -379,6 +408,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
 //    }
     for (shared_ptr<MachOModule> module : loader->modules) {
         initModule(module, initEnv);
+        break;
     }
     
     printf("[*] execute in engine, pc = 0x%llx\n", symbolAddr);
