@@ -376,6 +376,18 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_write(UC_ARM64_REG_X0, &readLen);
                 return true;
             }
+            case 397: { // write_NOCANCEL
+                int fd, count;
+                uint64_t bufferAddr;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &bufferAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &count);
+                assert(fd == 1);
+                char *content = MachoMemoryUtils::uc_read_string(uc, bufferAddr, count);
+                printf("[Stalker][STDOUT] %s", content);
+                free(content);
+                return true;
+            }
             case 398: { // open_NOCANCEL
                 uint64_t pathAddr;
                 int oflags, mode;

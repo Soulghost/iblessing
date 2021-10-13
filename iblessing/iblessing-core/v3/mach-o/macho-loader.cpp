@@ -138,6 +138,18 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         return _abortAddr;
                     };
                     
+                    // FIXME: ignore libxpc init
+                    Dyld::bindHooks["__libxpc_initializer"] = [&](string symbolName, uint64_t symbolAddr) {
+                        static uint64_t symaddr = 0;
+                        if (symaddr == 0) {
+                            symaddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                                int w0 = 0;
+                                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &w0) == UC_ERR_OK);
+                            });
+                        }
+                        return symaddr;
+                    };
+                    
                     _dyld_fast_stub_entryAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
                         uint64_t imageCache, offset;
                         assert(uc_reg_read(uc, UC_ARM64_REG_X0, &imageCache) == UC_ERR_OK);
