@@ -256,3 +256,47 @@ void DyldSimulator::doRebase(uint64_t moduleBase, uint64_t moduleSize, uint8_t *
         }
     }
 }
+
+void DyldSimulator::processExportNode(const uint8_t* const start, const uint8_t* p, const uint8_t* const end,
+                                    char* cummulativeString, int curStrOffset,
+                                    std::vector<EntryWithOffset>& output)
+{
+    if ( p >= end ) {
+        assert(false);
+    }
+    
+    const uint8_t terminalSize = read_uleb128(p, end);
+    const uint8_t* children = p + terminalSize;
+    if ( terminalSize != 0 ) {
+        EntryWithOffset e;
+        e.nodeOffset = p-start;
+        e.entry.name = strdup(cummulativeString);
+        e.entry.flags = read_uleb128(p, end);
+        if ( e.entry.flags & IB_EXPORT_SYMBOL_FLAGS_REEXPORT ) {
+            e.entry.address = 0;
+            e.entry.other = read_uleb128(p, end); // dylib ordinal
+            e.entry.importName = (char*)p;
+        }
+        else {
+            e.entry.address = read_uleb128(p, end);
+            if ( e.entry.flags & IB_EXPORT_SYMBOL_FLAGS_STUB_AND_RESOLVER )
+                e.entry.other = read_uleb128(p, end);
+            else
+                e.entry.other = 0;
+            e.entry.importName = NULL;
+        }
+        output.push_back(e);
+    }
+    const uint8_t childrenCount = *children++;
+    const uint8_t* s = children;
+    for (uint8_t i=0; i < childrenCount; ++i) {
+        int edgeStrLen = 0;
+        while (*s != '\0') {
+            cummulativeString[curStrOffset+edgeStrLen] = *s++;
+            ++edgeStrLen;
+        }
+        cummulativeString[curStrOffset+edgeStrLen] = *s++;
+        uint32_t childNodeOffet = (uint32_t)read_uleb128(s, end);
+        processExportNode(start, start+childNodeOffet, end, cummulativeString, curStrOffset+edgeStrLen, output);
+    }
+}

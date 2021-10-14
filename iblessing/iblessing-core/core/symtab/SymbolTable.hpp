@@ -10,6 +10,7 @@
 #define SymbolTable_hpp
 
 #include <map>
+#include <set>
 #include <iblessing-core/infra/Object.hpp>
 #include <iblessing-core/infra/Vector.hpp>
 #include <iblessing-core/infra/Map.hpp>
@@ -17,6 +18,7 @@
 #include <iblessing-core/core/symtab/StringTable.hpp>
 #include <iblessing-core/core/polyfill/mach-universal.hpp>
 #include <iblessing-core/core/polyfill/mach-machine.h>
+#include <iblessing-core/core/dyld/DyldSimulator.hpp>
 
 NS_IB_BEGIN
 
@@ -42,6 +44,7 @@ public:
     virtual ~SymbolTable();
     static SymbolTable* getInstance();
     
+    void buildExportNodes(uint8_t *data, uint32_t export_off, uint32_t export_size);
     void buildSymbolTable(std::string moduleName, uint8_t *data, uint64_t nSymbols);
     void buildDynamicSymbolTable(std::vector<struct ib_section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols, uint8_t *mappedData);
     void insertSymbol(Symbol *symbol);
@@ -55,6 +58,7 @@ public:
     std::vector<SymbolRelocation> getAllRelocs();
 private:
     Map<uint64_t, Symbol *> symbolMap;
+    std::map<std::string, Entry> exportSymbols;
     std::map<std::string, IndirectSymbol> indirectSymbolMap;
     std::map<uint64_t, Symbol *> symbolMapCpp;
     std::map<std::string, Vector<Symbol *>> name2symbol;

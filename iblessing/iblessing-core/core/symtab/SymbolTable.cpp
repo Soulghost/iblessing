@@ -9,6 +9,7 @@
 #include "SymbolTable.hpp"
 #include "StringTable.hpp"
 #include <iblessing-core/v2/util/termcolor.h>
+#include "DyldSimulator.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -33,6 +34,23 @@ void SymbolTable::sync() {
     this->symbolMapCpp = mm;
 }
 
+void SymbolTable::buildExportNodes(uint8_t *data, uint32_t export_off, uint32_t export_size) {
+    if (export_size == 0) {
+        return;
+    }
+    const uint8_t *start = &data[export_off];
+    const uint8_t *end = start + export_size;
+    char cummulativeString[32000];
+    vector<EntryWithOffset> entries;
+    DyldSimulator::processExportNode(start, start, end, cummulativeString, 0, entries);
+    exportSymbols.clear();
+    for (EntryWithOffset &e : entries) {
+        e.entry.address += moduleBase;
+        e.entry.other += moduleBase;
+        exportSymbols[e.entry.name] = e.entry;
+    }
+}
+
 void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64_t nSymbols) {
     symbols.clear();
     name2symbol.clear();
@@ -49,23 +67,31 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64
         symbol->name = symName;
         symbol->info = li;
         
-        // FIXME: libsystem_kernel dummy symbols
-        if (moduleName == "libsystem_kernel.dylib") {
-            if (symName == "_malloc" ||
-                symName == "_free") {
-                li += 1;
-                continue;
-            }
-        }
-        
         uint8_t type = li->n_type & IB_N_TYPE;
         if ((type == IB_N_SECT || type == IB_N_ABS) && ((type & IB_N_STAB) == 0)) {
             // non-lazy symbol
+            // NOTICE: ignore export symbol
             if (li->n_value != 0) {
                 li->n_value += moduleBase;
-                symbolMap.insert(li->n_value, symbol);
-                name2symbol[symName].pushBack(symbol);
-                symbol->release();
+                if (symName == "_malloc") {
+                    
+                }
+                if (exportSymbols.find(symName) != exportSymbols.end()) {
+                    if (exportSymbols[symName].other == li->n_value) {
+//                        symbolMap.insert(li->n_value, symbol);
+//                        name2symbol[symName].pushBack(symbol);
+//                        symbol->release();
+                        assert(false);
+                    } else {
+                        symbolMap.insert(li->n_value, symbol);
+                        name2symbol[symName].pushBack(symbol);
+                        symbol->release();
+                    }
+                    exportSymbols.erase(symName);
+                    printf("[*] ignore export symbol %s in %s\n", symName.c_str(), moduleName.c_str());
+                } else {
+                    
+                }
             }
         } else if (type == IB_N_INDR) {
             // FIXME: indirect symbols
@@ -76,10 +102,13 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64
             symbol->release();
         } else {
             if (!symName.empty() && li->n_value > 0) {
-                li->n_value += moduleBase;
-                symbolMap.insert(li->n_value, symbol);
-                name2symbol[symName].pushBack(symbol);
-                symbol->release();
+//                if (symName == "_malloc") {
+//                    
+//                }
+//                li->n_value += moduleBase;
+//                symbolMap.insert(li->n_value, symbol);
+//                name2symbol[symName].pushBack(symbol);
+//                symbol->release();
             }
             
 //            uint64_t idx = 1 + (symbolTable.size() == 0 ? 0 : li - symbolTable.at(0).second);
