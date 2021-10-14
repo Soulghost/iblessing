@@ -416,11 +416,6 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
                             assert(false);
                         }
                         printf("[+]     mapping %s.%s: 0x%llx - 0x%llx\n", sect->segname, sectname, addr, addr + size);
-                        if (addr == 0x100bfbb30) {
-                            uint32_t bytes;
-                            assert(uc_mem_read(uc, addr, &bytes, 4) == UC_ERR_OK);
-                            printf("");
-                        }
                         sectionHeaders.push_back(sect);
                         
                         // check mod_init_func
@@ -548,8 +543,12 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     sort(sectionHeaders.begin(), sectionHeaders.end(), [&](struct ib_section_64 *a, struct ib_section_64 *b) {
         return a->offset < b->offset;
     });
+    
     shared_ptr<SymbolTable> symtab = make_shared<SymbolTable>(strtab);
     symtab->moduleBase = imageBase;
+    if (dyld_info) {
+        symtab->buildExportNodes(mappedFile, dyld_info->export_off, dyld_info->export_size);
+    }
     module->symtab = symtab;
     symtab->buildSymbolTable(moduleName, mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
