@@ -24,8 +24,12 @@ static uc_hook insn_hook, intr_hook, memexp_hook;
 
 // FIXME: dirty trick
 static bool ignoreZeroRET = false;
-static bool zeroRETMagicAddr = 0x1fee1c01d;
+static uint64_t zeroRETMagicAddr = 0x1fee1c01daaa;
 static bool hitZeroRET = false;
+
+static bool isCallModule = false;
+static uint64_t callReturnMagicAddr = 0x1fee1c01dbbb;
+static bool hitModuleReturn = false;
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     void *codes = malloc(sizeof(uint32_t));
@@ -193,10 +197,14 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 //        assert(false);
 //    }
     hitZeroRET = false;
-    if (type == UC_MEM_FETCH_PROT) {
+    if (type == UC_MEM_FETCH_UNMAPPED) {
         if (ignoreZeroRET && address == zeroRETMagicAddr) {
             printf("Warn: [*] ignore zero return ~~");
             hitZeroRET = true;
+            return false;
+        } else if (isCallModule && address == callReturnMagicAddr) {
+            printf("Warn: [*] module return ~~");
+            hitModuleReturn = true;
             return false;
         }
     }
@@ -248,9 +256,10 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
         // vars
         assert(uc_reg_write(uc, UC_ARM64_REG_X4, &env.varsAddr) == UC_ERR_OK);
         
+        hitZeroRET = false;
         ignoreZeroRET = true;
         assert(uc_reg_write(uc, UC_ARM64_REG_LR, &zeroRETMagicAddr) == UC_ERR_OK);
-        uc_err err = uc_emu_start(uc, addr, 0, 0, 0);
+        uc_err err = uc_emu_start(uc, addr, zeroRETMagicAddr, 0, 0);
         ignoreZeroRET = false;
         printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
         if (err != UC_ERR_OK) {
@@ -411,8 +420,16 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
         break;
     }
     
+    // fake a stop addr
+    assert(uc_reg_write(uc, UC_ARM64_REG_LR, &callReturnMagicAddr) == UC_ERR_OK);
     printf("[*] execute in engine, pc = 0x%llx\n", symbolAddr);
-    uc_err err = uc_emu_start(uc, symbolAddr, 0, 0, 0);
+    hitModuleReturn = false;
+    isCallModule = true;
+    uc_err err = uc_emu_start(uc, symbolAddr, callReturnMagicAddr, 0, 0);
+    isCallModule = false;
+    if (hitModuleReturn && err == UC_ERR_FETCH_UNMAPPED) {
+        err = UC_ERR_OK;
+    }
     printf("[*] execute in engine result %s\n", uc_strerror(err));
     return 0;
 }
