@@ -19,6 +19,7 @@ public:
     MachOMemoryManager(uc_engine *uc);
     
     uint64_t alloc(size_t size, std::string tag = "");
+    uint64_t allocPath(std::string path);
     void free(uint64_t addr);
     
 private:

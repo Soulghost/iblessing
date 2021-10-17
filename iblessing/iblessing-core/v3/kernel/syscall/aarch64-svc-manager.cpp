@@ -24,16 +24,6 @@ using namespace iblessing;
 
 #define IB_FD_URANDOM 3
 
-#define ensure_uc_mem_read(addr, bytes, size) assert(uc_mem_read(uc, addr, bytes, size) == UC_ERR_OK)
-#define ensure_uc_mem_write(addr, bytes, size) assert(uc_mem_write(uc, addr, bytes, size) == UC_ERR_OK)
-#define ensure_uc_reg_read(reg, value) assert(uc_reg_read(uc, reg, value) == UC_ERR_OK)
-#define ensure_uc_reg_write(reg, value) assert(uc_reg_write(uc, reg, value) == UC_ERR_OK)
-#define syscall_return_success syscall_return_value(0)
-#define syscall_return_value(value) do {\
-int ret = value;\
-assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK); \
-} while(0);
-
 uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t size, int prot, int flags, int fd, int offset) {
     uint64_t aligned_size = ((size - 1) / 16384 + 1) * 16384;
     assert(!(flags & IB_MAP_FIXED));
