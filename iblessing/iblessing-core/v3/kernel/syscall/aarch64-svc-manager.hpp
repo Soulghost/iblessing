@@ -13,6 +13,14 @@
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <map>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t size, int prot, int flags, int fd, int offset);
+#ifdef __cplusplus
+}
+#endif
+
 NS_IB_BEGIN
 
 typedef std::function<void (uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data)> Aarch64SVCCallback;
@@ -28,6 +36,9 @@ public:
     
     uint64_t createSVC(int swi, Aarch64SVCCallback callback);
     uint64_t createSVC(Aarch64SVCCallback callback);
+    int allocateSWI();
+    uint64_t getAddr();
+    uint64_t createSVCWithCustomCode(int swi, uint32_t *code, size_t codelen, Aarch64SVCCallback callback);
     bool handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data);
     
 protected:

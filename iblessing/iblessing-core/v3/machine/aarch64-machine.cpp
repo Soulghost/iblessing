@@ -199,11 +199,11 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
     hitZeroRET = false;
     if (type == UC_MEM_FETCH_UNMAPPED) {
         if (ignoreZeroRET && address == zeroRETMagicAddr) {
-            printf("Warn: [*] ignore zero return ~~");
+            printf("Warn: [*] ignore zero return ~~\n");
             hitZeroRET = true;
             return false;
         } else if (isCallModule && address == callReturnMagicAddr) {
-            printf("Warn: [*] module return ~~");
+            printf("Warn: [*] module return ~~\n");
             hitModuleReturn = true;
             return false;
         }
@@ -213,7 +213,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
-    static set<string> blackListModule{"libobjc.A.dylib", "CoreFoundation", "Security", "libsystem_configuration.dylib", "libremovefile.dylib", "libcopyfile.dylib"};
+    static set<string> blackListModule{/**"Security", "libsystem_configuration.dylib", "libremovefile.dylib", "libcopyfile.dylib"*/};
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
         return;
@@ -417,7 +417,6 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
 //    }
     for (shared_ptr<MachOModule> module : loader->modules) {
         initModule(module, initEnv);
-        break;
     }
     
     // fake a stop addr

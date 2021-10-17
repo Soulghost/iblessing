@@ -34,7 +34,7 @@ int ret = value;\
 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK); \
 } while(0);
 
-static uint64_t uc_mmap(uc_engine *uc, uint64_t start, uint64_t size, int prot, int flags, int fd, int offset) {
+uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t size, int prot, int flags, int fd, int offset) {
     uint64_t aligned_size = ((size - 1) / 16384 + 1) * 16384;
     assert(!(flags & IB_MAP_FIXED));
     assert(!(flags & IB_MAP_FILE));
@@ -91,6 +91,33 @@ uint64_t Aarch64SVCManager::createSVC(int swi, Aarch64SVCCallback callback) {
     assert(uc_mem_write(uc, curAddr, &svcCommand, 4) == UC_ERR_OK);
     assert(uc_mem_write(uc, curAddr + 4, &retCommand, 4) == UC_ERR_OK);
     curAddr += 8;
+    
+    Aarch64SVC svc;
+    svc.swi = swi;
+    svc.callback = callback;
+    svcMap[swi] = svc;
+    return startAddr;
+}
+
+int Aarch64SVCManager::allocateSWI() {
+    return swiGenerator++;
+}
+
+uint64_t Aarch64SVCManager::getAddr() {
+    return curAddr;
+}
+
+uint64_t Aarch64SVCManager::createSVCWithCustomCode(int swi, uint32_t *code, size_t codelen, Aarch64SVCCallback callback) {
+    if (addr + size - curAddr < codelen) {
+        return 0;
+    }
+    if (svcMap.find(swi) != svcMap.end()) {
+        return 0;
+    }
+    
+    uint64_t startAddr = curAddr;
+    assert(uc_mem_write(uc, curAddr, code, codelen) == UC_ERR_OK);
+    curAddr += codelen;
     
     Aarch64SVC svc;
     svc.swi = swi;
@@ -462,7 +489,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X3, &flags);
 //                int tag = flags >> 24;
                 assert(flags & IB_VM_FLAGS_ANYWHERE);
-                uint64_t addr = uc_mmap(uc, 0, IB_AlignSize(size, 0x4000), UC_PROT_READ | UC_PROT_WRITE, 0, -1, 0);
+                uint64_t addr = svc_uc_mmap(uc, 0, IB_AlignSize(size, 0x4000), UC_PROT_READ | UC_PROT_WRITE, 0, -1, 0);
                 void *zeros = calloc(1, size);
                 uc_mem_write(uc, addr, zeros, size);
                 free(zeros);
@@ -506,7 +533,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 // FIXME: mem mask
 //                assert(!mask);
                 // FIXME: tricky kern_mmap
-                uint64_t allocatedAddr = uc_mmap(uc, 0, size, cur_port, flags, -1, 0);
+                uint64_t allocatedAddr = svc_uc_mmap(uc, 0, size, cur_port, flags, -1, 0);
                 ensure_uc_mem_write(addrPtr, &allocatedAddr, sizeof(uint64_t));
                 syscall_return_success;
                 return true;
