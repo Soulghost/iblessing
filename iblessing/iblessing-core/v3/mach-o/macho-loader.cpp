@@ -22,7 +22,6 @@
 #include <experimental/filesystem>
 #endif
 
-// tmp
 #include <iblessing-core/v2/vendor/keystone/keystone.h>
 
 #ifdef IB_PLATFORM_DARWIN
@@ -98,6 +97,10 @@ MachOLoader::MachOLoader()  {
         assert(false);
     }
     
+    // memory
+    shared_ptr<MachOMemoryManager> memoryManager = make_shared<MachOMemoryManager>(uc);
+    this->memoryManager = memoryManager;
+    
     // svc
     shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCManager>(uc, 0x700000000, 8 * 0xff00, 233);
     this->svcManager = svcManager;
@@ -125,6 +128,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 static uint64_t _dyld_register_thread_helpersAddr = 0;
                 static uint64_t _dyld_get_image_slide = 0;
                 static uint64_t _dyld_register_func_for_remove_image = 0;
+                static uint64_t _dyld_register_image_state_change_handler = 0;
                 if (_dyld_fast_stub_entryAddr == 0) {
                     Dyld::bindHooks["_abort"] = [&](string symbolName, uint64_t symbolAddr) {
                         static uint64_t _abortAddr = 0;
@@ -207,6 +211,132 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
                     });
                 }
+                if (_dyld_register_image_state_change_handler == 0) {
+                    // code from unidbg Dyld64.java
+                    int swi = svcManager->allocateSWI();
+                    ks_engine *ks;
+                    uint32_t *code = nullptr;
+                    size_t codelen = 0;
+                    size_t codeCount = 0;
+                    string asmText =               "sub sp, sp, #0x10\n";
+                    asmText +=                     "stp x29, x30, [sp]\n";
+                    asmText += StringUtils::format("svc #0x%x\n", swi);
+                    asmText +=                     "ldr x7, [sp]\n"; // x7 = handler
+                    asmText +=                     "add sp, sp, #0x8\n"; // manipulated stack in dyld_image_state_change_handler
+                    asmText +=                     "cmp x7, #0\n";
+                    asmText +=                     "b.eq #0x40\n"; // goto (ldr x0, [sp], pop return value)
+                    asmText +=                     "adr lr, #-0xf\n"; // jump to ldr x7, [sp]
+                    asmText +=                     "bic lr, lr, #0x1\n"; // clear bit zero
+
+                    asmText +=                     "ldr x0, [sp]\n"; // x0 = state
+                    asmText +=                     "add sp, sp, #0x8\n";
+                    asmText +=                     "ldr x1, [sp]\n"; // x1 = count
+                    asmText +=                     "add sp, sp, #0x8\n";
+                    asmText +=                     "ldr x2, [sp]\n"; // x2 = imageHeader
+                    asmText +=                     "add sp, sp, #0x8\n";
+                    asmText +=                     "br x7\n"; // call (*dyld_image_state_change_handler)(enum dyld_image_states state, uint32_t infoCount, const struct dyld_image_info info[])
+
+                    asmText +=                     "ldr x0, [sp]\n"; // x0 = return value
+                    asmText +=                     "add sp, sp, #0x8\n";
+
+                    asmText +=                     "ldp x29, x30, [sp]\n";
+                    asmText +=                     "add sp, sp, #0x10\n";
+                    asmText +=                     "ret";
+                    assert(ks_open(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN, &ks) == KS_ERR_OK);
+                    assert(ks_asm(ks, asmText.c_str(), 0, (unsigned char **)&code, &codelen, &codeCount) == KS_ERR_OK);
+                    _dyld_register_image_state_change_handler = svcManager->createSVCWithCustomCode(swi, code, codelen, [&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        int state, batch;
+                        uint64_t handleAddr, sp;
+                        assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
+                        assert(uc_reg_read(uc, UC_ARM64_REG_W0, &state) == UC_ERR_OK);
+                        assert(uc_reg_read(uc, UC_ARM64_REG_W1, &batch) == UC_ERR_OK);
+                        assert(uc_reg_read(uc, UC_ARM64_REG_X2, &handleAddr) == UC_ERR_OK);
+                        typedef struct ib_dyldImageInfo64 {
+                            uint64_t imageLoadAddr;
+                            uint64_t imageFilePathAddr;
+                            uint64_t imageFileModDate;
+                        } ib_dyldImageInfo64;
+                        
+                        size_t moduleCount = modules.size();
+                        size_t listSize = moduleCount * sizeof(ib_dyldImageInfo64);
+                        uint64_t listAddr = memoryManager->alloc(listSize);
+                        assert(listAddr != 0);
+                        uint64_t listCur = listAddr;
+                        uint64_t null64 = 0;
+                        for (shared_ptr<MachOModule> module : modules) {
+                            ib_dyldImageInfo64 info;
+                            // head
+                            info.imageLoadAddr = module->machHeader;
+                            
+                            // path
+                            string path = module->path;
+                            uint64_t pathAddr = memoryManager->alloc(path.length() + 1);
+                            assert(pathAddr != 0);
+                            assert(uc_mem_write(uc, pathAddr, path.c_str(), path.length()) == UC_ERR_OK);
+                            assert(uc_mem_write(uc, pathAddr + path.length(), &null64, 1) == UC_ERR_OK);
+                            info.imageFilePathAddr = pathAddr;
+                            
+                            // modDate
+                            info.imageFileModDate = 0;
+                            
+                            assert(uc_mem_write(uc, listCur, &info, sizeof(ib_dyldImageInfo64)) == UC_ERR_OK);
+                            listCur += sizeof(ib_dyldImageInfo64);
+                        }
+                        
+                        uint64_t imageListAddr = 0;
+                        if (batch == 1) {
+                            // registerImageStateBatchChangeHandler
+                            assert(state == ib_dyld_image_state_bound);
+                            if (dyldBoundHandlers.find(handleAddr) == dyldBoundHandlers.end()) {
+                                imageListAddr = listAddr;
+                                dyldBoundHandlers.insert(handleAddr);
+                            } else {
+                                imageListAddr = 0;
+                            }
+                        } else {
+                            // registerImageStateSingleChangeHandler
+                            if (state == ib_dyld_image_state_terminated) {
+                                imageListAddr = 0;
+                            } else {
+                                assert(state == ib_dyld_image_state_initialized);
+                                if (dyldInitHandlers.find(handleAddr) == dyldInitHandlers.end()) {
+                                    imageListAddr = listAddr;
+                                    dyldInitHandlers.insert(handleAddr);
+                                } else {
+                                    imageListAddr = 0;
+                                }
+                            }
+                        }
+                        
+                        // return value;
+                        sp -= 8;
+                        assert(uc_mem_write(uc, sp, &null64, 8) == UC_ERR_OK);
+                        
+                        // null-terminate
+                        sp -= 8;
+                        assert(uc_mem_write(uc, sp, &null64, 8) == UC_ERR_OK);
+                        
+                        if (handleAddr != 0 && imageListAddr != 0) {
+                            // list
+                            sp -= 8;
+                            assert(uc_mem_write(uc, sp, &imageListAddr, 8) == UC_ERR_OK);
+                            
+                            // list count
+                            sp -= 8;
+                            assert(uc_mem_write(uc, sp, &moduleCount, 8) == UC_ERR_OK);
+                            
+                            // state
+                            sp -= 8;
+                            assert(uc_mem_write(uc, sp, &state, 8) == UC_ERR_OK);
+                            
+                            // handler
+                            sp -= 8;
+                            assert(uc_mem_write(uc, sp, &handleAddr, 8) == UC_ERR_OK);
+                        }
+                        assert(uc_reg_write(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
+                    });
+                    free(code);
+                }
                 static uint64_t dyldLazyBinderAddr = 0, dyldFunctionLookupAddr = 0;
                 if (dyldLazyBinderAddr == 0) {
                     dyldLazyBinderAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
@@ -233,8 +363,8 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_func_for_remove_image, 8) == UC_ERR_OK);
                         } else if (strcmp(dyldFuncName, "__dyld_dyld_register_image_state_change_handler") == 0) {
                             // FIXME: objc init
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_nopAddr, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_nopAddr, 8) == UC_ERR_OK);
+                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_image_state_change_handler, dyldFuncBindToAddr);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_image_state_change_handler, 8) == UC_ERR_OK);
                         } else {
                             assert(false);
                         }
@@ -246,14 +376,6 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 assert(uc_mem_write(uc, addr + 8, &dyldFunctionLookupAddr, 8) == UC_ERR_OK);
             }
         }
-    }
-    
-    {
-        // trick setups
-        int malloc_check_start = 0;
-        // 100EB664C
-        
-        assert(uc_mem_write(uc, 0x100EC264C, &malloc_check_start, 4) == UC_ERR_OK);
     }
     return mainModule;
 }
@@ -279,6 +401,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     
     shared_ptr<MachOModule> module = make_shared<MachOModule>();
     module->name = moduleName;
+    module->path = filePath;
     uint8_t *mappedFile;
     uint64_t bufferSize;
     ib_mach_header_64 *hdr = nullptr;

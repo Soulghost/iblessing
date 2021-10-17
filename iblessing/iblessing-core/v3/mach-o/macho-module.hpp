@@ -51,6 +51,7 @@ public:
     struct ib_dyld_info_command *dyldInfoCommand;
     
     std::string name;
+    std::string path;
     std::shared_ptr<StringTable> strtab;
     std::shared_ptr<SymbolTable> symtab;
     std::vector<MachODynamicLibrary> dynamicLibraryDependencies;

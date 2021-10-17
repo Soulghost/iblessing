@@ -842,4 +842,15 @@ typedef struct{
 #define IB_COMM_PAGE_LOGICAL_CPUS   (IB_COMM_PAGE_START_ADDRESS+0x036)    /* uint8_t number of logical CPUs (hw.logicalcpu_max) */
 #define IB_COMM_PAGE_MEMORY_SIZE    (IB_COMM_PAGE_START_ADDRESS+0x038)    /* uint64_t max memory size */
 
+enum ib_dyld_image_states
+{
+    ib_dyld_image_state_mapped                    = 10,        // No batch notification for this
+    ib_dyld_image_state_dependents_mapped        = 20,        // Only batch notification for this
+    ib_dyld_image_state_rebased                = 30,
+    ib_dyld_image_state_bound                    = 40,
+    ib_dyld_image_state_dependents_initialized    = 45,        // Only single notification for this
+    ib_dyld_image_state_initialized            = 50,
+    ib_dyld_image_state_terminated                = 60        // Only single notification for this
+};
+
 #endif /* mach_universal_hpp */

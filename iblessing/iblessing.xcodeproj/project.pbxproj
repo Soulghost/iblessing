@@ -23,6 +23,8 @@
 		68496FE126E3A4C3000DEE11 /* aarch64-svc-manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68496FDF26E3A4C3000DEE11 /* aarch64-svc-manager.cpp */; };
 		68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68496FE026E3A4C3000DEE11 /* aarch64-svc-manager.hpp */; };
 		68666DAF25288B710014BC91 /* NSString+IBS.m in Sources */ = {isa = PBXBuildFile; fileRef = 68666DAE25288B710014BC91 /* NSString+IBS.m */; };
+		6877275C271C07680081A4DA /* macho-memory-manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6877275A271C07680081A4DA /* macho-memory-manager.cpp */; };
+		6877275D271C07680081A4DA /* macho-memory-manager.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6877275B271C07680081A4DA /* macho-memory-manager.hpp */; };
 		6895A1C2268A0C2400EE558D /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6895A1C1268A0C2400EE558D /* main.cpp */; };
 		6895A1C6268A0C3800EE558D /* libiblessing-core.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */; };
 		6895A1C7268A0C5000EE558D /* classdump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E0EF263BAB51000642F5 /* classdump.cpp */; };
@@ -304,6 +306,8 @@
 		68770C9324E1130A003F9652 /* AppInfoScanner.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = AppInfoScanner.hpp; sourceTree = "<group>"; };
 		68770C9A24E17212003F9652 /* ObjcMsgXREFReportGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMsgXREFReportGenerator.cpp; sourceTree = "<group>"; };
 		68770C9B24E17212003F9652 /* ObjcMsgXREFReportGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMsgXREFReportGenerator.hpp; sourceTree = "<group>"; };
+		6877275A271C07680081A4DA /* macho-memory-manager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "macho-memory-manager.cpp"; sourceTree = "<group>"; };
+		6877275B271C07680081A4DA /* macho-memory-manager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "macho-memory-manager.hpp"; sourceTree = "<group>"; };
 		6877B7812514913000227CFF /* ProgramState.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProgramState.cpp; sourceTree = "<group>"; };
 		6877B7822514913000227CFF /* ProgramState.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramState.hpp; sourceTree = "<group>"; };
 		6877B784251492C500227CFF /* ProgramStateManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProgramStateManager.cpp; sourceTree = "<group>"; };
@@ -520,6 +524,7 @@
 		68446FFE26D7BAD500FE4D70 /* v3 */ = {
 			isa = PBXGroup;
 			children = (
+				68772759271C07420081A4DA /* memory */,
 				68A44D43270C472700C91CC6 /* debugger */,
 				68EC527F2701DB9F003D9148 /* posix */,
 				68496FDD26E3A496000DEE11 /* kernel */,
@@ -923,6 +928,15 @@
 			path = foundation;
 			sourceTree = "<group>";
 		};
+		68772759271C07420081A4DA /* memory */ = {
+			isa = PBXGroup;
+			children = (
+				6877275A271C07680081A4DA /* macho-memory-manager.cpp */,
+				6877275B271C07680081A4DA /* macho-memory-manager.hpp */,
+			);
+			path = memory;
+			sourceTree = "<group>";
+		};
 		6877B77D251454C900227CFF /* assistance */ = {
 			isa = PBXGroup;
 			children = (
@@ -1295,6 +1309,7 @@
 				68A44D47270C473600C91CC6 /* uc_debugger_utils.hpp in Headers */,
 				6844700726D7C05400FE4D70 /* macho-loader.hpp in Headers */,
 				6844700326D7BB2600FE4D70 /* macho-module.hpp in Headers */,
+				6877275D271C07680081A4DA /* macho-memory-manager.hpp in Headers */,
 				6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */,
 				68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */,
 				68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */,
@@ -1565,6 +1580,7 @@
 				6844700626D7C05400FE4D70 /* macho-loader.cpp in Sources */,
 				68B2563126401F84008FA1E2 /* AntiWrapper.cpp in Sources */,
 				68B2563626401F8C008FA1E2 /* FunctionPrototype.cpp in Sources */,
+				6877275C271C07680081A4DA /* macho-memory-manager.cpp in Sources */,
 				68B2563B26401F8F008FA1E2 /* SimpleWrapperAnalyser.cpp in Sources */,
 				6844700226D7BB2600FE4D70 /* macho-module.cpp in Sources */,
 				68B2564026401F9B008FA1E2 /* dyld.cpp in Sources */,

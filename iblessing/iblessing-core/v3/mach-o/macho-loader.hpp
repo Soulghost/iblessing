@@ -13,9 +13,11 @@
 #include <iblessing-core/v3/kernel/syscall/aarch64-svc-manager.hpp>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <iblessing-core/scanner/context/ScannerWorkDirManager.hpp>
+#include <iblessing-core/v3/memory/macho-memory-manager.hpp>
 #include <memory>
 #include <vector>
 #include <map>
+#include <set>
 
 NS_IB_BEGIN
 
@@ -31,12 +33,15 @@ public:
     std::shared_ptr<MachOModule> loadModuleFromFile(std::string filePath);
     uc_engine *uc;
     ScannerWorkDirManager *workDirManager;
+    std::shared_ptr<MachOMemoryManager> memoryManager;
     std::shared_ptr<Aarch64SVCManager> svcManager;
     std::shared_ptr<MachOModule> findModuleByName(std::string moduleName);
     std::shared_ptr<MachOModule> findModuleByAddr(uint64_t addr);
     
 protected:
     std::shared_ptr<MachOModule> _loadModuleFromFile(std::string filePath, bool loadDylibs);
+    std::set<uint64_t> dyldInitHandlers;
+    std::set<uint64_t> dyldBoundHandlers;
 };
 
 NS_IB_END
