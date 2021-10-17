@@ -129,6 +129,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 static uint64_t _dyld_get_image_slide = 0;
                 static uint64_t _dyld_register_func_for_remove_image = 0;
                 static uint64_t _dyld_register_image_state_change_handler = 0;
+                static uint64_t _dyld_image_path_containing_address = 0;
                 if (_dyld_fast_stub_entryAddr == 0) {
                     Dyld::bindHooks["_abort"] = [&](string symbolName, uint64_t symbolAddr) {
                         static uint64_t _abortAddr = 0;
@@ -269,12 +270,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                             info.imageLoadAddr = module->machHeader;
                             
                             // path
-                            string path = module->path;
-                            uint64_t pathAddr = memoryManager->alloc(path.length() + 1);
-                            assert(pathAddr != 0);
-                            assert(uc_mem_write(uc, pathAddr, path.c_str(), path.length()) == UC_ERR_OK);
-                            assert(uc_mem_write(uc, pathAddr + path.length(), &null64, 1) == UC_ERR_OK);
-                            info.imageFilePathAddr = pathAddr;
+                            info.imageFilePathAddr = memoryManager->allocPath(module->path);
                             
                             // modDate
                             info.imageFileModDate = 0;
@@ -337,6 +333,19 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     });
                     free(code);
                 }
+                if (_dyld_image_path_containing_address == 0) {
+                    _dyld_image_path_containing_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t addr;
+                        ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
+                        shared_ptr<MachOModule> module = findModuleByAddr(addr);
+                        if (!module) {
+                            assert(false);
+                        }
+                        
+                        uint64_t pathAddr = memoryManager->allocPath(module->path);
+                        ensure_uc_reg_write(UC_ARM64_REG_X0, &pathAddr);
+                    });
+                }
                 static uint64_t dyldLazyBinderAddr = 0, dyldFunctionLookupAddr = 0;
                 if (dyldLazyBinderAddr == 0) {
                     dyldLazyBinderAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
@@ -365,6 +374,9 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                             // FIXME: objc init
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_image_state_change_handler, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_image_state_change_handler, 8) == UC_ERR_OK);
+                        } else if (strcmp(dyldFuncName, "__dyld_image_path_containing_address") == 0) {
+                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_image_path_containing_address, dyldFuncBindToAddr);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_image_path_containing_address, 8) == UC_ERR_OK);
                         } else {
                             assert(false);
                         }

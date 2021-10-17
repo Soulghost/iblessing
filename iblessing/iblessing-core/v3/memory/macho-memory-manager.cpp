@@ -32,6 +32,18 @@ uint64_t MachOMemoryManager::alloc(size_t size, string tag) {
     return addr;
 }
 
+uint64_t MachOMemoryManager::allocPath(string path) {
+    uint64_t null64 = 0;
+    uint64_t pathAddr = alloc(path.length() + 1);
+    if (!pathAddr) {
+        return 0;
+    }
+    assert(pathAddr != 0);
+    assert(uc_mem_write(uc, pathAddr, path.c_str(), path.length()) == UC_ERR_OK);
+    assert(uc_mem_write(uc, pathAddr + path.length(), &null64, 1) == UC_ERR_OK);
+    return pathAddr;
+}
+
 void MachOMemoryManager::free(uint64_t addr) {
     
 }
