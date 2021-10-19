@@ -130,6 +130,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 static uint64_t _dyld_register_func_for_remove_image = 0;
                 static uint64_t _dyld_register_image_state_change_handler = 0;
                 static uint64_t _dyld_image_path_containing_address = 0;
+                static uint64_t _dyld_dlopen_address = 0;
                 if (_dyld_fast_stub_entryAddr == 0) {
                     Dyld::bindHooks["_abort"] = [&](string symbolName, uint64_t symbolAddr) {
                         static uint64_t _abortAddr = 0;
@@ -333,6 +334,11 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     });
                     free(code);
                 }
+                if (_dyld_dlopen_address == 0) {
+                    _dyld_dlopen_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        assert(false);
+                    });
+                }
                 if (_dyld_image_path_containing_address == 0) {
                     _dyld_image_path_containing_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
                         uint64_t addr;
@@ -375,8 +381,10 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_image_state_change_handler, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_image_state_change_handler, 8) == UC_ERR_OK);
                         } else if (strcmp(dyldFuncName, "__dyld_image_path_containing_address") == 0) {
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_image_path_containing_address, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_image_path_containing_address, 8) == UC_ERR_OK);
+                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_dlopen_address, dyldFuncBindToAddr);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_dlopen_address, 8) == UC_ERR_OK);
+                        } else if (strcmp(dyldFuncName, "__dyld_dlopen") == 0) {
+                            
                         } else {
                             assert(false);
                         }
