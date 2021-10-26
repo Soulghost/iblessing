@@ -24,18 +24,28 @@ using namespace iblessing;
 
 #define IB_FD_URANDOM 3
 
-uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t size, int prot, int flags, int fd, int offset) {
+uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t mask, uint64_t size, int prot, int flags, int fd, int offset) {
     uint64_t aligned_size = ((size - 1) / 16384 + 1) * 16384;
     assert(!(flags & IB_MAP_FIXED));
     assert(!(flags & IB_MAP_FILE));
     // FIXME: tricky kern_mmap
     static uint64_t mmapHeapPtr = 0x400000000;
+    if (mask > 0) {
+        mmapHeapPtr = IB_AlignSize(mmapHeapPtr, mask + 1);
+    }
+    
     print_uc_mem_regions(uc);
     uc_err err = uc_mem_map(uc, mmapHeapPtr, aligned_size, prot);
     if (err) {
         printf("[-] cannot mmap at 0x%llx, error %s\n", mmapHeapPtr, uc_strerror(err));
         assert(false);
     }
+    
+//    // do clean
+//    void *nullChunk = calloc(1, aligned_size);
+//    uc_mem_write(uc, mmapHeapPtr, nullChunk, aligned_size);
+//    free(nullChunk);
+    
     print_uc_mem_regions(uc);
     uint64_t addr = mmapHeapPtr;
     mmapHeapPtr += aligned_size;
@@ -380,11 +390,14 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     int rest = count % sizeof(int);
                     for (int i = 0; i < chunkCnt; i++) {
                         int val = i % 255;
-                        ensure_uc_mem_write(bufferAddr, &val, 1);
-                        bufferAddr += 1;
+                        ensure_uc_mem_write(bufferAddr, &val, sizeof(int));
+                        bufferAddr += sizeof(int);
                     }
-                    int tailVal = 255;
-                    ensure_uc_mem_write(bufferAddr, &tailVal, rest);
+                    
+                    if (rest > 0) {
+                        int tailVal = 255;
+                        ensure_uc_mem_write(bufferAddr, &tailVal, rest);
+                    }
                 } else {
                     assert(false);
                 }
@@ -475,11 +488,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 uint64_t size, addrPtr;
                 ensure_uc_reg_read(UC_ARM64_REG_W0, &target);
                 ensure_uc_reg_read(UC_ARM64_REG_X1, &addrPtr);
-                ensure_uc_reg_read(UC_ARM64_REG_W2, &size);
-                ensure_uc_reg_read(UC_ARM64_REG_X3, &flags);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &size);
+                ensure_uc_reg_read(UC_ARM64_REG_W3, &flags);
 //                int tag = flags >> 24;
                 assert(flags & IB_VM_FLAGS_ANYWHERE);
-                uint64_t addr = svc_uc_mmap(uc, 0, IB_AlignSize(size, 0x4000), UC_PROT_READ | UC_PROT_WRITE, 0, -1, 0);
+                uint64_t addr = svc_uc_mmap(uc, 0, 0, IB_AlignSize(size, 0x4000), UC_PROT_READ | UC_PROT_WRITE, 0, -1, 0);
                 void *zeros = calloc(1, size);
                 uc_mem_write(uc, addr, zeros, size);
                 free(zeros);
@@ -521,9 +534,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 uint64_t addr;
                 ensure_uc_mem_read(addrPtr, &addr, sizeof(uint64_t));
                 // FIXME: mem mask
-//                assert(!mask);
+                uint64_t allocatedAddr = 0;
+                allocatedAddr = svc_uc_mmap(uc, 0, mask, size, cur_port, flags, -1, 0);
+                
+                assert(allocatedAddr != 0);
                 // FIXME: tricky kern_mmap
-                uint64_t allocatedAddr = svc_uc_mmap(uc, 0, size, cur_port, flags, -1, 0);
+                
                 ensure_uc_mem_write(addrPtr, &allocatedAddr, sizeof(uint64_t));
                 syscall_return_success;
                 return true;

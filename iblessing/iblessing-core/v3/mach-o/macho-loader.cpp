@@ -336,7 +336,26 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 }
                 if (_dyld_dlopen_address == 0) {
                     _dyld_dlopen_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        assert(false);
+                        uint64_t pathAddr;
+                        int mode;
+                        ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+                        ensure_uc_reg_read(UC_ARM64_REG_W1, &mode);
+                        char *path = pathAddr > 0 ? MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000) : NULL;
+                        
+                        uint64_t ret;
+                        if (path == NULL) {
+                            if (mode & IB_RTLD_FIRST) {
+                                ret = IB_RTLD_MAIN_ONLY;
+                            } else {
+                                ret = IB_RTLD_DEFAULT;
+                            }
+                        } else {
+                            string moduleName = StringUtils::path_basename(path);
+                            shared_ptr<MachOModule> module = findModuleByName(moduleName);
+                            assert(module != nullptr);
+                            ret = module->machHeader;
+                        }
+                        ensure_uc_reg_write(UC_ARM64_REG_X0, &ret);
                     });
                 }
                 if (_dyld_image_path_containing_address == 0) {
@@ -379,12 +398,14 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         } else if (strcmp(dyldFuncName, "__dyld_dyld_register_image_state_change_handler") == 0) {
                             // FIXME: objc init
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_image_state_change_handler, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_image_state_change_handler, 8) == UC_ERR_OK);
+                            // FIXME: nop objc
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_nopAddr, 8) == UC_ERR_OK);
                         } else if (strcmp(dyldFuncName, "__dyld_image_path_containing_address") == 0) {
+                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_image_path_containing_address, dyldFuncBindToAddr);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_image_path_containing_address, 8) == UC_ERR_OK);
+                        } else if (strcmp(dyldFuncName, "__dyld_dlopen") == 0) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_dlopen_address, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_dlopen_address, 8) == UC_ERR_OK);
-                        } else if (strcmp(dyldFuncName, "__dyld_dlopen") == 0) {
-                            
                         } else {
                             assert(false);
                         }
@@ -828,5 +849,15 @@ shared_ptr<MachOModule> MachOLoader::findModuleByAddr(uint64_t addr) {
     }
     
     assert(false);
+    return nullptr;
+}
+
+Symbol * MachOLoader::getSymbolByAddress(uint64_t addr) {
+    for (shared_ptr<MachOModule> module : modules) {
+        Symbol *sym = module->getSymbolByAddress(addr);
+        if (sym) {
+            return sym;
+        }
+    }
     return nullptr;
 }

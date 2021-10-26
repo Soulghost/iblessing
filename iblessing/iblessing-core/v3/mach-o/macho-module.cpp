@@ -62,3 +62,11 @@ Symbol* MachOModule::_getSymbolByName(std::string name, bool checkDependencies) 
     }
     return sym;
 }
+
+Symbol* MachOModule::getSymbolByAddress(uint64_t addr) {
+    return this->symtab->getSymbolByAddress(addr);
+}
+
+Symbol* MachOModule::getSymbolNearByAddress(uint64_t addr) {
+    return this->symtab->getSymbolNearByAddress(addr);
+}

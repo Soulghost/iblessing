@@ -51,106 +51,86 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     }
     
     string comments = "";
-    if (strcmp(insn->mnemonic, "blr") == 0) {
+    uint64_t targetAddr = 0;
+    if (strcmp(insn->mnemonic, "br") == 0 ||
+        strcmp(insn->mnemonic, "blr") == 0) {
         uint64_t regValue = 0;
-        assert(uc_reg_read(uc, insn->detail->arm64.operands[1].reg, &regValue) == UC_ERR_OK);
+        assert(uc_reg_read(uc, insn->detail->arm64.operands[0].reg, &regValue) == UC_ERR_OK);
         comments = StringUtils::format("#0x%llx", regValue);
+        assert(regValue != 0);
+        targetAddr = regValue;
+    } else if (strcmp(insn->mnemonic, "b") == 0 ||
+               strncmp(insn->mnemonic, "b.", 2) == 0) {
+        assert(insn->detail->arm64.operands[0].type == ARM64_OP_IMM);
+        targetAddr = insn->detail->arm64.operands[0].imm;
     } else {
-        if (address == 0x100E3A7FC) {
-            int w8;
+        if (address == 0x100EB26F0) {
+            uint32_t w8;
             assert(uc_reg_read(uc, UC_ARM64_REG_W8, &w8) == UC_ERR_OK);
-            comments = StringUtils::format("w8 = %d", w8);
-        } else if (address == 0x100E3A888) {
-            int w9;
-            assert(uc_reg_read(uc, UC_ARM64_REG_W9, &w9) == UC_ERR_OK);
-            comments = StringUtils::format("w9 = %d", w9);
-        } else if (address == 0x100E3A89C) {
-            int w20;
-            assert(uc_reg_read(uc, UC_ARM64_REG_W20, &w20) == UC_ERR_OK);
-            comments = StringUtils::format("w20 = %d", w20);
-        } else if (address == 0x100E3A878) {
-            int w9;
-            assert(uc_reg_read(uc, UC_ARM64_REG_W9, &w9) == UC_ERR_OK);
-            comments = StringUtils::format("w9 = %d(0x%x)", w9, w9);
-        } else if (address == 0x100E3C4EC) {
-            int w8;
-            assert(uc_reg_read(uc, UC_ARM64_REG_W8, &w8) == UC_ERR_OK);
-            comments = StringUtils::format("w8 = %d", w8);
-        } else if (address == 0x100F4335C) {
-            uint64_t x0, x1, x2, sp;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
-            assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
+            comments = StringUtils::format("w8 = 0x%x", w8);
+        } else if (address == 0x100F310A4) {
+            uint64_t x2;
             assert(uc_reg_read(uc, UC_ARM64_REG_X2, &x2) == UC_ERR_OK);
-            assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
-            comments = StringUtils::format("x0 = 0x%llx, x1 = 0x%llx, x2 = 0x%llx, sp = 0x%llx", x0, x1, x2, sp);
-        } else if (address == 0x100E3A6DC) {
-            uint64_t x0, x1, x2, sp;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
-            assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
-            assert(uc_reg_read(uc, UC_ARM64_REG_X2, &x2) == UC_ERR_OK);
-            assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
-            comments = StringUtils::format("x0 = 0x%llx, x1 = 0x%llx, x2 = 0x%llx, sp = 0x%llx", x0, x1, x2, sp);
-        } else if (address == 0x100F4332C) {
-            uint64_t x0, x1, x2, sp;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
-            assert(uc_reg_read(uc, UC_ARM64_REG_X1, &x1) == UC_ERR_OK);
-            assert(uc_reg_read(uc, UC_ARM64_REG_X2, &x2) == UC_ERR_OK);
-            assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
-            comments = StringUtils::format("x0 = 0x%llx, x1 = 0x%llx, x2 = 0x%llx, sp = 0x%llx", x0, x1, x2, sp);
-        } else if (address == 0x100bfbbb4) {
-            uint64_t x0;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
-            comments = StringUtils::format("x0 = 0x%llx", x0);
-        } else if (address == 0x100D41940) {
-            uint64_t x20;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X20, &x20) == UC_ERR_OK);
-            comments = StringUtils::format("x20 = 0x%llx", x20);
-        } else if (address == 0x100D41914) {
-            uint64_t w19;
-            assert(uc_reg_read(uc, UC_ARM64_REG_W19, &w19) == UC_ERR_OK);
-            comments = StringUtils::format("w19 = 0x%llx", w19);
-        } else if (address == 0x100D41910) {
-            uint64_t w0;
-            assert(uc_reg_read(uc, UC_ARM64_REG_W0, &w0) == UC_ERR_OK);
-            comments = StringUtils::format("w0 = 0x%llx", w0);
-        } else if (address == 0x100419790) {
-            uint64_t x0;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
-            comments = StringUtils::format("x0 = 0x%llx", x0);
-        } else if (address == 0x100E3ED9C) {
+            comments = StringUtils::format("x2 = 0x%llx", x2);
+        } else if (address == 0x100EB105C) {
+            uint32_t num_zones;
+            uint64_t zone_ptr;
+            ensure_uc_reg_read(UC_ARM64_REG_W23, &num_zones);
+            ensure_uc_reg_read(UC_ARM64_REG_X24, &zone_ptr);
+            comments = StringUtils::format("zone_ptr at 0x%llx, num_zones %d", zone_ptr, num_zones);
+        } else if (address == 0x100eaea50) {
             uint64_t x8;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X8, &x8) == UC_ERR_OK);
-            comments = StringUtils::format("x8 = 0x%llx", x8);
-        } else if (address == 0x100F31250) {
-            uint64_t x8;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X8, &x8) == UC_ERR_OK);
-            comments = StringUtils::format("x8 = 0x%llx", x8);
-        } else if (address == 0x100eb539c) {
-            uint64_t x8;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X8, &x8) == UC_ERR_OK);
-            comments = StringUtils::format("x8 = 0x%llx", x8);
-        } else if (address == 0x100eb531c) {
-            uint64_t x0;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
-            comments = StringUtils::format("x0 = 0x%llx", x0);
-        } else if (address == 0x100EB5338) {
-            uint64_t x19;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X19, &x19) == UC_ERR_OK);
-            comments = StringUtils::format("x19 = 0x%llx", x19);
-        } else if (address == 0x100EB53A4) {
-            uint64_t x8, x19;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X8, &x8) == UC_ERR_OK);
-            assert(uc_reg_read(uc, UC_ARM64_REG_X19, &x19) == UC_ERR_OK);
-            comments = StringUtils::format("x8 = 0x%llx, x19 = 0x%llx", x8, x19);
-        } else if (address == 0x100007E74) {
-            uint64_t x0;
-            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &x0) == UC_ERR_OK);
-            comments = StringUtils::format("x0 = 0x%llx", x0);
+            ensure_uc_reg_read(UC_ARM64_REG_X8, &x8);
+            comments = StringUtils::format("tpidrro_el0 = 0x%llx", x8);
+        } else if (address == 0x100eaea54) {
+            uint32_t w24;
+            ensure_uc_reg_read(UC_ARM64_REG_W24, &w24);
+            comments = StringUtils::format("tpidrro index = 0x%x", w24);
+        } else if (address == 0x100EB11C0) {
+            uint64_t x0, x1;
+            ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
+            ensure_uc_reg_read(UC_ARM64_REG_X1, &x1);
+            comments = StringUtils::format("zones = 0x%llx, ptr 0x%llx", x0, x1);
+        } else if (address == 0x100EB121C) {
+            uint64_t x13, x9;
+            ensure_uc_reg_read(UC_ARM64_REG_X9, &x9);
+            ensure_uc_reg_read(UC_ARM64_REG_X13, &x13);
+            comments = StringUtils::format("chunk_begin(x13) = 0x%llx, ptr_addr(x9) = 0x%llx", x13, x9);
+        } else if (address == 0x100EB53A0) {
+            uint64_t x9;
+            ensure_uc_reg_read(UC_ARM64_REG_X9, &x9);
+            comments = StringUtils::format("sys page size = 0x%llx", x9);
+        }
+    }
+    
+    if (targetAddr > 0) {
+        Symbol *sym = uc2instance[uc]->loader->getSymbolByAddress(targetAddr);
+        if (sym && sym->name.length() > 0) {
+            comments += StringUtils::format(" ; target = %s, ", sym->name.c_str());
         }
     }
     
     shared_ptr<MachOModule> module = uc2instance[uc]->loader->findModuleByAddr(address);
     if (module) {
+        Symbol *sym = module->getSymbolByAddress(address);
+        if (sym && sym->name.length() > 0) {
+            printf("[Stalker] 0x%08llx: %s:\n", address, sym->name.c_str());
+            if (sym->name == "_free") {
+                uint64_t x0;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
+                comments += StringUtils::format("(free ptr at 0x%llx)", x0);
+            } else if (sym->name == "_large_entry_for_pointer_no_lock") {
+                uint64_t x0, x1;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &x1);
+                comments += StringUtils::format("(free zone at 0x%llx, ptr at 0x%llx)", x0, x1);
+            }
+        } else {
+            Symbol *sym = module->getSymbolNearByAddress(address);
+            if (sym && sym->name.length() > 0) {
+                comments += StringUtils::format("(in %s)", sym->name.c_str());
+            }
+        }
         if (module->name != "libdyld.dylib") {
             printf("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr);
         }
@@ -213,7 +193,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
-    static set<string> blackListModule{/**"Security", "libsystem_configuration.dylib", "libremovefile.dylib", "libcopyfile.dylib"*/};
+    static set<string> blackListModule{"CoreFoundation", "libobjc.dylib", "Security", "libsystem_configuration.dylib", "libremovefile.dylib", "libcopyfile.dylib"};
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
         return;
@@ -417,6 +397,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
 //    }
     for (shared_ptr<MachOModule> module : loader->modules) {
         initModule(module, initEnv);
+        break;
     }
     
     // fake a stop addr

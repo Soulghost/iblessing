@@ -67,7 +67,8 @@ public:
     std::vector<std::pair<uint64_t, uint64_t>> dataPatch;
     
     Symbol* getSymbolByName(std::string name, bool checkDependencies);
-    
+    Symbol* getSymbolByAddress(uint64_t addr);
+    Symbol* getSymbolNearByAddress(uint64_t addr);
 private:
     Symbol* _getSymbolByName(std::string name, bool checkDependencies);
 };

@@ -37,6 +37,7 @@ public:
     std::shared_ptr<Aarch64SVCManager> svcManager;
     std::shared_ptr<MachOModule> findModuleByName(std::string moduleName);
     std::shared_ptr<MachOModule> findModuleByAddr(uint64_t addr);
+    Symbol * getSymbolByAddress(uint64_t addr);
     
 protected:
     std::shared_ptr<MachOModule> _loadModuleFromFile(std::string filePath, bool loadDylibs);
