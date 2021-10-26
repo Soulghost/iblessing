@@ -15,17 +15,18 @@ void test_entry(void) {
 }
 
 uint64_t test_malloc(void) {
-    void *addr = malloc(1024);
-    void *addr2 = malloc(2048);
-    void *addr3 = malloc(4096);
-    memset(addr, 0x41, 1024);
-    memset(addr2, 0x42, 2048);
-    memset(addr3, 0x43, 4096);
-    printf("malloc addr %p %p %p\n", addr, addr2, addr3);
-//    free(addr);
-//    free(addr2);
-//    free(addr3);
-    return addr;
+    for (int i = 0; i < 100; i++) {
+        void *addr = malloc(i);
+        memset(addr, 0x41, i);
+        printf("xx malloc(%d) addr %p\n", i, addr);
+        free(addr);
+    }
+
+    void *addr = malloc(0x10000);
+    free(addr);
+    addr = malloc(16);
+    free(addr);
+    return 233;
 }
 
 @interface ViewController ()

@@ -825,7 +825,7 @@ typedef struct{
 #define IB_MAP_PRIVATE   0x0002 /* [MF|SHM] changes are private */
 #define IB_MAP_FIXED     0x0010 /* [MF|SHM] interpret addr exactly */
 #define IB_MAP_ANONYMOUS 0x1000 /* allocated from memory, swap space */
-#define IB_AlignSize(size, align) (((size - 1) / align + 1) * align)
+#define IB_AlignSize(size, align) ((((size) - 1) / (align) + 1) * (align))
 
 #define IB_VM_FLAGS_FIXED      0x0000
 #define IB_VM_FLAGS_ANYWHERE   0x0001
@@ -852,5 +852,10 @@ enum ib_dyld_image_states
     ib_dyld_image_state_initialized            = 50,
     ib_dyld_image_state_terminated                = 60        // Only single notification for this
 };
+
+// DYLD
+#define IB_RTLD_FIRST        0x100 /* Mac OS X 10.5 and later */
+#define IB_RTLD_DEFAULT     -2     /* Use default search algorithm. */
+#define IB_RTLD_MAIN_ONLY   -5    /* Search main executable only (Mac OS X 10.5 and later) */
 
 #endif /* mach_universal_hpp */
