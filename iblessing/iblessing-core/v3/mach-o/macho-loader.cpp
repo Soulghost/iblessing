@@ -678,6 +678,11 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
         cmds += lc->cmdsize;
     }
     
+    // sync machHeader
+    uint32_t lcsize = hdr->sizeofcmds;
+    uint64_t hdrAddr = imageBase > 0 ? imageBase : 0x100000000 ;
+    assert(uc_mem_write(uc, hdrAddr, mappedFile, lcsize) == UC_ERR_OK);
+    
     // init bss
     uint64_t bssSize = vmaddr_bss_end - vmaddr_bss_start;
     if (bssSize > 0) {
