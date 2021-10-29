@@ -15,17 +15,13 @@ void test_entry(void) {
 }
 
 uint64_t test_malloc(void) {
-    for (int i = 0; i < 100; i++) {
-        void *addr = malloc(i);
-        memset(addr, 0x41, i);
-        printf("xx malloc(%d) addr %p\n", i, addr);
-        free(addr);
-    }
-
-    void *addr = malloc(0x10000);
-    free(addr);
-    addr = malloc(16);
-    free(addr);
+    void *tiny = malloc(0x10);
+    void *small = malloc(0x400);
+    void *large = malloc(0x10000);
+    free(tiny);
+    free(small);
+    free(large);
+    printf("my malloc chunks %p %p %p\n", tiny, small, large);
     return 233;
 }
 

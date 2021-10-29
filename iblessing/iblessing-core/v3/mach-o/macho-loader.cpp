@@ -131,6 +131,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 static uint64_t _dyld_register_image_state_change_handler = 0;
                 static uint64_t _dyld_image_path_containing_address = 0;
                 static uint64_t _dyld_dlopen_address = 0;
+                static uint64_t _dyld_NSGetExecutablePath_address = 0;
                 if (_dyld_fast_stub_entryAddr == 0) {
                     Dyld::bindHooks["_abort"] = [&](string symbolName, uint64_t symbolAddr) {
                         static uint64_t _abortAddr = 0;
@@ -295,7 +296,8 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                             if (state == ib_dyld_image_state_terminated) {
                                 imageListAddr = 0;
                             } else {
-                                assert(state == ib_dyld_image_state_initialized);
+                                // FIXME: dyld image state handler
+//                                assert(state == ib_dyld_image_state_initialized);
                                 if (dyldInitHandlers.find(handleAddr) == dyldInitHandlers.end()) {
                                     imageListAddr = listAddr;
                                     dyldInitHandlers.insert(handleAddr);
@@ -371,6 +373,20 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         ensure_uc_reg_write(UC_ARM64_REG_X0, &pathAddr);
                     });
                 }
+                if (_dyld_NSGetExecutablePath_address == 0) {
+                    _dyld_NSGetExecutablePath_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t bufAddr;
+                        uint32_t size;
+                        ensure_uc_reg_read(UC_ARM64_REG_X0, &bufAddr);
+                        ensure_uc_reg_read(UC_ARM64_REG_W1, &size);
+                        shared_ptr<MachOModule> module = modules[0];
+                        string path = module->path;
+                        assert(size >= path.length() + 1);
+                        ensure_uc_mem_write(bufAddr, path.c_str(), path.length());
+                        uint64_t null64 = 0;
+                        ensure_uc_mem_write(bufAddr + path.length(), &null64, 1);
+                    });
+                }
                 static uint64_t dyldLazyBinderAddr = 0, dyldFunctionLookupAddr = 0;
                 if (dyldLazyBinderAddr == 0) {
                     dyldLazyBinderAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
@@ -399,13 +415,16 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                             // FIXME: objc init
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_image_state_change_handler, dyldFuncBindToAddr);
                             // FIXME: nop objc
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_nopAddr, 8) == UC_ERR_OK);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_image_state_change_handler, 8) == UC_ERR_OK);
                         } else if (strcmp(dyldFuncName, "__dyld_image_path_containing_address") == 0) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_image_path_containing_address, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_image_path_containing_address, 8) == UC_ERR_OK);
                         } else if (strcmp(dyldFuncName, "__dyld_dlopen") == 0) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_dlopen_address, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_dlopen_address, 8) == UC_ERR_OK);
+                        } else if (strcmp(dyldFuncName, "__dyld__NSGetExecutablePath") == 0) {
+                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_NSGetExecutablePath_address, dyldFuncBindToAddr);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_NSGetExecutablePath_address, 8) == UC_ERR_OK);
                         } else {
                             assert(false);
                         }
