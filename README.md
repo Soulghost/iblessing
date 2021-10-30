@@ -90,16 +90,6 @@ cd iblessing
 ./compile-cmake.sh
 ```
 
-## XcodeBuild
-- Platform: macOS
-
-To get started compiling iblessing, please follow the steps below:
-```
-git clone --recursive -j4 https://github.com/Soulghost/iblessing
-cd iblessing
-./compile.sh
-```
-
 ## Shortcuts
 - [Basic Concepts](https://github.com/Soulghost/iblessing#basic-concepts)
 - Scanners
