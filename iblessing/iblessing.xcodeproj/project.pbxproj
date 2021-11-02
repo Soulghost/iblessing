@@ -15,6 +15,7 @@
 		6829629824CBEEA500EF9251 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829629724CBEEA500EF9251 /* main.m */; };
 		6829629F24CBEEFD00EF9251 /* MethodChainClasses.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829629E24CBEEFD00EF9251 /* MethodChainClasses.m */; };
 		68666DAF25288B710014BC91 /* NSString+IBS.m in Sources */ = {isa = PBXBuildFile; fileRef = 68666DAE25288B710014BC91 /* NSString+IBS.m */; };
+		68941FBD272D542F003FAF8D /* SwiftTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68941FBC272D542F003FAF8D /* SwiftTest.swift */; };
 		6895A1C2268A0C2400EE558D /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6895A1C1268A0C2400EE558D /* main.cpp */; };
 		6895A1C6268A0C3800EE558D /* libiblessing-core.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */; };
 		6895A1C7268A0C5000EE558D /* classdump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E0EF263BAB51000642F5 /* classdump.cpp */; };
@@ -286,6 +287,8 @@
 		6877B7822514913000227CFF /* ProgramState.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramState.hpp; sourceTree = "<group>"; };
 		6877B784251492C500227CFF /* ProgramStateManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProgramStateManager.cpp; sourceTree = "<group>"; };
 		6877B785251492C500227CFF /* ProgramStateManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramStateManager.hpp; sourceTree = "<group>"; };
+		68941FBB272D542F003FAF8D /* iblessing-sample-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "iblessing-sample-Bridging-Header.h"; sourceTree = "<group>"; };
+		68941FBC272D542F003FAF8D /* SwiftTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftTest.swift; sourceTree = "<group>"; };
 		6894E0E1263BA97C000642F5 /* mach-o.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "mach-o.cpp"; sourceTree = "<group>"; };
 		6894E0E2263BA97C000642F5 /* mach-o.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "mach-o.hpp"; sourceTree = "<group>"; };
 		6894E0EF263BAB51000642F5 /* classdump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = classdump.cpp; sourceTree = "<group>"; };
@@ -438,6 +441,8 @@
 				6829629324CBEEA500EF9251 /* LaunchScreen.storyboard */,
 				6829629624CBEEA500EF9251 /* Info.plist */,
 				6829629724CBEEA500EF9251 /* main.m */,
+				68941FBC272D542F003FAF8D /* SwiftTest.swift */,
+				68941FBB272D542F003FAF8D /* iblessing-sample-Bridging-Header.h */,
 			);
 			path = "iblessing-sample";
 			sourceTree = "<group>";
@@ -1299,6 +1304,7 @@
 					};
 					6829628224CBEEA300EF9251 = {
 						CreatedOnToolsVersion = 11.5;
+						LastSwiftMigration = 1310;
 					};
 					685CE7CE24C55309002CC5E8 = {
 						CreatedOnToolsVersion = 11.5;
@@ -1370,6 +1376,7 @@
 				68666DAF25288B710014BC91 /* NSString+IBS.m in Sources */,
 				6829628724CBEEA300EF9251 /* AppDelegate.m in Sources */,
 				6829629824CBEEA500EF9251 /* main.m in Sources */,
+				68941FBD272D542F003FAF8D /* SwiftTest.swift in Sources */,
 				68AE3B1224EB9CFE003E25EF /* InsecureUnSerialization.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1532,10 +1539,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 6CMYQQFFT8;
 				INFOPLIST_FILE = "iblessing-sample/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1543,6 +1551,9 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.soulghost.iblessing.iblessing-sample";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				SWIFT_OBJC_BRIDGING_HEADER = "iblessing-sample/iblessing-sample-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALID_ARCHS = arm64;
 			};
@@ -1552,10 +1563,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = 6CMYQQFFT8;
 				INFOPLIST_FILE = "iblessing-sample/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 12.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1563,6 +1575,8 @@
 				PRODUCT_BUNDLE_IDENTIFIER = "com.soulghost.iblessing.iblessing-sample";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
+				SWIFT_OBJC_BRIDGING_HEADER = "iblessing-sample/iblessing-sample-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 				VALID_ARCHS = arm64;

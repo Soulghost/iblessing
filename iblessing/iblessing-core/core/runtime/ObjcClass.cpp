@@ -92,11 +92,13 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
     uint64_t objc_class_ro_offset = objc_data_addr + 32;
     uint64_t objc_class_ro_addr = rf64rn(objc_class_ro_offset);
     objc_class_ro_addr = trickAlignForClassRO(objc_class_ro_addr);
+    objc_class_ro_addr = vm2->fixupRelativePointerIfNeeded(objc_class_ro_addr);
     uint64_t objc_classname_offset = objc_class_ro_addr + 24;
     uint64_t objc_classname_addr = vm2->read64(objc_classname_offset, &memOK);
     if (!memOK) {
         return nullptr;
     }
+    objc_classname_addr = vm2->fixupRelativePointerIfNeeded(objc_classname_addr);
     
     // ** stringtable is linkedit based
     const char *className = vm2->readString(objc_classname_addr, 1000);
@@ -121,40 +123,75 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
     
     // handle instance methods
     uint64_t objc_methodlist_addr = rf64rn(objc_methodlist_offset);
+    objc_methodlist_addr = vm2->fixupRelativePointerIfNeeded(objc_methodlist_addr);
+    uint32_t objc_methodlist_entsize = rf32rn(objc_methodlist_addr);
     uint32_t objc_methodlist_count = objc_methodlist_addr ? vm2->read32(objc_methodlist_addr + 4, &memOK) : 0;
     if (!memOK) {
         return nullptr;
     }
     
-    uint64_t objc_methods_addr = objc_methodlist_addr + 8;
-    for (uint32_t i = 0; i < objc_methodlist_count; i++) {
-        uint64_t sel_offset = objc_methods_addr;
-        uint64_t sel_addr = vm2->read64(sel_offset, &memOK);
+    auto parseObjcMethodLisdEntry = [&](bool isSmallEntry, uint64_t *objc_methods_addr) -> ObjcMethod * {
+        bool memOK = false;
+        uint64_t sel_offset = *objc_methods_addr;
+        uint64_t sel_addr = 0;
+        int step = !isSmallEntry ? 8 : 4;
+        if (!isSmallEntry) {
+            sel_addr = vm2->read64(sel_offset, &memOK);
+        } else {
+            int32_t sel_relative = vm2->read32(sel_offset, &memOK);
+            sel_addr = sel_offset + sel_relative;
+            if (!memOK) {
+                return nullptr;
+            }
+            
+            sel_addr = vm2->read64(sel_addr, &memOK);
+            sel_addr = vm2->fixupRelativePointerIfNeeded(sel_addr);
+        }
         if (!memOK) {
-            objc_methods_addr += 24;
-            continue;
+            *objc_methods_addr += !isSmallEntry ? 24 : 12;
+            return nullptr;
         }
         
         char *sel_ptr = vm2->readString(sel_addr, 1000);
         if (!sel_ptr) {
-            objc_methods_addr += 24;
-            continue;
+            *objc_methods_addr += !isSmallEntry ? 24 : 12;
+            return nullptr;
         }
         std::string sel_str = std::string(sel_ptr);
         
-        uint64_t types_offset = sel_offset + 8;
-        uint64_t types_addr = rf64cnt(types_offset, objc_methods_addr += 24);
-        
-        char *types_ptr = vm2->readString(types_addr, 1000);
-        if (!types_ptr) {
-            objc_methods_addr += 24;
-            continue;
+        uint64_t types_offset = sel_offset + step;
+        uint64_t types_addr = 0;
+        if (!isSmallEntry) {
+            types_addr = vm2->read64(types_offset, &memOK);
+        } else {
+            int32_t types_relative = vm2->read32(types_offset, &memOK);
+            types_addr = types_offset + types_relative;
+        }
+        if (!memOK) {
+            *objc_methods_addr += !isSmallEntry ? 24 : 12;
+            return nullptr;
         }
         
+        types_addr = vm2->fixupRelativePointerIfNeeded(types_addr);
+        char *types_ptr = vm2->readString(types_addr, 1000);
+        if (!types_ptr) {
+            *objc_methods_addr += !isSmallEntry ? 24 : 12;
+            return nullptr;
+        }
         std::string types_str = std::string(types_ptr);
         
-        uint64_t imp_offset = types_offset + 8;
-        uint64_t imp_addr = rf64cnt(imp_offset, objc_methods_addr += 24);
+        uint64_t imp_offset = types_offset + step;
+        uint64_t imp_addr = 0;
+        if (!isSmallEntry) {
+            imp_addr = vm2->read64(imp_offset, &memOK);
+        } else {
+            int32_t imp_relative = vm2->read32(imp_offset, &memOK);
+            imp_addr = imp_offset + imp_relative;
+        }
+        if (!memOK) {
+            *objc_methods_addr += !isSmallEntry ? 24 : 12;
+            return nullptr;
+        }
         
         ObjcMethod *method = new ObjcMethod();
         method->name = sel_str;
@@ -164,77 +201,60 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
         method->isClassMethod = false;
         method->classInfo = info;
         
+        *objc_methods_addr += !isSmallEntry ? 24 : 12;
+        return method;
+    };
+    
+    // from dyld-852.2 - dyld3/shared-cache/ObjC2Abstraction.hpp usesRelativeMethods()
+    bool usesRelativeMethods = (objc_methodlist_entsize & 0x80000000) != 0;
+    uint64_t objc_methods_addr = objc_methodlist_addr + 8;
+    for (uint32_t i = 0; i < objc_methodlist_count; i++) {
+        ObjcMethod *method = parseObjcMethodLisdEntry(usesRelativeMethods, &objc_methods_addr);
         info->methodList.pushBack(method);
-        info->name2method[sel_str] = method;
+        info->name2method[method->name] = method;
         
         // add to symbol table
         std::string symbolName = StringUtils::format("-[%s %s]", info->className.c_str(), method->name.c_str());
         Symbol *symbol = new Symbol();
         symbol->name = symbolName;
         struct ib_nlist_64 *nl_info = (struct ib_nlist_64 *)malloc(sizeof(struct ib_nlist_64));
-        nl_info->n_value = imp_addr;
+        nl_info->n_value = method->imp;
         symbol->info = nl_info;
         symtab->insertSymbol(symbol);
-        
-        objc_methods_addr += 24;
     }
     
     // handle class methods
     uint64_t objc_metaclass_addr = rf64rn(objc_data_addr);
+    objc_metaclass_addr = vm2->fixupRelativePointerIfNeeded(objc_metaclass_addr);
     uint64_t objc_metaclass_ro_offset = objc_metaclass_addr + 32;
     uint64_t objc_metaclass_ro_addr = rf64rn(objc_metaclass_ro_offset);
+    objc_metaclass_ro_addr = vm2->fixupRelativePointerIfNeeded(objc_metaclass_ro_addr);
     uint64_t objc_classmethodlist_offset = objc_metaclass_ro_addr + 32;
     uint64_t objc_classmethodlist_addr = rf64rn(objc_classmethodlist_offset);
+    objc_classmethodlist_addr = vm2->fixupRelativePointerIfNeeded(objc_classmethodlist_addr);
+    uint32_t objc_classmethodlist_entsize = rf32rn(objc_methodlist_addr);
     uint32_t objc_classmethodlist_count = objc_classmethodlist_addr > 0 ? vm2->read32(objc_classmethodlist_addr + 4, &memOK) : 0;
     if (!memOK) {
         return nullptr;
     }
     
+    usesRelativeMethods = (objc_classmethodlist_entsize & 0x80000000) != 0;
     uint64_t objc_classmethods_addr = objc_classmethodlist_addr + 8;
     for (uint32_t i = 0; i < objc_classmethodlist_count; i++) {
-        uint64_t sel_offset = objc_classmethods_addr;
-        uint64_t sel_addr = rf64cnt(sel_offset, objc_classmethods_addr += 24);
-        char *sel_ptr = vm2->readString(sel_addr, 1000);
-        if (!sel_ptr) {
-            objc_classmethods_addr += 24;
-            continue;
-        }
-        std::string sel_str = std::string(sel_ptr);
-        
-        uint64_t types_offset = sel_offset + 8;
-        uint64_t types_addr = rf64cnt(types_offset, objc_classmethods_addr += 24);
-        char *types_ptr = vm2->readString(types_addr, 1000);
-        if (!types_ptr) {
-            objc_classmethods_addr += 24;
-            continue;
-        }
-        std::string types_str = std::string(types_ptr);
-        
-        uint64_t imp_offset = types_offset + 8;
-        uint64_t imp_addr = rf64cnt(imp_offset, objc_classmethods_addr += 24);
-        
         // add to class method list
-        ObjcMethod *method = new ObjcMethod();
-        method->name = sel_str;
-        method->types = types_str;
-        method->argTypes = CoreFoundation::argumentsFromSignature(types_ptr);
-        method->imp = imp_addr;
+        ObjcMethod *method = parseObjcMethodLisdEntry(usesRelativeMethods, &objc_classmethods_addr);
         method->isClassMethod = true;
-        method->classInfo = info;
-        
         info->methodList.pushBack(method);
-        info->name2method[sel_str] = method;
+        info->name2method[method->name] = method;
         
         // add to symbol table
         std::string symbolName = StringUtils::format("+[%s %s]", info->className.c_str(), method->name.c_str());
         Symbol *symbol = new Symbol();
         symbol->name = symbolName;
         struct ib_nlist_64 *nl_info = (struct ib_nlist_64 *)malloc(sizeof(struct ib_nlist_64));
-        nl_info->n_value = imp_addr;
+        nl_info->n_value = method->imp;
         symbol->info = nl_info;
         symtab->insertSymbol(symbol);
-        
-        objc_classmethods_addr += 24;
     }
     
     // handle ivars
@@ -305,6 +325,7 @@ ObjcClassRuntimeInfo* ObjcClassRuntimeInfo::realizeFromAddress(ObjcRuntime *runt
     // realize superclass
     uint64_t objc_superclass_offset = objc_data_addr + 8;
     uint64_t objc_superclass_addr = rf64rn(objc_superclass_offset);
+    objc_superclass_addr = vm2->fixupRelativePointerIfNeeded(objc_superclass_addr);
     if (objc_superclass_addr != 0 && objc_superclass_addr != address) {
         info->superClassInfo = ObjcClassRuntimeInfo::realizeFromAddress(runtime, symtab, vm2, objc_superclass_addr);
         if (!info->superClassInfo && runtime->externalClassRuntimeInfo.find(objc_superclass_addr) != runtime->externalClassRuntimeInfo.end()) {
@@ -387,7 +408,7 @@ std::string ObjcClassRuntimeInfo::classNameAtAddress(shared_ptr<VirtualMemoryV2>
     if (!memOK) {
         return "";
     }
-    
+    objc_class_ro_addr = vm2->fixupRelativePointerIfNeeded(objc_class_ro_addr);
     objc_class_ro_addr = trickAlignForClassRO(objc_class_ro_addr);
     
     uint64_t objc_classname_offset = objc_class_ro_addr + 24;
@@ -396,6 +417,7 @@ std::string ObjcClassRuntimeInfo::classNameAtAddress(shared_ptr<VirtualMemoryV2>
         return "";
     }
     
+    objc_classname_addr = vm2->fixupRelativePointerIfNeeded(objc_classname_addr);
     const char *className = vm2->readString(objc_classname_addr, 1000);
     return className ? className : "";
 }

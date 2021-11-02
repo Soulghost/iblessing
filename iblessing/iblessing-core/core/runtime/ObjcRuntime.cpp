@@ -66,7 +66,7 @@ void ObjcRuntime::loadClassList(uint64_t vmaddr, uint64_t size) {
     uint64_t count = size / sizeof(void *);
     classList.clear();
     for (int i = 0; i < count; i++) {
-        uint64_t class_addr = *classAddrs;
+        uint64_t class_addr = vm2->fixupRelativePointerIfNeeded(*classAddrs);
         std::string className = ObjcClassRuntimeInfo::classNameAtAddress(vm2, class_addr);
         if (className.length() == 0) {
             continue;

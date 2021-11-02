@@ -51,6 +51,7 @@ public:
     uint64_t getBaseAddr();
     uc_engine* getEngine();
     std::shared_ptr<VirtualMemory> getFileMemory();
+    uint64_t fixupRelativePointerIfNeeded(uint64_t ptr);
     
 private:
     VirtualMemoryV2() {};

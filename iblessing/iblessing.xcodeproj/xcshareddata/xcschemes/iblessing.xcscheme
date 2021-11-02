@@ -73,7 +73,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-l"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-i"
@@ -81,15 +81,15 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "symbol-wrapper"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "app-info"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "objc-msg-xref-json"
-            isEnabled = "NO">
+            argument = "objc-msg-xref"
+            isEnabled = "YES">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-tV"
@@ -101,14 +101,14 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "/opt/one-btn/tmp/apps/Chrome/Payload/stable.app/Chrome"
-            isEnabled = "YES">
-         </CommandLineArgument>
-         <CommandLineArgument
-            argument = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
-            argument = "/Users/soulghost/Downloads/Payload/SSSKeychainDemo.app/SSSKeychainDemo"
+            argument = "/Users/soulghost/Desktop/git/ib-legacy/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample"
+            isEnabled = "YES">
+         </CommandLineArgument>
+         <CommandLineArgument
+            argument = "/Users/soulghost/Library/Developer/Xcode/DerivedData/TinyProject-efiiikgrqvdokscaeeucqwyoxhzm/Build/Products/Release-iphoneos/TinyProject.app/TinyProject"
             isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
@@ -121,7 +121,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "-d"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;antiWrapper=1;findAllPath=2&apos;"
@@ -129,7 +129,7 @@
          </CommandLineArgument>
          <CommandLineArgument
             argument = "symbols=_objc_msgSend,_NSClassFromString"
-            isEnabled = "YES">
+            isEnabled = "NO">
          </CommandLineArgument>
          <CommandLineArgument
             argument = "&apos;diff=/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug/new1/Chrome_method-xrefs.iblessing.txt&apos;"

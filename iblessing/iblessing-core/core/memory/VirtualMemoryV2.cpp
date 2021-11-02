@@ -383,4 +383,10 @@ pair<std::string, std::string> VirtualMemoryV2::querySegInfo(uint64_t address) {
     return (--it)->second;
 }
 
+uint64_t VirtualMemoryV2::fixupRelativePointerIfNeeded(uint64_t ptr) {
+    if ((ptr & (0x1ULL << 52)) || (ptr & (0x80000000000000ULL))) {
+        ptr = (ptr & 0xffffffff) + fileMemory->vmaddr_base;
+    }
+    return ptr;
+}
 

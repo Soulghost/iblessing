@@ -7,6 +7,7 @@
 //
 
 #import "ViewController.h"
+#import "iblessing_sample-Swift.h"
 
 @interface ViewController ()
 
@@ -16,7 +17,8 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    
+    NSString *ret =  [[SwiftObjcEntry new] main];
+    NSLog(@"ret %@", ret);
 }
 
 
