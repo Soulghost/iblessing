@@ -78,19 +78,19 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         assert(insn->detail->arm64.operands[0].type == ARM64_OP_IMM);
         targetAddr = insn->detail->arm64.operands[0].imm;
     } else {
-        if (address == 0x10040E6B8) {
-            uint64_t x0;
-            ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
-            
-            uint64_t machOHeader = 0;
-            ensure_uc_mem_read(x0 + 8, &machOHeader, 8);
-            comments = StringUtils::format("_getObjc2ClassList, module_ptr = 0x%llx, machoHeader = 0x%llx", x0, machOHeader);
-        } else if (address == 0x10040E6F4) {
-            uint64_t size, addr;
-            ensure_uc_reg_read(UC_ARM64_REG_X8, &size);
-            ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
-            comments = StringUtils::format("_getObjc2ClassList, section __DATA.__objc_classlist addr 0x%llx, size 0x%llx", addr, size);
-        }
+//        if (address == 0x10040E6B8) {
+//            uint64_t x0;
+//            ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
+//
+//            uint64_t machOHeader = 0;
+//            ensure_uc_mem_read(x0 + 8, &machOHeader, 8);
+//            comments = StringUtils::format("_getObjc2ClassList, module_ptr = 0x%llx, machoHeader = 0x%llx", x0, machOHeader);
+//        } else if (address == 0x10040E6F4) {
+//            uint64_t size, addr;
+//            ensure_uc_reg_read(UC_ARM64_REG_X8, &size);
+//            ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
+//            comments = StringUtils::format("_getObjc2ClassList, section __DATA.__objc_classlist addr 0x%llx, size 0x%llx", addr, size);
+//        }
     }
     
     if (targetAddr > 0) {
@@ -104,17 +104,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     if (module) {
         Symbol *sym = module->getSymbolByAddress(address);
         if (sym && sym->name.length() > 0) {
-            bufferedLog += StringUtils::format("[Stalker] 0x%08llx: %s:\n", address, sym->name.c_str());
-            if (sym->name == "_free") {
-                uint64_t x0;
-                ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
-                comments += StringUtils::format("(free ptr at 0x%llx)", x0);
-            } else if (sym->name == "_large_entry_for_pointer_no_lock") {
-                uint64_t x0, x1;
-                ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
-                ensure_uc_reg_read(UC_ARM64_REG_X1, &x1);
-                comments += StringUtils::format("(free zone at 0x%llx, ptr at 0x%llx)", x0, x1);
-            }
+            bufferedLog += StringUtils::format("[Stalker] ------ callee: 0x%08llx: %s:\n", address, sym->name.c_str());
         } else {
             Symbol *sym = module->getSymbolNearByAddress(address);
             if (sym && sym->name.length() > 0) {
@@ -185,8 +175,8 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
-//    static set<string> blackListModule{"CoreFoundation", "libobjc.dylib", "Security", "libsystem_configuration.dylib", "libremovefile.dylib", "libcopyfile.dylib"};
-    static set<string> blackListModule{};
+    static set<string> blackListModule{"Security", /*"CoreFoundation", "libobjc.dylib",*/ "libsystem_configuration.dylib", "libremovefile.dylib", "libcopyfile.dylib"};
+//    static set<string> blackListModule{};
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
         return;
