@@ -24,7 +24,8 @@ using namespace iblessing;
 
 #define IB_FD_URANDOM 3
 #define IB_FD_PASSWD  4
-#define IB_FD_BOUND   4
+#define IB_FD_CWD     5
+#define IB_FD_BOUND   5
 
 uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t mask, uint64_t size, int prot, int flags, int fd, int offset) {
     uint64_t aligned_size = ((size - 1) / 16384 + 1) * 16384;
@@ -197,6 +198,41 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 uint64_t alignedLength = IB_AlignSize(length + offset, 0x4000);
                 uc_err err = uc_mem_protect(uc, alignedAddr, alignedLength, prot);
                 assert(err == UC_ERR_OK);
+                syscall_return_success;
+                return true;
+            }
+            case 58: { // readlink
+                uint64_t pathAddr, bufAddr;
+                int bufSize;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &bufAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &bufSize);
+                
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                assert(path != nullptr);
+                if (strcmp(path, "/var/db/timezone/localtime") == 0) {
+                    free(path);
+                    path = strdup("/var/db/timezone/zoneinfo/Asia/Shanghai");
+                    size_t pathLen = strlen(path) + 1;
+                    assert(bufSize >= pathLen);
+                    uint64_t null64 = 0;
+                    ensure_uc_mem_write(bufAddr, path, pathLen);
+                    ensure_uc_mem_write(bufAddr + pathLen, &null64, 1);
+                    free(path);
+                    syscall_return_value((int)(pathLen + 1))
+                } else {
+                    assert(false);
+                }
+                return true;
+            }
+            case 116: { // gettimeofday
+                // FATAL FIXME: timeval struct cross platform
+                struct timeval tp;
+                gettimeofday(&tp, NULL);
+                uint64_t tpAddr = 0;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &tpAddr);
+                assert(tpAddr != 0);
+                ensure_uc_mem_write(tpAddr, &tp, sizeof(timeval));
                 syscall_return_success;
                 return true;
             }
@@ -406,6 +442,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     count = (int)strlen(passwd);
                     ensure_uc_mem_write(bufferAddr, passwd, count);
                     free(passwd);
+                } else if (fd == IB_FD_CWD) {
+                    char *content = strdup("/");
+                    assert(strlen(content) < count);
+                    count = (int)strlen(content);
+                    ensure_uc_mem_write(bufferAddr, content, count);
+                    free(content);
                 } else {
                     assert(false);
                 }
@@ -441,6 +483,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     fd = IB_FD_URANDOM;
                 } else if (strcmp(path, "/etc/passwd") == 0) {
                     fd = IB_FD_PASSWD;
+                } else if (strcmp(path, ".") == 0) {
+                    fd = IB_FD_CWD;
                 } else {
                     assert(false);
                 }
@@ -457,7 +501,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             case 399: { // close_NOCANCEL
                 int fd;
                 ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
-                assert(fd == IB_FD_URANDOM || fd == IB_FD_PASSWD);
+                assert(fd == IB_FD_URANDOM || fd == IB_FD_PASSWD || fd == IB_FD_CWD);
                 printf("[Stalker][+] handle close_NOCANCEL with fd %d\n", fd);
                 return true;
             }
@@ -518,6 +562,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X1, &addr);
                 ensure_uc_reg_read(UC_ARM64_REG_X2, &size);
                 printf("[Stalker][+][Mach] mach_vm_deallocate for task %d at 0x%llx, size 0x%llx\n", target, addr, size);
+                assert(uc_mem_unmap(uc, addr, size) == UC_ERR_OK);
                 syscall_return_success;
                 return true;
             }

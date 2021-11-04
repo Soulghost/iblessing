@@ -28,6 +28,8 @@ using namespace iblessing;
 int main(int argc, const char *argv[]) {
     string modulePath = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample";
     string entry = "_test_malloc";
+//    entry = "_listClasses";
+    entry = "_testObjc";
     
 #if 0
     modulePath = "/Users/soulghost/Desktop/git/unidbg/unidbg-ios/src/test/resources/native/macos/cpp/a12z_ios";
