@@ -120,6 +120,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     
     purgeBufferedLog(1024 * 1024);
     free(codes);
+    cs_free(insn, count);
 }
 
 static void uc_hookintr_callback(uc_engine *uc, uint32_t intno, void *user_data) {
