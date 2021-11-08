@@ -25,6 +25,8 @@
 		68666DAF25288B710014BC91 /* NSString+IBS.m in Sources */ = {isa = PBXBuildFile; fileRef = 68666DAE25288B710014BC91 /* NSString+IBS.m */; };
 		6877275C271C07680081A4DA /* macho-memory-manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6877275A271C07680081A4DA /* macho-memory-manager.cpp */; };
 		6877275D271C07680081A4DA /* macho-memory-manager.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6877275B271C07680081A4DA /* macho-memory-manager.hpp */; };
+		68892F9A2734DF92000095A2 /* buffered_logger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68892F982734DF92000095A2 /* buffered_logger.cpp */; };
+		68892F9B2734DF92000095A2 /* buffered_logger.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68892F992734DF92000095A2 /* buffered_logger.hpp */; };
 		6895A1C2268A0C2400EE558D /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6895A1C1268A0C2400EE558D /* main.cpp */; };
 		6895A1C6268A0C3800EE558D /* libiblessing-core.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */; };
 		6895A1C7268A0C5000EE558D /* classdump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E0EF263BAB51000642F5 /* classdump.cpp */; };
@@ -312,6 +314,8 @@
 		6877B7822514913000227CFF /* ProgramState.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramState.hpp; sourceTree = "<group>"; };
 		6877B784251492C500227CFF /* ProgramStateManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProgramStateManager.cpp; sourceTree = "<group>"; };
 		6877B785251492C500227CFF /* ProgramStateManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramStateManager.hpp; sourceTree = "<group>"; };
+		68892F982734DF92000095A2 /* buffered_logger.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = buffered_logger.cpp; sourceTree = "<group>"; };
+		68892F992734DF92000095A2 /* buffered_logger.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = buffered_logger.hpp; sourceTree = "<group>"; };
 		6894E0E1263BA97C000642F5 /* mach-o.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "mach-o.cpp"; sourceTree = "<group>"; };
 		6894E0E2263BA97C000642F5 /* mach-o.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "mach-o.hpp"; sourceTree = "<group>"; };
 		6894E0EF263BAB51000642F5 /* classdump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = classdump.cpp; sourceTree = "<group>"; };
@@ -524,6 +528,7 @@
 		68446FFE26D7BAD500FE4D70 /* v3 */ = {
 			isa = PBXGroup;
 			children = (
+				68892F932734DF66000095A2 /* log */,
 				68772759271C07420081A4DA /* memory */,
 				68A44D43270C472700C91CC6 /* debugger */,
 				68EC527F2701DB9F003D9148 /* posix */,
@@ -956,6 +961,15 @@
 			path = state;
 			sourceTree = "<group>";
 		};
+		68892F932734DF66000095A2 /* log */ = {
+			isa = PBXGroup;
+			children = (
+				68892F982734DF92000095A2 /* buffered_logger.cpp */,
+				68892F992734DF92000095A2 /* buffered_logger.hpp */,
+			);
+			path = log;
+			sourceTree = "<group>";
+		};
 		6894E0E0263BA963000642F5 /* v2 */ = {
 			isa = PBXGroup;
 			children = (
@@ -1313,6 +1327,7 @@
 				6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */,
 				68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */,
 				68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */,
+				68892F9B2734DF92000095A2 /* buffered_logger.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1546,6 +1561,7 @@
 				68B255CF26401EDE008FA1E2 /* CoreFoundation.cpp in Sources */,
 				68B255D426401EE9008FA1E2 /* mach-universal.cpp in Sources */,
 				68B255D926401EF0008FA1E2 /* Foundation.cpp in Sources */,
+				68892F9A2734DF92000095A2 /* buffered_logger.cpp in Sources */,
 				68B255DE26401EFB008FA1E2 /* Symbol.cpp in Sources */,
 				68B255DF26401EFB008FA1E2 /* StringTable.cpp in Sources */,
 				68B255E026401EFB008FA1E2 /* SymbolTable.cpp in Sources */,

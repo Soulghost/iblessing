@@ -9,6 +9,7 @@
 #include "aarch64-machine.hpp"
 #include "ib_pthread.hpp"
 #include "uc_debugger_utils.hpp"
+#include "buffered_logger.hpp"
 #include <iblessing-core/v2/util/StringUtils.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
 
@@ -31,18 +32,7 @@ static bool isCallModule = false;
 static uint64_t callReturnMagicAddr = 0x1fee1c01dbbb;
 static bool hitModuleReturn = false;
 
-static string bufferedLog = "";
-static void purgeBufferedLog(size_t limit) {
-    if (__builtin_expect(bufferedLog.length() > limit, false)) {
-//        printf("%s", bufferedLog.c_str());
-        bufferedLog = "";
-    }
-}
-
-static void printBufferedLog() {
-    printf("%s", bufferedLog.c_str());
-    bufferedLog = "";
-}
+static uint64_t callFunctionLR = 0x1fee11337aaa;
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     void *codes = malloc(sizeof(uint32_t));
@@ -101,10 +91,11 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     }
     
     shared_ptr<MachOModule> module = uc2instance[uc]->loader->findModuleByAddr(address);
+    BufferedLogger *logger = BufferedLogger::globalLogger();
     if (module) {
         Symbol *sym = module->getSymbolByAddress(address);
         if (sym && sym->name.length() > 0) {
-            bufferedLog += StringUtils::format("[Stalker] ------ callee: 0x%08llx: %s:\n", address, sym->name.c_str());
+            logger->append(StringUtils::format("[Stalker] ------ callee: 0x%08llx: %s:\n", address, sym->name.c_str()));
         } else {
             Symbol *sym = module->getSymbolNearByAddress(address);
             if (sym && sym->name.length() > 0) {
@@ -112,13 +103,12 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             }
         }
         if (module->name != "libdyld.dylib") {
-            bufferedLog += StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr);
+            logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
         }
     } else {
-        bufferedLog += StringUtils::format("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str());
+        logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str()));
     }
     
-    purgeBufferedLog(1024 * 1024);
     free(codes);
     cs_free(insn, count);
 }
@@ -158,7 +148,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 ////        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
 //        assert(false);
 //    }
-    printBufferedLog();
+    BufferedLogger::globalLogger()->printBuffer();
     hitZeroRET = false;
     if (type == UC_MEM_FETCH_UNMAPPED) {
         if (ignoreZeroRET && address == zeroRETMagicAddr) {
@@ -252,6 +242,80 @@ static uint64_t uc_alloca(uint64_t sp, uint64_t size) {
     return sp;
 }
 
+enum Aarch64FunctionCallArgType {
+    Aarch64FunctionCallArgTypeVoid = 0,
+    Aarch64FunctionCallArgTypeInt64,
+    Aarch64FunctionCallArgTypeInt32,
+    Aarch64FunctionCallArgTypeCString
+};
+
+typedef struct Aarch64FunctionCallArg {
+    Aarch64FunctionCallArgType type;
+    void *data;
+    
+    Aarch64FunctionCallArg() {
+        type = Aarch64FunctionCallArgTypeVoid;
+        data = NULL;
+    }
+    
+    Aarch64FunctionCallArg(uint64_t val) {
+        type = Aarch64FunctionCallArgTypeInt64;
+        data = &val;
+    }
+    
+    static Aarch64FunctionCallArg voidArg() {
+        Aarch64FunctionCallArg arg;
+        return arg;
+    }
+} Aarch64FunctionCallArg;
+
+static uint64_t callFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCallArg returnValue, vector<Aarch64FunctionCallArg> args) {
+    ensure_uc_reg_write(UC_ARM64_REG_LR, &callFunctionLR);
+    for (size_t i = 0; i < args.size(); i++) {
+        Aarch64FunctionCallArg &arg = args[i];
+        uc_arm64_reg reg;
+        switch (arg.type) {
+            case Aarch64FunctionCallArgTypeInt64: {
+                reg = (uc_arm64_reg)((int)UC_ARM64_REG_X0 + i);
+                ensure_uc_reg_write(reg, arg.data);
+                break;
+            }
+            case Aarch64FunctionCallArgTypeInt32: {
+                reg = (uc_arm64_reg)((int)UC_ARM64_REG_W0 + i);
+                ensure_uc_reg_write(reg, arg.data);
+                break;
+            }
+            default:
+                assert(false);
+                break;
+        }
+    }
+    BufferedLogger *logger = BufferedLogger::globalLogger();
+    logger->purgeBuffer(0);
+    uc_err err = uc_emu_start(uc, function, callFunctionLR, 0, 0);
+    logger->printBuffer();
+    assert(err == UC_ERR_OK);
+    
+    switch (returnValue.type) {
+        case Aarch64FunctionCallArgTypeVoid: {
+            return 0;
+        }
+        case Aarch64FunctionCallArgTypeInt64: {
+            uint64_t x0;
+            ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
+            return x0;
+        }
+        case Aarch64FunctionCallArgTypeInt32: {
+            uint32_t w0;
+            ensure_uc_reg_read(UC_ARM64_REG_W0, &w0);
+            return w0;
+        }
+        default:
+            assert(false);
+    }
+    return 0;
+}
+
 int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName) {
     uc2instance[this->uc] = this;
     if (symbolName.length() == 0) {
@@ -283,6 +347,12 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // init context
     uint64_t unicorn_sp_start = UnicornStackTopAddr;
     uint64_t sp = unicorn_sp_start;
+    
+    // setup common text
+    uint32_t nopCode = 0xd503201f;
+    sp = uc_alloca(sp, sizeof(uint32_t));
+    callFunctionLR = sp;
+    ensure_uc_mem_write(callFunctionLR, &nopCode, sizeof(uint32_t));
     
     /**
         setup vars
@@ -389,6 +459,14 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
 //        module->hasInit = true;
 //        continue;
 //    }
+    // init log function
+    shared_ptr<MachOModule> foundationModule = loader->findModuleByName("Foundation");
+    Symbol *_NSSetLogCStringFunction = foundationModule->getSymbolByName("__NSSetLogCStringFunction", false);
+    uint64_t _NSSetLogCStringFunction_addr = _NSSetLogCStringFunction->info->n_value;
+    callFunction(uc, _NSSetLogCStringFunction_addr, Aarch64FunctionCallArg::voidArg(), {0x8888});
+    
+    
+    // init modules
     for (shared_ptr<MachOModule> module : loader->modules) {
         initModule(module, initEnv);
         break;
@@ -404,7 +482,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     if (hitModuleReturn && err == UC_ERR_FETCH_UNMAPPED) {
         err = UC_ERR_OK;
     }
-    printBufferedLog();
+    BufferedLogger::globalLogger()->printBuffer();
     printf("[*] execute in engine result %s\n", uc_strerror(err));
     return 0;
 }

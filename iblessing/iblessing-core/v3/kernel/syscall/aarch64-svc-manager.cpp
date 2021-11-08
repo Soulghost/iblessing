@@ -13,6 +13,7 @@
 #include "aarch64-machine.hpp"
 #include "macho-memory.hpp"
 #include "uc_debugger_utils.hpp"
+#include "buffered_logger.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -850,6 +851,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         return true;
                     }
                     default:
+                        BufferedLogger::globalLogger()->printBuffer();
                         assert(false);
                         break;
                 }
@@ -869,6 +871,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 break;
         }
     }
+    
+    BufferedLogger::globalLogger()->printBuffer();
     assert(false);
     return false;
 }
