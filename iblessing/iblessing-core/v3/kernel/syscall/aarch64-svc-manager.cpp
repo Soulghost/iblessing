@@ -506,6 +506,15 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 printf("[Stalker][+] handle close_NOCANCEL with fd %d\n", fd);
                 return true;
             }
+            case 406: { // fcntl_NOCANCEL
+                int fd, cmd;
+                uint64_t arg;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &cmd);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &arg);
+                assert(false);
+                return true;
+            }
             case 0x80000000: { // pthread_set_self
                 uint64_t x3 = 0;
                 assert(uc_reg_read(uc, UC_ARM64_REG_X3, &x3) == UC_ERR_OK);

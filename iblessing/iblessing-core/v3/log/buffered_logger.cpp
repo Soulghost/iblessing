@@ -8,7 +8,7 @@
 
 #include "buffered_logger.hpp"
 
-#define DefaultPurgeLimit (10 * 1024 * 1024)
+#define DefaultPurgeLimit (2 * 1024 * 1024)
 
 using namespace std;
 using namespace iblessing;

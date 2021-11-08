@@ -10,6 +10,7 @@
 #include "ib_pthread.hpp"
 #include "uc_debugger_utils.hpp"
 #include "buffered_logger.hpp"
+#include "macho-memory.hpp"
 #include <iblessing-core/v2/util/StringUtils.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
 
@@ -22,225 +23,7 @@ static map<uc_engine *, Aarch64Machine *> uc2instance;
 // create disasm handle
 static csh cs_handle;
 static uc_hook insn_hook, intr_hook, memexp_hook;
-
-// FIXME: dirty trick
-static bool ignoreZeroRET = false;
-static uint64_t zeroRETMagicAddr = 0x1fee1c01daaa;
-static bool hitZeroRET = false;
-
-static bool isCallModule = false;
-static uint64_t callReturnMagicAddr = 0x1fee1c01dbbb;
-static bool hitModuleReturn = false;
-
 static uint64_t callFunctionLR = 0x1fee11337aaa;
-
-static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
-    void *codes = malloc(sizeof(uint32_t));
-    uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
-    if (err != UC_ERR_OK) {
-        free(codes);
-        return;
-    }
-
-    cs_insn *insn = nullptr;
-    size_t count = cs_disasm(cs_handle, (uint8_t *)codes, 4, address, 0, &insn);
-    if (count != 1) {
-        if (insn && count > 0) {
-            cs_free(insn, count);
-        }
-        free(codes);
-        assert(false);
-        return;
-    }
-    
-    string comments = "";
-    uint64_t targetAddr = 0;
-    if (strcmp(insn->mnemonic, "br") == 0 ||
-        strcmp(insn->mnemonic, "blr") == 0) {
-        uint64_t regValue = 0;
-        assert(uc_reg_read(uc, insn->detail->arm64.operands[0].reg, &regValue) == UC_ERR_OK);
-        comments = StringUtils::format("#0x%llx", regValue);
-        assert(regValue != 0);
-        targetAddr = regValue;
-    } else if (strcmp(insn->mnemonic, "b") == 0 ||
-               strncmp(insn->mnemonic, "b.", 2) == 0 ||
-               strcmp(insn->mnemonic, "bl") == 0) {
-        assert(insn->detail->arm64.operands[0].type == ARM64_OP_IMM);
-        targetAddr = insn->detail->arm64.operands[0].imm;
-    } else {
-//        if (address == 0x10040E6B8) {
-//            uint64_t x0;
-//            ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
-//
-//            uint64_t machOHeader = 0;
-//            ensure_uc_mem_read(x0 + 8, &machOHeader, 8);
-//            comments = StringUtils::format("_getObjc2ClassList, module_ptr = 0x%llx, machoHeader = 0x%llx", x0, machOHeader);
-//        } else if (address == 0x10040E6F4) {
-//            uint64_t size, addr;
-//            ensure_uc_reg_read(UC_ARM64_REG_X8, &size);
-//            ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
-//            comments = StringUtils::format("_getObjc2ClassList, section __DATA.__objc_classlist addr 0x%llx, size 0x%llx", addr, size);
-//        }
-    }
-    
-    if (targetAddr > 0) {
-        Symbol *sym = uc2instance[uc]->loader->getSymbolByAddress(targetAddr);
-        if (sym && sym->name.length() > 0) {
-            comments += StringUtils::format(" ; target = %s, ", sym->name.c_str());
-        }
-    }
-    
-    shared_ptr<MachOModule> module = uc2instance[uc]->loader->findModuleByAddr(address);
-    BufferedLogger *logger = BufferedLogger::globalLogger();
-    if (module) {
-        Symbol *sym = module->getSymbolByAddress(address);
-        if (sym && sym->name.length() > 0) {
-            logger->append(StringUtils::format("[Stalker] ------ callee: 0x%08llx: %s:\n", address, sym->name.c_str()));
-        } else {
-            Symbol *sym = module->getSymbolNearByAddress(address);
-            if (sym && sym->name.length() > 0) {
-                comments += StringUtils::format("(in %s)", sym->name.c_str());
-            }
-        }
-        if (module->name != "libdyld.dylib") {
-            logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
-        }
-    } else {
-        logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str()));
-    }
-    
-    free(codes);
-    cs_free(insn, count);
-}
-
-static void uc_hookintr_callback(uc_engine *uc, uint32_t intno, void *user_data) {
-    void *codes = malloc(sizeof(uint32_t));
-    uint64_t pc = 0;
-    assert(uc_reg_read(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
-    uc_err err = uc_mem_read(uc, pc, codes, sizeof(uint32_t));
-    if (err != UC_ERR_OK) {
-        free(codes);
-        return;
-    }
-    
-    uint32_t code;
-    assert(uc_mem_read(uc, pc - sizeof(uint32_t), &code, 4) == UC_ERR_OK);
-    
-    uint32_t swi = (code >> 5) & 0xffff;
-    Aarch64Machine *that = uc2instance[uc];
-    assert(that->svcManager->handleSVC(uc, intno, swi, user_data) == true);
-    free(codes);
-}
-
-static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_t address, int size, int64_t value, void *user_data) {
-//    if (type == UC_MEM_READ_UNMAPPED || type == UC_MEM_WRITE_UNMAPPED) {
-//#define UC_PAGE_SIZE 0x1000
-//        uint64_t page_begin = address & ~(UC_PAGE_SIZE - 1);
-//        uc_mem_map(uc, page_begin, UC_PAGE_SIZE, UC_PROT_READ | UC_PROT_WRITE);
-//        
-//        // FIXME: fill zero
-//        void *dummy_bytes = calloc(1, size);
-//        uc_mem_write(uc, address, dummy_bytes, size);
-//        return true;
-//    } else if (type == UC_MEM_FETCH_UNMAPPED) {
-//        // FIXME: pthread [Stalker] 0x100f38410 mrs x8, tpidrro_el0 ;
-//        // see unidbg-ios/src/main/java/com/github/unidbg/ios/MachOLoader.java initializeTSD
-////        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
-//        assert(false);
-//    }
-    BufferedLogger::globalLogger()->printBuffer();
-    hitZeroRET = false;
-    if (type == UC_MEM_FETCH_UNMAPPED) {
-        if (ignoreZeroRET && address == zeroRETMagicAddr) {
-            printf("Warn: [*] ignore zero return ~~\n");
-            hitZeroRET = true;
-            return false;
-        } else if (isCallModule && address == callReturnMagicAddr) {
-            printf("Warn: [*] module return ~~\n");
-            hitModuleReturn = true;
-            return false;
-        }
-    }
-    assert(false);
-    return false;
-}
-
-void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
-    static set<string> blackListModule{"Security", /*"CoreFoundation", "libobjc.dylib",*/ "libsystem_configuration.dylib", "libremovefile.dylib", "libcopyfile.dylib"};
-//    static set<string> blackListModule{};
-    if (blackListModule.find(module->name) != blackListModule.end()) {
-        module->hasInit = true;
-        return;
-    }
-    
-    if (module->hasInit) {
-        return;
-    }
-    module->hasInit = true;
-    printf("[+] init module %s\n", module->name.c_str());
-    // FIXME: vars, envs
-    printf("  [+] process routines\n");
-    for (MachORoutine &routine: module->routines) {
-        uint64_t addr = routine.addr;
-        printf("  [*] execute routine in engine, pc = 0x%llx\n", addr);
-        ignoreZeroRET = true;
-        hitZeroRET = false;
-        uc_err err = uc_emu_start(uc, addr, 0, 0, 0);
-        printf("  [*] execute routine in engine result %s\n", uc_strerror(err));
-        ignoreZeroRET = false;
-        if (err != UC_ERR_OK) {
-            if (!hitZeroRET) {
-                assert(false);
-            } else {
-                hitZeroRET = false;
-            }
-        }
-    }
-    printf("  [+] process mod_init_funcs\n");
-    for (MachODynamicLibrary &lib : module->dynamicLibraryDependencies) {
-        shared_ptr<MachOModule> dependModule = loader->findModuleByName(lib.name);
-        assert(dependModule != nullptr);
-        initModule(dependModule, env);
-    }
-    
-    // FIXME: vars
-    for (MachOModInitFunc &initFunc : module->modInitFuncs) {
-        uint64_t addr = initFunc.addr;
-        printf("  [*] execute mod_init_func in engine, pc = 0x%llx\n", addr);
-        // FIXME: set mach_header
-        // argc
-        uint64_t nullval = 0;
-        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &nullval) == UC_ERR_OK);
-        // argv
-        assert(uc_reg_write(uc, UC_ARM64_REG_X1, &nullval) == UC_ERR_OK);
-        // envp
-        assert(uc_reg_write(uc, UC_ARM64_REG_X2, &nullval) == UC_ERR_OK);
-        // apple
-        assert(uc_reg_write(uc, UC_ARM64_REG_X3, &nullval) == UC_ERR_OK);
-        // vars
-        assert(uc_reg_write(uc, UC_ARM64_REG_X4, &env.varsAddr) == UC_ERR_OK);
-        
-        hitZeroRET = false;
-        ignoreZeroRET = true;
-        assert(uc_reg_write(uc, UC_ARM64_REG_LR, &zeroRETMagicAddr) == UC_ERR_OK);
-        uc_err err = uc_emu_start(uc, addr, zeroRETMagicAddr, 0, 0);
-        ignoreZeroRET = false;
-        printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
-        if (err != UC_ERR_OK) {
-            if (!hitZeroRET) {
-                assert(false);
-            } else {
-                hitZeroRET = false;
-            }
-        }
-    }
-}
-
-static uint64_t uc_alloca(uint64_t sp, uint64_t size) {
-    sp -= size;
-    sp &= (~15);
-    return sp;
-}
 
 enum Aarch64FunctionCallArgType {
     Aarch64FunctionCallArgTypeVoid = 0,
@@ -314,6 +97,191 @@ static uint64_t callFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCa
             assert(false);
     }
     return 0;
+}
+
+static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
+    void *codes = malloc(sizeof(uint32_t));
+    uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
+    if (err != UC_ERR_OK) {
+        free(codes);
+        return;
+    }
+
+    cs_insn *insn = nullptr;
+    size_t count = cs_disasm(cs_handle, (uint8_t *)codes, 4, address, 0, &insn);
+    if (count != 1) {
+        if (insn && count > 0) {
+            cs_free(insn, count);
+        }
+        free(codes);
+        assert(false);
+        return;
+    }
+    
+    string comments = "";
+    uint64_t targetAddr = 0;
+    if (strcmp(insn->mnemonic, "br") == 0 ||
+        strcmp(insn->mnemonic, "blr") == 0) {
+        uint64_t regValue = 0;
+        assert(uc_reg_read(uc, insn->detail->arm64.operands[0].reg, &regValue) == UC_ERR_OK);
+        comments = StringUtils::format("#0x%llx", regValue);
+        assert(regValue != 0);
+        targetAddr = regValue;
+    } else if (strcmp(insn->mnemonic, "b") == 0 ||
+               strncmp(insn->mnemonic, "b.", 2) == 0 ||
+               strcmp(insn->mnemonic, "bl") == 0) {
+        assert(insn->detail->arm64.operands[0].type == ARM64_OP_IMM);
+        targetAddr = insn->detail->arm64.operands[0].imm;
+    } else {
+//        if (address == 0x10040E6B8) {
+//            uint64_t x0;
+//            ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
+//
+//            uint64_t machOHeader = 0;
+//            ensure_uc_mem_read(x0 + 8, &machOHeader, 8);
+//            comments = StringUtils::format("_getObjc2ClassList, module_ptr = 0x%llx, machoHeader = 0x%llx", x0, machOHeader);
+//        } else if (address == 0x10040E6F4) {
+//            uint64_t size, addr;
+//            ensure_uc_reg_read(UC_ARM64_REG_X8, &size);
+//            ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
+//            comments = StringUtils::format("_getObjc2ClassList, section __DATA.__objc_classlist addr 0x%llx, size 0x%llx", addr, size);
+//        }
+    }
+    
+//    if (address == 0x100CE7338) {
+//        uint64_t x1;
+//        ensure_uc_reg_read(UC_ARM64_REG_X1, &x1);
+//        char *serviceName = MachoMemoryUtils::uc_read_string(uc, x1, 1000);
+//        printf("[Stalker][STDOUT][Launch] bootstrap lookup for service %s\n", serviceName);
+//    }
+    
+    if (targetAddr > 0) {
+        Symbol *sym = uc2instance[uc]->loader->getSymbolByAddress(targetAddr);
+        if (sym && sym->name.length() > 0) {
+            comments += StringUtils::format(" ; target = %s, ", sym->name.c_str());
+        }
+    }
+    
+    shared_ptr<MachOModule> module = uc2instance[uc]->loader->findModuleByAddr(address);
+    BufferedLogger *logger = BufferedLogger::globalLogger();
+    if (module) {
+        Symbol *sym = module->getSymbolByAddress(address);
+        if (sym && sym->name.length() > 0) {
+            logger->append(StringUtils::format("[Stalker] ------ callee: 0x%08llx: %s:\n", address, sym->name.c_str()));
+        } else {
+            Symbol *sym = module->getSymbolNearByAddress(address);
+            if (sym && sym->name.length() > 0) {
+                comments += StringUtils::format("(in %s)", sym->name.c_str());
+            }
+        }
+        if (module->name != "libdyld.dylib") {
+            logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
+        }
+    } else {
+        logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str()));
+    }
+    
+    free(codes);
+    cs_free(insn, count);
+}
+
+static void uc_hookintr_callback(uc_engine *uc, uint32_t intno, void *user_data) {
+    void *codes = malloc(sizeof(uint32_t));
+    uint64_t pc = 0;
+    assert(uc_reg_read(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
+    uc_err err = uc_mem_read(uc, pc, codes, sizeof(uint32_t));
+    if (err != UC_ERR_OK) {
+        free(codes);
+        return;
+    }
+    
+    uint32_t code;
+    assert(uc_mem_read(uc, pc - sizeof(uint32_t), &code, 4) == UC_ERR_OK);
+    
+    uint32_t swi = (code >> 5) & 0xffff;
+    Aarch64Machine *that = uc2instance[uc];
+    assert(that->svcManager->handleSVC(uc, intno, swi, user_data) == true);
+    free(codes);
+}
+
+static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_t address, int size, int64_t value, void *user_data) {
+//    if (type == UC_MEM_READ_UNMAPPED || type == UC_MEM_WRITE_UNMAPPED) {
+//#define UC_PAGE_SIZE 0x1000
+//        uint64_t page_begin = address & ~(UC_PAGE_SIZE - 1);
+//        uc_mem_map(uc, page_begin, UC_PAGE_SIZE, UC_PROT_READ | UC_PROT_WRITE);
+//        
+//        // FIXME: fill zero
+//        void *dummy_bytes = calloc(1, size);
+//        uc_mem_write(uc, address, dummy_bytes, size);
+//        return true;
+//    } else if (type == UC_MEM_FETCH_UNMAPPED) {
+//        // FIXME: pthread [Stalker] 0x100f38410 mrs x8, tpidrro_el0 ;
+//        // see unidbg-ios/src/main/java/com/github/unidbg/ios/MachOLoader.java initializeTSD
+////        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
+//        assert(false);
+//    }
+    BufferedLogger::globalLogger()->printBuffer();
+    assert(false);
+    return false;
+}
+
+void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
+//    static set<string> blackListModule{"Security", /*"CoreFoundation", "libobjc.dylib",*/ /*"libsystem_configuration.dylib"*/ "libremovefile.dylib", "libcopyfile.dylib"};
+    static set<string> blackListModule{"Security"};
+    if (blackListModule.find(module->name) != blackListModule.end()) {
+        module->hasInit = true;
+        return;
+    }
+    
+    if (module->hasInit) {
+        return;
+    }
+    
+    // FIXME: upward library
+    module->hasInit = true;
+    printf("[+] init module %s\n", module->name.c_str());
+    // FIXME: vars, envs
+    printf("  [+] process routines\n");
+    for (MachORoutine &routine: module->routines) {
+        uint64_t addr = routine.addr;
+        printf("  [*] execute routine in engine, pc = 0x%llx\n", addr);
+        callFunction(uc, addr, Aarch64FunctionCallArg::voidArg(), {});
+    }
+    printf("  [+] process mod_init_funcs\n");
+    for (MachODynamicLibrary &lib : module->dynamicLibraryDependencies) {
+        shared_ptr<MachOModule> dependModule = loader->findModuleByName(lib.name);
+        assert(dependModule != nullptr);
+        initModule(dependModule, env);
+    }
+    
+    // FIXME: vars
+    for (MachOModInitFunc &initFunc : module->modInitFuncs) {
+        uint64_t addr = initFunc.addr;
+        printf("  [*] execute mod_init_func in engine, pc = 0x%llx\n", addr);
+        // FIXME: set mach_header
+        // argc
+        uint64_t nullval = 0;
+        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &nullval) == UC_ERR_OK);
+        // argv
+        assert(uc_reg_write(uc, UC_ARM64_REG_X1, &nullval) == UC_ERR_OK);
+        // envp
+        assert(uc_reg_write(uc, UC_ARM64_REG_X2, &nullval) == UC_ERR_OK);
+        // apple
+        assert(uc_reg_write(uc, UC_ARM64_REG_X3, &nullval) == UC_ERR_OK);
+        // vars
+        assert(uc_reg_write(uc, UC_ARM64_REG_X4, &env.varsAddr) == UC_ERR_OK);
+        
+        assert(uc_reg_write(uc, UC_ARM64_REG_LR, &callFunctionLR) == UC_ERR_OK);
+        uc_err err = uc_emu_start(uc, addr, callFunctionLR, 0, 0);
+        printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
+        assert(err == UC_ERR_OK);
+    }
+}
+
+static uint64_t uc_alloca(uint64_t sp, uint64_t size) {
+    sp -= size;
+    sp &= (~15);
+    return sp;
 }
 
 int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName) {
@@ -469,20 +437,14 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // init modules
     for (shared_ptr<MachOModule> module : loader->modules) {
         initModule(module, initEnv);
-        break;
     }
     
     // fake a stop addr
-    assert(uc_reg_write(uc, UC_ARM64_REG_LR, &callReturnMagicAddr) == UC_ERR_OK);
+    assert(uc_reg_write(uc, UC_ARM64_REG_LR, &callFunctionLR) == UC_ERR_OK);
     printf("[*] execute in engine, pc = 0x%llx\n", symbolAddr);
-    hitModuleReturn = false;
-    isCallModule = true;
-    uc_err err = uc_emu_start(uc, symbolAddr, callReturnMagicAddr, 0, 0);
-    isCallModule = false;
-    if (hitModuleReturn && err == UC_ERR_FETCH_UNMAPPED) {
-        err = UC_ERR_OK;
-    }
+    uc_err err = uc_emu_start(uc, symbolAddr, callFunctionLR, 0, 0);
     BufferedLogger::globalLogger()->printBuffer();
     printf("[*] execute in engine result %s\n", uc_strerror(err));
+    assert(err == UC_ERR_OK);
     return 0;
 }
