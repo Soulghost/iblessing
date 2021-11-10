@@ -73,24 +73,28 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64
             // NOTICE: ignore export symbol
             if (li->n_value != 0) {
                 li->n_value += moduleBase;
-                if (symName == "_malloc") {
-                    
-                }
-                if (exportSymbols.find(symName) != exportSymbols.end()) {
-                    if (exportSymbols[symName].other == li->n_value) {
-//                        symbolMap.insert(li->n_value, symbol);
-//                        name2symbol[symName].pushBack(symbol);
-//                        symbol->release();
-                        assert(false);
-                    } else {
-                        symbolMap.insert(li->n_value, symbol);
-                        name2symbol[symName].pushBack(symbol);
-                        symbol->release();
-                    }
-                    exportSymbols.erase(symName);
-                    printf("[*] ignore export symbol %s in %s\n", symName.c_str(), moduleName.c_str());
+                if (exportSymbols.size() == 0) {
+                    // add symbol directly
+                    symbolMap.insert(li->n_value, symbol);
+                    name2symbol[symName].pushBack(symbol);
+                    symbol->release();
                 } else {
-                    
+                    if (exportSymbols.find(symName) != exportSymbols.end()) {
+                        if (exportSymbols[symName].other == li->n_value) {
+    //                        symbolMap.insert(li->n_value, symbol);
+    //                        name2symbol[symName].pushBack(symbol);
+    //                        symbol->release();
+                            assert(false);
+                        } else {
+                            symbolMap.insert(li->n_value, symbol);
+                            name2symbol[symName].pushBack(symbol);
+                            symbol->release();
+                        }
+                        exportSymbols.erase(symName);
+                        printf("[*] ignore export symbol %s in %s\n", symName.c_str(), moduleName.c_str());
+                    } else {
+                        // filter symbol, do nothing?
+                    }
                 }
             }
         } else if (type == IB_N_INDR) {
