@@ -226,8 +226,8 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
-//    static set<string> blackListModule{"Security", /*"CoreFoundation", "libobjc.dylib",*/ /*"libsystem_configuration.dylib"*/ "libremovefile.dylib", "libcopyfile.dylib"};
-    static set<string> blackListModule{"Security"};
+    static set<string> blackListModule{"Security", /*"CoreFoundation", "libobjc.dylib", "libsystem_configuration.dylib", "libremovefile.dylib", "libcopyfile.dylib"*/};
+//    static set<string> blackListModule{};
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
         return;
@@ -236,9 +236,6 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
     if (module->hasInit) {
         return;
     }
-    
-    // FIXME: upward library
-    module->hasInit = true;
     printf("[+] init module %s\n", module->name.c_str());
     // FIXME: vars, envs
     printf("  [+] process routines\n");
@@ -248,7 +245,7 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
         callFunction(uc, addr, Aarch64FunctionCallArg::voidArg(), {});
     }
     printf("  [+] process mod_init_funcs\n");
-    for (MachODynamicLibrary &lib : module->dynamicLibraryDependencies) {
+    for (MachODynamicLibrary &lib : module->dynamicLibraryDependenciesUnupward) {
         shared_ptr<MachOModule> dependModule = loader->findModuleByName(lib.name);
         assert(dependModule != nullptr);
         initModule(dependModule, env);
@@ -276,6 +273,7 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
         printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
         assert(err == UC_ERR_OK);
     }
+    module->hasInit = true;
 }
 
 static uint64_t uc_alloca(uint64_t sp, uint64_t size) {

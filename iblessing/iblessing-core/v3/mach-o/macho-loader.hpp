@@ -38,6 +38,7 @@ public:
     std::shared_ptr<MachOModule> findModuleByName(std::string moduleName);
     std::shared_ptr<MachOModule> findModuleByAddr(uint64_t addr);
     Symbol * getSymbolByAddress(uint64_t addr);
+    void printImageList();
     
 protected:
     std::shared_ptr<MachOModule> _loadModuleFromFile(std::string filePath, bool loadDylibs);
