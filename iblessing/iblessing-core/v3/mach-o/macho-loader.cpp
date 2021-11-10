@@ -114,6 +114,8 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     assert(modules.size() == 0);
     shared_ptr<MachOModule> mainModule = _loadModuleFromFile(filePath, true);
     
+    printImageList();
+    
     set<pair<string, string>> symbolNotFoundErrorSet;
     for (shared_ptr<MachOModule> module : modules) {
         DyldSimulator::eachBind(module->mappedBuffer, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int libraryOrdinal, const char *msg) {
@@ -457,11 +459,13 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
         return NULL;
     }
     
+    string orignalPath = filePath;
     filePath = shadowFilePath;
     
     shared_ptr<MachOModule> module = make_shared<MachOModule>();
     module->name = moduleName;
     module->path = filePath;
+    module->orignalPath = orignalPath;
     uint8_t *mappedFile;
     uint64_t bufferSize;
     ib_mach_header_64 *hdr = nullptr;
@@ -505,6 +509,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     vector<MachODynamicLibrary> dynamicLibraryDependencies;
     vector<MachODynamicLibrary> dynamicLibraryOrdinalList;
     vector<MachODynamicLibrary> exportDynamicLibraries;
+    vector<MachODynamicLibrary> dynamicLibraryDependenciesUnupward;
     vector<MachOModInitFunc> modInitFuncList;
     vector<MachORoutine> routineList;
     printf("[+] MachOLoader - load module %s (%s) with offset 0x%llx\n", moduleName.c_str(), filePath.c_str(), imageBase);
@@ -837,9 +842,13 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
                 cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Error: unable to load dependent dylib %s", library.path.c_str());
                 cout << termcolor::reset << endl;
             }
+            if (!library.upward) {
+                dynamicLibraryDependenciesUnupward.push_back(library);
+            }
         }
     }
     
+    module->dynamicLibraryDependenciesUnupward = dynamicLibraryDependenciesUnupward;
     return module;
 }
 
@@ -884,4 +893,37 @@ Symbol * MachOLoader::getSymbolByAddress(uint64_t addr) {
         }
     }
     return nullptr;
+}
+
+void MachOLoader::printImageList(void) {
+    printf("[Stalker][Dyld] =====================> ImageList - Begin\n");
+    int i = 0;
+    sort(modules.begin(), modules.end(), [](shared_ptr<MachOModule> m1, shared_ptr<MachOModule> m2) {
+        return m1->addr < m2->addr;
+    });
+    for (shared_ptr<MachOModule> module : modules) {
+        uint64_t addr = module->addr;
+        if (addr == 0x0) {
+            addr = 0x100000000;
+        }
+        string line = StringUtils::format("[%3d] 0x%llx %s: [", i, addr, module->path.c_str());
+        for (MachODynamicLibrary &library : module->dynamicLibraryDependencies) {
+            line += library.name;
+            if (library.weak || library.upward) {
+                line += '(';
+                if (library.weak) {
+                    line += 'w';
+                }
+                if (library.upward) {
+                    line += 'u';
+                }
+                line += ')';
+            }
+            line += ", ";
+        }
+        line += "]\n";
+        printf("%s", line.c_str());
+        i++;
+    }
+    printf("[Stalker][Dyld] <===================== ImageList - Begin\n");
 }

@@ -52,9 +52,11 @@ public:
     
     std::string name;
     std::string path;
+    std::string orignalPath;
     std::shared_ptr<StringTable> strtab;
     std::shared_ptr<SymbolTable> symtab;
     std::vector<MachODynamicLibrary> dynamicLibraryDependencies;
+    std::vector<MachODynamicLibrary> dynamicLibraryDependenciesUnupward;
     std::vector<MachODynamicLibrary> dynamicLibraryOrdinalList;
     std::vector<MachODynamicLibrary> exportDynamicLibraries;
     std::vector<MachOModInitFunc> modInitFuncs;
