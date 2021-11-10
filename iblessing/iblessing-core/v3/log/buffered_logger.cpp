@@ -38,6 +38,7 @@ void BufferedLogger::append(string content) {
         purgeBuffer(0);
     }
     buffer += content;
+//    printBuffer();
 }
 
 void BufferedLogger::printBuffer() {

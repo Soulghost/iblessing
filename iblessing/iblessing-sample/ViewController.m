@@ -15,6 +15,10 @@ void test_entry(void) {
     printf("xxx %d\n", a + b);
 }
 
+void testNSLog(void) {
+    NSLog(@"ok");
+}
+
 void listClasses(void) {
     int count = objc_getClassList(NULL, 0);
     printf("[*] current class count %d\n", count);

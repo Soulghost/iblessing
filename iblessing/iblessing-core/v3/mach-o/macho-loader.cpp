@@ -906,7 +906,7 @@ void MachOLoader::printImageList(void) {
         if (addr == 0x0) {
             addr = 0x100000000;
         }
-        string line = StringUtils::format("[%3d] 0x%llx %s: [", i, addr, module->path.c_str());
+        string line = StringUtils::format("[Stalker][Dyld][%3d] 0x%llx %s: [", i, addr, module->path.c_str());
         for (MachODynamicLibrary &library : module->dynamicLibraryDependencies) {
             line += library.name;
             if (library.weak || library.upward) {
