@@ -776,6 +776,19 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         syscall_return_success;
                         return true;
                     }
+                    case 404: { // vproc_mig_look_up2
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            char serviceName[128];
+                        } Request __attribute__((unused));
+                        #pragma pack(pop)
+                        
+                        Request *request = (Request *)hdr;
+                        assert(false);
+                        return true;
+                    }
                     case 3409: { // task_get_special_port
                         #pragma pack(push, 4)
                         typedef struct {

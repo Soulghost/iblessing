@@ -14,6 +14,12 @@
 #include <iblessing-core/v2/util/StringUtils.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
 
+#define TraceLevelNone       0
+#define TraceLevelASM        1
+#define TraceLevelASMComment 2
+
+#define TraceLevel TraceLevelNone
+
 using namespace std;
 using namespace iblessing;
 
@@ -22,7 +28,12 @@ static map<uc_engine *, Aarch64Machine *> uc2instance;
 
 // create disasm handle
 static csh cs_handle;
-static uc_hook insn_hook, intr_hook, memexp_hook;
+
+#if TraceLevel >= TraceLevelASM
+static uc_hook insn_hook;
+#endif
+
+static uc_hook intr_hook, memexp_hook;
 static uint64_t callFunctionLR = 0x1fee11337aaa;
 
 enum Aarch64FunctionCallArgType {
@@ -119,6 +130,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     }
     
     string comments = "";
+#if TraceLevel >= TraceLevelASMComment
     uint64_t targetAddr = 0;
     if (strcmp(insn->mnemonic, "br") == 0 ||
         strcmp(insn->mnemonic, "blr") == 0) {
@@ -133,27 +145,8 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         assert(insn->detail->arm64.operands[0].type == ARM64_OP_IMM);
         targetAddr = insn->detail->arm64.operands[0].imm;
     } else {
-//        if (address == 0x10040E6B8) {
-//            uint64_t x0;
-//            ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
-//
-//            uint64_t machOHeader = 0;
-//            ensure_uc_mem_read(x0 + 8, &machOHeader, 8);
-//            comments = StringUtils::format("_getObjc2ClassList, module_ptr = 0x%llx, machoHeader = 0x%llx", x0, machOHeader);
-//        } else if (address == 0x10040E6F4) {
-//            uint64_t size, addr;
-//            ensure_uc_reg_read(UC_ARM64_REG_X8, &size);
-//            ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
-//            comments = StringUtils::format("_getObjc2ClassList, section __DATA.__objc_classlist addr 0x%llx, size 0x%llx", addr, size);
-//        }
+
     }
-    
-//    if (address == 0x100CE7338) {
-//        uint64_t x1;
-//        ensure_uc_reg_read(UC_ARM64_REG_X1, &x1);
-//        char *serviceName = MachoMemoryUtils::uc_read_string(uc, x1, 1000);
-//        printf("[Stalker][STDOUT][Launch] bootstrap lookup for service %s\n", serviceName);
-//    }
     
     if (targetAddr > 0) {
         Symbol *sym = uc2instance[uc]->loader->getSymbolByAddress(targetAddr);
@@ -161,21 +154,29 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             comments += StringUtils::format(" ; target = %s, ", sym->name.c_str());
         }
     }
+#endif
     
+#if TraceLevel >= TraceLevelASMComment
     shared_ptr<MachOModule> module = uc2instance[uc]->loader->findModuleByAddr(address);
+#else
+    MachOModule *module = nullptr;
+#endif
     BufferedLogger *logger = BufferedLogger::globalLogger();
     if (module) {
-        Symbol *sym = module->getSymbolByAddress(address);
-        if (sym && sym->name.length() > 0) {
-            logger->append(StringUtils::format("[Stalker] ------ callee: 0x%08llx: %s:\n", address, sym->name.c_str()));
-        } else {
-            Symbol *sym = module->getSymbolNearByAddress(address);
+        static set<string> moduleBlackList{"libsystem_malloc.dylib"};
+        if (moduleBlackList.find(module->name) == moduleBlackList.end()) {
+            Symbol *sym = module->getSymbolByAddress(address);
             if (sym && sym->name.length() > 0) {
-                comments += StringUtils::format("(in %s)", sym->name.c_str());
+                logger->append(StringUtils::format("[Stalker] ------ callee: 0x%08llx: %s:\n", address, sym->name.c_str()));
+            } else {
+                Symbol *sym = module->getSymbolNearByAddress(address);
+                if (sym && sym->name.length() > 0) {
+                    comments += StringUtils::format("(in %s)", sym->name.c_str());
+                }
             }
-        }
-        if (module->name != "libdyld.dylib") {
-            logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
+            if (module->name != "libdyld.dylib") {
+                logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
+            }
         }
     } else {
         logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str()));
@@ -226,8 +227,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
-    static set<string> blackListModule{"Security", /*"CoreFoundation", "libobjc.dylib", "libsystem_configuration.dylib", "libremovefile.dylib", "libcopyfile.dylib"*/};
-//    static set<string> blackListModule{};
+    static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony"};
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
         return;
@@ -306,7 +306,9 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     cs_option(cs_handle, CS_OPT_DETAIL, CS_OPT_ON);
     
     // setup hooks
+#if TraceLevel >= TraceLevelASM
     uc_hook_add(uc, &insn_hook, UC_HOOK_CODE, (void *)insn_hook_callback, NULL, 1, 0);
+#endif
     uc_hook_add(uc, &intr_hook, UC_HOOK_INTR, (void *)uc_hookintr_callback, NULL, 1, 0);
     uc_hook_add(uc, &memexp_hook, UC_HOOK_MEM_INVALID, (void *)mem_exception_hook_callback, NULL, 1, 0);
     
