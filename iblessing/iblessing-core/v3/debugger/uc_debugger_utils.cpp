@@ -8,6 +8,9 @@
 
 #include "uc_debugger_utils.hpp"
 
+using namespace std;
+using namespace iblessing;
+
 void print_uc_mem_regions(uc_engine *uc) {
     uc_mem_region *regions;
     uint32_t count;
@@ -20,4 +23,54 @@ void print_uc_mem_regions(uc_engine *uc) {
     }
     printf("[Stalker][*] memory region end\n");
     free(regions);
+}
+
+std::shared_ptr<iblessing::MachOLoader> _defaultLoader = nullptr;
+
+void print_backtrace(uc_engine *uc, shared_ptr<MachOLoader> loader) {
+    if (!loader) {
+        loader = _defaultLoader;
+    }
+    uint64_t pc, x29;
+    assert(uc_reg_read(uc, UC_ARM64_REG_PC, &pc) == UC_ERR_OK);
+    assert(uc_reg_read(uc, UC_ARM64_REG_X29, &x29) == UC_ERR_OK);
+    printf("[Stalker][*] Backtrace\n");
+    int num = 1;
+
+    while (true) {
+        string symbolName = "?";
+        string libraryName = "?";
+        shared_ptr<MachOModule> module = loader->findModuleByAddr(pc);
+        if (module) {
+            libraryName = module->name;
+            Symbol *sym = module->getSymbolByAddress(pc);
+            if (sym && sym->name.length() > 0) {
+                symbolName = sym->name;
+            } else {
+                Symbol *sym = module->getSymbolNearByAddress(pc);
+                if (sym && sym->name.length() > 0) {
+                    symbolName = sym->name + "?";
+                }
+            }
+        }
+        printf("#%d 0x%llx %s (in %s)\n", num, pc, symbolName.c_str(), libraryName.c_str());
+        
+        num += 1;
+        // do backtrace
+        uc_err err = uc_mem_read(uc, x29 + 8, &pc, sizeof(uint64_t));
+        if (err != UC_ERR_OK) {
+            break;
+        }
+        
+        uint64_t fp = 0;
+        err = uc_mem_read(uc, x29, &fp, sizeof(uint64_t));
+        if (err != UC_ERR_OK) {
+            break;
+        }
+        x29 = fp;
+        
+        if (pc == 0) {
+            break;
+        }
+    }
 }

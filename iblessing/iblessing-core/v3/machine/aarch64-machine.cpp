@@ -18,7 +18,7 @@
 #define TraceLevelASM        1
 #define TraceLevelASMComment 2
 
-#define TraceLevel TraceLevelNone
+#define TraceLevel TraceLevelASMComment
 
 using namespace std;
 using namespace iblessing;
@@ -228,6 +228,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
     static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony"};
+//    blackListModule.insert("Security");
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
         return;
