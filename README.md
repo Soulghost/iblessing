@@ -9,6 +9,21 @@
 [![Build Status](https://api.travis-ci.com/Soulghost/iblessing.svg?branch=master)](https://travis-ci.com/Soulghost/iblessing)
 [![Releases](https://img.shields.io/github/v/release/Soulghost/iblessing?include_prereleases)](https://github.com/Soulghost/iblessing/releases)
 
+# V3 版本
+## 环境配置
+1. clone 项目到本地，切换到 dev/v3 分支，使用 cmake 构建 capstone, keystone, unicorn：
+```
+git clone --recursive -j4 https://github.com/Soulghost/iblessing
+cd iblessing
+./compile-cmake.sh
+```
+2. 使用 Xcode 打开 iblessing/iblessing.xcodeproj
+3. 将 Target 切换至 iblessing-sample，这是一个用来测试的 iOS 程序，选择 Any iOS Device (arm64) 进行构建
+4. 切换 Target 到 iblessing 进行编译，iblessing 是一个壳程序，它依赖了 iblessing-core 这个模拟执行的核心程序；
+5. 修正可执行文件路径，打开 iblessing/main.cpp，将 main 函数开头的 modulePath 指向你本地构建的 iblessing-sample 的 binary path；
+6. 修正动态库搜索路径，打开	iblessing-core/v3/mach-o/macho-loader.cpp，找到 resolveLibraryPath 函数，将函数中的 libRoot 替换为你本机的 Framework 路径，这个路径可以在 iblessing 工程根目录下 iblessing/resource/Frameowrks 找到
+7. 直接在 Mac 上执行 iblessing 这个 Target 即可看到模拟执行结果
+
 # iblessing
 - `iblessing` is an iOS security exploiting toolkit, it mainly includes **application information gathering**, **static analysis** and **dynamic analysis**.
 - `iblessing` is based on [unicorn engine](https://github.com/unicorn-engine/unicorn), [capstone engine](https://github.com/aquynh/capstone) and [keystone engine](https://github.com/keystone-engine/keystone).
