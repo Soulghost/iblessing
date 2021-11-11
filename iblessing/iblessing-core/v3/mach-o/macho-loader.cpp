@@ -23,6 +23,7 @@
 #endif
 
 #include <iblessing-core/v2/vendor/keystone/keystone.h>
+#include "uc_debugger_utils.hpp"
 
 #ifdef IB_PLATFORM_DARWIN
 namespace fs = std::filesystem;
@@ -111,6 +112,7 @@ MachOLoader::~MachOLoader() {
 }
 
 shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
+    _defaultLoader = this->shared_from_this();
     assert(modules.size() == 0);
     shared_ptr<MachOModule> mainModule = _loadModuleFromFile(filePath, true);
     
@@ -148,16 +150,16 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     };
                     
                     // FIXME: ignore libxpc init
-                    Dyld::bindHooks["__libxpc_initializer"] = [&](string symbolName, uint64_t symbolAddr) {
-                        static uint64_t symaddr = 0;
-                        if (symaddr == 0) {
-                            symaddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                                int w0 = 0;
-                                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &w0) == UC_ERR_OK);
-                            });
-                        }
-                        return symaddr;
-                    };
+//                    Dyld::bindHooks["__libxpc_initializer"] = [&](string symbolName, uint64_t symbolAddr) {
+//                        static uint64_t symaddr = 0;
+//                        if (symaddr == 0) {
+//                            symaddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+//                                int w0 = 0;
+//                                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &w0) == UC_ERR_OK);
+//                            });
+//                        }
+//                        return symaddr;
+//                    };
                     
                     _dyld_fast_stub_entryAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
                         uint64_t imageCache, offset;

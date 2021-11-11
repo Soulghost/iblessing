@@ -11,7 +11,11 @@
 
 #include <iblessing-core/v2/common/ibtypes.h>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
+#include <iblessing-core/v3/mach-o/macho-loader.hpp>
+
+extern std::shared_ptr<iblessing::MachOLoader> _defaultLoader;
 
 void print_uc_mem_regions(uc_engine *uc);
+void print_backtrace(uc_engine *uc, std::shared_ptr<iblessing::MachOLoader> loader = nullptr);
 
 #endif /* uc_debugger_utils_hpp */

@@ -775,6 +775,9 @@ typedef natural_t ib_mach_msg_type_number_t;
 typedef unsigned int ib_mach_msg_trailer_type_t;
 typedef unsigned int ib_mach_msg_trailer_size_t;
 typedef int ib_kern_return_t;
+typedef unsigned int ib_mach_port_msgcount_t;
+typedef int ib_exception_behavior_t;
+typedef int ib_thread_state_flavor_t;
 
 typedef struct{
     ib_mach_msg_bits_t       msgh_bits;
@@ -809,10 +812,19 @@ typedef struct{
     ib_mach_msg_descriptor_type_t    type : 8;
 } ib_mach_msg_port_descriptor_t;
 
-typedef struct{
+typedef struct {
     ib_mach_msg_trailer_type_t       msgh_trailer_type;
     ib_mach_msg_trailer_size_t       msgh_trailer_size;
 } ib_mach_msg_trailer_t;
+
+typedef struct ib_mach_port_limits {
+    ib_mach_port_msgcount_t    mpl_qlimit;     /* number of msgs */
+} ib_mach_port_limits_t;
+
+typedef struct ib_mach_port_options {
+    uint32_t                   flags;          /* Flags defining attributes for port */
+    ib_mach_port_limits_t      mpl;            /* Message queue limit for port */
+} ib_mach_port_options_t;
 
 #define IB_MACH_MSGH_BITS_COMPLEX          0x80000000U     /* message is complex */
 #define IB_MACH_MSG_PORT_DESCRIPTOR  0

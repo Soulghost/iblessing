@@ -22,11 +22,14 @@ using namespace iblessing;
 #define BOOTSTRAP_PORT 11
 #define CLOCK_SERVER_PORT 13
 #define SEMAPHORE_PORT 14
+#define CONSTRUCT_FAKE_PORT 233
 
 #define IB_FD_URANDOM 3
 #define IB_FD_PASSWD  4
 #define IB_FD_CWD     5
 #define IB_FD_BOUND   5
+
+#define IB_AUDIT_SESSION_SELF 5
 
 uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t mask, uint64_t size, int prot, int flags, int fd, int offset) {
     uint64_t aligned_size = ((size - 1) / 16384 + 1) * 16384;
@@ -188,20 +191,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
-            case 74: { // mprotect
-                uint64_t addr, length;
-                int prot;
-                ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
-                ensure_uc_reg_read(UC_ARM64_REG_X1, &length);
-                ensure_uc_reg_read(UC_ARM64_REG_W2, &prot);
-                uint64_t alignedAddr = addr / 0x1000 * 0x1000;
-                uint64_t offset = addr - alignedAddr;
-                uint64_t alignedLength = IB_AlignSize(length + offset, 0x4000);
-                uc_err err = uc_mem_protect(uc, alignedAddr, alignedLength, prot);
-                assert(err == UC_ERR_OK);
-                syscall_return_success;
-                return true;
-            }
             case 58: { // readlink
                 uint64_t pathAddr, bufAddr;
                 int bufSize;
@@ -224,6 +213,20 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 } else {
                     assert(false);
                 }
+                return true;
+            }
+            case 74: { // mprotect
+                uint64_t addr, length;
+                int prot;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &length);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &prot);
+                uint64_t alignedAddr = addr / 0x1000 * 0x1000;
+                uint64_t offset = addr - alignedAddr;
+                uint64_t alignedLength = IB_AlignSize(length + offset, 0x4000);
+                uc_err err = uc_mem_protect(uc, alignedAddr, alignedLength, prot);
+                assert(err == UC_ERR_OK);
+                syscall_return_success;
                 return true;
             }
             case 116: { // gettimeofday
@@ -381,6 +384,15 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
+            case 357: { // getaudit_addr
+                uint64_t addr;
+                int size;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &size);
+                printf("[Stalker][+][Syscall] getaudit_addr, addr = 0x%llx, size = %d, return 0\n", addr, size);
+                syscall_return_value(0);
+                return true;
+            }
             case 366: { // bsdthread_register
                 uint64_t thread_start, start_wqthread;
                 int page_size;
@@ -484,6 +496,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     fd = IB_FD_URANDOM;
                 } else if (strcmp(path, "/etc/passwd") == 0) {
                     fd = IB_FD_PASSWD;
+                    BufferedLogger::globalLogger()->printBuffer();
+                    print_backtrace(uc);
                 } else if (strcmp(path, ".") == 0) {
                     fd = IB_FD_CWD;
                 } else {
@@ -513,6 +527,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_W1, &cmd);
                 ensure_uc_reg_read(UC_ARM64_REG_X2, &arg);
                 assert(false);
+                return true;
+            }
+            case 428: { // audit_session_self
+                int audit_self = IB_AUDIT_SESSION_SELF;
+                printf("[Stalker][+][Syscall] audit_session_self return %d", audit_self);
+                syscall_return_value(audit_self);
                 return true;
             }
             case 0x80000000: { // pthread_set_self
@@ -616,6 +636,31 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 printf("[+] _kernelrpc_mach_port_deallocate_trap for port %d in task %d\n", name, task);
                 int ret = 0;
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
+            case 19: { // _kernelrpc_mach_port_mod_refs_trap
+                int task, name, right, delta;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &task);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &name);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &right);
+                ensure_uc_reg_read(UC_ARM64_REG_W3, &delta);
+                printf("[Stalker][+][Syscall][Mach] _kernelrpc_mach_port_mod_refs_trap with task %d, name %d, right %d, delta %d\n", task, name, right, delta);
+                syscall_return_success;
+                return true;
+            }
+            case 24: { // _kernelrpc_mach_port_construct_trap
+                int task;
+                uint64_t optionsAddr, contextAddr, nameAddr;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &task);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &optionsAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &contextAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &nameAddr);
+                ib_mach_port_t fakePort = CONSTRUCT_FAKE_PORT;
+                ensure_uc_mem_write(nameAddr, &fakePort, sizeof(ib_mach_port_t));
+                
+                printf("[Stalker][+][Syscall][Mach] _kernelrpc_mach_port_construct_trap for task %d, return fake port %d\n", task, fakePort);
+                
+                syscall_return_success;
                 return true;
             }
             case 26: { // mach_reply_port
@@ -789,6 +834,40 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(false);
                         return true;
                     }
+                    case 3404: { // mach_ports_lookup
+                        #pragma pack(push, 4)
+                        // FIXME: from unidbg.task_get_exception_ports, did not match xnu-2050 ~ 2423
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            int retCode;
+                            int outPortLow;
+                            int outPortHigh;
+                            int mask;
+                            int reserved1;
+                            int reserved2;
+                            int reserved3;
+                            int cnt;
+                        } __Reply__mach_ports_lookup_t __attribute__((unused));
+                        #pragma pack(pop)
+                        
+                        __Reply__mach_ports_lookup_t *OutP = (__Reply__mach_ports_lookup_t *)hdr;
+                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        OutP->Head.msgh_local_port = 0;
+                        OutP->Head.msgh_id += 100;
+                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__mach_ports_lookup_t));
+                        
+                        // FIXME: mach_ports_lookup response
+                        uint64_t requestAddr = msg + sizeof(ib_mach_header_64);
+                        OutP->retCode = 1;
+                        OutP->outPortLow = (int)(requestAddr & 0xffffffffL);
+                        OutP->outPortHigh = (int)(requestAddr >> 32L);
+                        OutP->mask = 0x2110000;
+                        OutP->cnt = 0;
+                        ensure_uc_mem_write(msg, OutP, OutP->Head.msgh_size);
+                        syscall_return_success;
+                        return true;
+                    }
                     case 3409: { // task_get_special_port
                         #pragma pack(push, 4)
                         typedef struct {
@@ -807,14 +886,14 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             ib_mach_msg_body_t msgh_body;
                             ib_mach_msg_port_descriptor_t special_port;
                             /* end of the kernel processed data */
-                        } Reply __attribute__((unused));
+                        } __Reply__task_get_special_port_t __attribute__((unused));
                         #pragma pack(pop)
-                        Reply *OutP = (Reply *)hdr;
+                        __Reply__task_get_special_port_t *OutP = (__Reply__task_get_special_port_t *)hdr;
                         OutP->Head.msgh_remote_port = hdr->msgh_local_port;
                         OutP->Head.msgh_local_port = 0;
                         OutP->Head.msgh_id += 100;
                         OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
-                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(Reply));
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__task_get_special_port_t));
                         
                         OutP->msgh_body.msgh_descriptor_count = 1;
                         OutP->special_port.name = BOOTSTRAP_PORT;
@@ -827,6 +906,44 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         
                         int ret = 0;
                         assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                        return true;
+                    }
+                    case 3414: { // task_get_exception_ports
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            unsigned int exception_mask;
+                        } Request __attribute__((unused));
+                        #pragma pack(pop)
+                        
+                        // FIXME: from unidbg.task_get_exception_ports, did not match xnu-2050 ~ 2423
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            ib_kern_return_t retCode;
+                            unsigned int masks[32];
+                            ib_mach_msg_type_number_t masksCnt;
+                            ib_exception_behavior_t old_behaviors[32];
+                            ib_thread_state_flavor_t old_flavors[32];
+                        } __Reply__task_get_exception_ports_t __attribute__((unused));
+                        #pragma pack(pop)
+                        __Reply__task_get_exception_ports_t *OutP = (__Reply__task_get_exception_ports_t *)hdr;
+                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        OutP->Head.msgh_local_port = 0;
+                        OutP->Head.msgh_id += 100;
+                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__task_get_exception_ports_t));
+                        
+                        OutP->NDR.mig_vers = 0x20;
+                        OutP->retCode = 0;
+                        memset(OutP->masks, 0, sizeof(OutP->masks));
+                        OutP->masksCnt = 0;
+                        memset(OutP->old_behaviors, 0, sizeof(OutP->old_behaviors));
+                        memset(OutP->old_flavors, 0, sizeof(OutP->old_flavors));
+                        ensure_uc_mem_write(msg, OutP, OutP->Head.msgh_size);
+                        syscall_return_success;
                         return true;
                     }
                     case 3418: { // semaphore_create
