@@ -131,6 +131,16 @@ struct ib_load_command {
  * The 64-bit mach header appears at the very beginning of object files for
  * 64-bit architectures.
  */
+struct ib_mach_header {
+    uint32_t    magic;        /* mach magic number identifier */
+    int         cputype;    /* cpu specifier */
+    int         cpusubtype;    /* machine specifier */
+    uint32_t    filetype;    /* type of file */
+    uint32_t    ncmds;        /* number of load commands */
+    uint32_t    sizeofcmds;    /* the size of all the load commands */
+    uint32_t    flags;        /* flags */
+};
+
 struct ib_mach_header_64 {
     uint32_t    magic;        /* mach magic number identifier */
     int         cputype;    /* cpu specifier */
