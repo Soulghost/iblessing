@@ -34,6 +34,17 @@ void SymbolTable::sync() {
     this->symbolMapCpp = mm;
 }
 
+void SymbolTable::buildExportNodes(DyldLinkContext linkContext, uint32_t export_off, uint32_t export_size) {
+    if (export_size == 0) {
+        return;
+    }
+    
+    uint8_t *data = (uint8_t *)malloc(export_size);
+    uint64_t exportInfoAddr = linkContext.loadInfo.loadAddress + export_off;
+    assert(uc_mem_read(linkContext.uc, exportInfoAddr, data, export_size) == UC_ERR_OK);
+    buildExportNodes(data, export_off, export_size);
+}
+
 void SymbolTable::buildExportNodes(uint8_t *data, uint32_t export_off, uint32_t export_size) {
     if (export_size == 0) {
         return;
@@ -123,6 +134,87 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64
         symbolTable.push_back({symName, li});
         symbols.push_back(symbol);
         li += 1;
+    }
+}
+
+void SymbolTable::buildDynamicSymbolTable(DyldLinkContext linkContext, std::vector<struct ib_section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols) {
+    uint32_t *dyTableEntries = (uint32_t *)data;
+    for (size_t i = 0; i < nSymbols; i++) {
+        struct ib_section_64 *symSect = nullptr;
+        for (size_t j = sectionHeaders.size() - 1; j >= 0; j--) {
+            struct ib_section_64 *sectHeader = sectionHeaders[j];
+            
+            // only search for lazy symbol sections
+            uint32_t flags = sectHeader->flags;
+            if ((flags & IB_SECTION_TYPE) != IB_S_SYMBOL_STUBS &&
+                (flags & IB_SECTION_TYPE) != IB_S_LAZY_SYMBOL_POINTERS &&
+                (flags & IB_SECTION_TYPE) != IB_S_LAZY_DYLIB_SYMBOL_POINTERS &&
+                (flags & IB_SECTION_TYPE) != IB_S_NON_LAZY_SYMBOL_POINTERS) {
+                continue;
+            }
+            
+            // find symbol's section by index range
+            uint32_t startIndex = sectHeader->reserved1;
+            if (startIndex > i) {
+                continue;
+            }
+            
+            symSect = sectHeader;
+            break;
+        }
+        
+        uint32_t symIdx = dyTableEntries[i];
+        if (symSect == nullptr) {
+            cout << termcolor::red;
+            cout << "Error: cannot find dynamic symbol section at index " << symIdx;
+            cout << termcolor::reset << endl;
+            exit(1);
+        }
+        
+        uint32_t pointerSize = symSect->reserved2 > 0 ? symSect->reserved2 : 8;
+        uint64_t pointerAddr = symSect->addr + (i - symSect->reserved1) * pointerSize;
+        
+        // build symbol
+        Symbol *lazySymbol = new Symbol();
+        lazySymbol->isStub = true;
+        if ((symIdx & (IB_INDIRECT_SYMBOL_LOCAL | IB_INDIRECT_SYMBOL_ABS)) == 0) {
+            // stubs
+            if (symIdx >= symbolTable.size()) {
+                cout << termcolor::red;
+                cout << "Error: symbol index out of bound, check if buildSymbolTable has been executed";
+                cout << termcolor::reset << endl;
+                continue;
+            }
+            
+//            lazySymbol->name = symbolTable.at(symIdx).first;
+//            lazySymbol->info = symbolTable.at(symIdx).second;
+//            lazySymbol->info->n_value = pointerAddr;
+//            symbolMap.insert(pointerAddr, lazySymbol);
+//            name2symbol[lazySymbol->name].pushBack(lazySymbol);
+        } else {
+            switch (symIdx) {
+                case IB_INDIRECT_SYMBOL_LOCAL: {
+                    uint64_t targetAddr = pointerAddr - (symSect->addr - symSect->offset);
+                    uint64_t targetPointer;
+                    assert(uc_mem_read(linkContext.uc, targetAddr, &targetPointer, sizeof(uint64_t)) == UC_ERR_OK);
+                    
+                    Symbol *pointerSymbol = getSymbolByAddress(targetPointer);
+                    if (pointerSymbol) {
+                        
+                    }
+                    break;
+                }
+                case IB_INDIRECT_SYMBOL_ABS: {
+                    
+                    break;
+                }
+                default: {
+                    
+                    break;
+                }
+            }
+        }
+        lazySymbol->release();
     }
 }
 

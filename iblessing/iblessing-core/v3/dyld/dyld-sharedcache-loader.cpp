@@ -11,12 +11,16 @@
 #include "mach-universal.hpp"
 #include "MachOFile.hpp"
 #include "dyld2.hpp"
+#include "macho-memory.hpp"
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <mach/vm_prot.h>
 
 #define ARCH_CACHE_MAGIC     "dyld_v1   arm64"
+
+using namespace std;
+using namespace iblessing;
 
 struct CacheInfo
 {
@@ -29,7 +33,29 @@ struct CacheInfo
     uint64_t                                maxSlide;
 };
 
-int __shared_region_map_and_slide_np(int fd, uint32_t count, const ib_shared_file_mapping_np mappings[], long slide, const dyld_cache_slide_info2* slideInfo, size_t slideInfoSize) {
+int __shared_region_map_and_slide_np(uc_engine *uc, int fd, uint32_t count, const ib_shared_file_mapping_np mappings[], long slide, const dyld_cache_slide_info2* slideInfo, size_t slideInfoSize) {
+    struct stat fileStatus;
+    fstat(fd, &fileStatus);
+    uint8_t *mappedFile = (uint8_t *)mmap(nullptr, fileStatus.st_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
+    if (reinterpret_cast<int64_t>(mappedFile) == -1) {
+        printf("[-] failed to open sharedcache file\n");
+        assert(false);
+    }
+    
+    for (int i = 0; i < count; i++) {
+        ib_shared_file_mapping_np mapping = mappings[i];
+        uc_err err = uc_mem_map(uc, mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot & (0x7));
+        if (err != UC_ERR_OK) {
+            printf("[-] failed to map sharedcache region 0x%llx, size 0x%llx, prot 0x%x\n", mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot);
+            assert(false);
+        }
+        
+        err = uc_mem_write(uc, mapping.sfm_address, mappedFile + mapping.sfm_file_offset, mapping.sfm_size);
+        if (err != UC_ERR_OK) {
+            printf("[-] failed to write sharedcache data from fileoff 0x%llx to address 0x%llx, size 0x%llx\n", mapping.sfm_file_offset, mapping.sfm_address, mapping.sfm_size);
+        }
+        
+    }
     return 0;
 }
 
@@ -300,7 +326,7 @@ static long pickCacheASLRSlide(CacheInfo& info)
     return slide;
 }
 
-static bool mapCacheSystemWide(const SharedCacheOptions& options, SharedCacheLoadInfo* results)
+static bool mapCacheSystemWide(uc_engine *uc, const SharedCacheOptions& options, SharedCacheLoadInfo* results)
 {
     CacheInfo info;
     if ( !preflightCacheFile(options, results, &info) )
@@ -308,6 +334,8 @@ static bool mapCacheSystemWide(const SharedCacheOptions& options, SharedCacheLoa
 
     int result = 0;
     if ( info.mappingsCount != 3 ) {
+        // FIXME: unimpl A12+ sharedcache mapping
+        assert(false);
         uint32_t maxSlide = options.disableASLR ? 0 : (uint32_t)info.maxSlide;
 
         ib_shared_file_np file;
@@ -342,12 +370,12 @@ static bool mapCacheSystemWide(const SharedCacheOptions& options, SharedCacheLoa
                 slideInfoSize   = (size_t)info.mappings[i].sms_slide_size;
             }
         }
-        result = __shared_region_map_and_slide_np(info.fd, 3, mappings, results->slide, slideInfo, slideInfoSize);
+        result = __shared_region_map_and_slide_np(uc, info.fd, 3, mappings, results->slide, slideInfo, slideInfoSize);
     }
 
     close(info.fd);
     if ( result == 0 ) {
-        results->loadAddress = (const DyldSharedCache*)(info.mappings[0].sms_address);
+        results->loadAddress = info.mappings[0].sms_address;
         if ( info.mappingsCount != 3 ) {
             // We don't know our own slide any more as the kernel owns it, so ask for it again now
             if ( reuseExistingCache(options, results) ) {
@@ -386,7 +414,7 @@ static bool mapCacheSystemWide(const SharedCacheOptions& options, SharedCacheLoa
     return true;
 }
 
-bool loadDyldCache(const SharedCacheOptions& options, SharedCacheLoadInfo* results)
+bool loadDyldCache(uc_engine *uc, const SharedCacheOptions& options, SharedCacheLoadInfo* results)
 {
     results->loadAddress        = 0;
     results->slide              = 0;
@@ -403,8 +431,49 @@ bool loadDyldCache(const SharedCacheOptions& options, SharedCacheLoadInfo* resul
             hasError = (results->errorMessage != nullptr);
         } else {
             // slow path: this is first process to load cache
-            hasError = mapCacheSystemWide(options, results);
+            hasError = mapCacheSystemWide(uc, options, results);
         }
         return hasError;
     }
+}
+
+bool findInSharedCacheImage(uc_engine *uc, const SharedCacheLoadInfo& loadInfo, const char* dylibPathToFind, SharedCacheFindDylibResults* results)
+{
+    if ( loadInfo.loadAddress == 0 )
+        return false;
+
+    // support for older cache with a different Image* format
+    uint64_t hash = 0;
+    for (const char* s=dylibPathToFind; *s != '\0'; ++s)
+            hash += hash*4 + *s;
+    
+    dyld_cache_header header;
+    assert(uc_mem_read(uc, loadInfo.loadAddress, &header, sizeof(dyld_cache_header)) == UC_ERR_OK);
+    uint64_t imageInfoAddress = loadInfo.loadAddress + header.imagesOffset;
+    uint64_t imageInfoCount = header.imagesCount;
+    
+    while (imageInfoCount--) {
+        dyld_cache_image_info info;
+        assert(uc_mem_read(uc, imageInfoAddress, &info, sizeof(dyld_cache_image_info)) == UC_ERR_OK);
+        dyld_cache_image_info *p = &info;
+        
+        // FIXME: hash compare failed?
+        // on iOS, inode is used to hold hash of path
+//        if ( (p->modTime == 0) && (p->inode != hash) )
+//            continue;
+        uint64_t aPathAddr = loadInfo.loadAddress + p->pathFileOffset;
+        char* aPath = MachoMemoryUtils::uc_read_string(uc, aPathAddr, 1000);
+//        printf("[+] path %s\n", aPath);
+        assert(aPath != NULL);
+        if ( strcmp(aPath, dylibPathToFind) == 0 ) {
+            results->mhInCache    = p->address+loadInfo.slide;
+            results->pathInCache  = strdup(aPath);
+            results->slideInCache = loadInfo.slide;
+            free(aPath);
+            return true;
+        }
+        free(aPath);
+        imageInfoAddress += sizeof(dyld_cache_image_info);
+    }
+    return false;
 }

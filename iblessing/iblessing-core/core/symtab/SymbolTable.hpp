@@ -19,6 +19,8 @@
 #include <iblessing-core/core/polyfill/mach-universal.hpp>
 #include <iblessing-core/core/polyfill/mach-machine.h>
 #include <iblessing-core/core/dyld/DyldSimulator.hpp>
+#include <iblessing-core/v2/vendor/unicorn/unicorn.h>
+#include <iblessing-core/v3/dyld/dyld-sharedcache-loader.hpp>
 
 NS_IB_BEGIN
 
@@ -44,8 +46,12 @@ public:
     virtual ~SymbolTable();
     static SymbolTable* getInstance();
     
+    void buildExportNodes(DyldLinkContext linkContext, uint32_t export_off, uint32_t export_size);
     void buildExportNodes(uint8_t *data, uint32_t export_off, uint32_t export_size);
+    
     void buildSymbolTable(std::string moduleName, uint8_t *data, uint64_t nSymbols);
+    
+    void buildDynamicSymbolTable(DyldLinkContext linkContext, std::vector<struct ib_section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols);
     void buildDynamicSymbolTable(std::vector<struct ib_section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols, uint8_t *mappedData);
     void insertSymbol(Symbol *symbol);
     void sync();

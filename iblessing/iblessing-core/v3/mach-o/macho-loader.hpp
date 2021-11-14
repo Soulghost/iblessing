@@ -14,6 +14,7 @@
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <iblessing-core/scanner/context/ScannerWorkDirManager.hpp>
 #include <iblessing-core/v3/memory/macho-memory-manager.hpp>
+#include <iblessing-core/v3/dyld/dyld-sharedcache-loader.hpp>
 #include <memory>
 #include <vector>
 #include <map>
@@ -41,7 +42,8 @@ public:
     void printImageList();
     
 protected:
-    std::shared_ptr<MachOModule> _loadModuleFromFile(std::string filePath, bool loadDylibs);
+    std::shared_ptr<MachOModule> _loadModuleFromFile(DyldLinkContext linkContext, std::string filePath, bool loadDylibs);
+    std::shared_ptr<MachOModule> _loadModuleFromFileUsingSharedCache(DyldLinkContext linkContext, std::string filePath, bool loadDylibs);
     std::set<uint64_t> dyldInitHandlers;
     std::set<uint64_t> dyldBoundHandlers;
 };

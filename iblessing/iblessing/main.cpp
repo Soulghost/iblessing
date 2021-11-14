@@ -16,7 +16,6 @@
 #include <iblessing/registry/PluginRegistry.h>
 #include <iblessing-core/v3/mach-o/macho-loader.hpp>
 #include <iblessing-core/v3/machine/aarch64-machine.hpp>
-#include <iblessing-core/v3/dyld/dyld2.hpp>
 
 #ifdef IB_CSR_ENABLED
 #include "csrutil.hpp"
@@ -27,9 +26,6 @@ using namespace argparse;
 using namespace iblessing;
 
 int main(int argc, const char *argv[]) {
-    dyld::mapSharedCache(0);
-    return 0;
-    
     string modulePath = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample";
     string entry = "_test_malloc";
 //    entry = "_listClasses";

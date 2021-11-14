@@ -24,6 +24,7 @@
 
 #include <iblessing-core/v2/vendor/keystone/keystone.h>
 #include "uc_debugger_utils.hpp"
+#include "dyld2.hpp"
 
 #ifdef IB_PLATFORM_DARWIN
 namespace fs = std::filesystem;
@@ -35,6 +36,7 @@ using namespace std;
 using namespace iblessing;
 
 static string resolveLibraryPath(string &name) {
+    return name;
     // FIXME: @rpath
     string path;
     if (name.rfind("libc++") != string::npos) {
@@ -82,7 +84,7 @@ MachOLoader::MachOLoader()  {
     // mach-o mapping start from 0x100000000 (app), 0x0 (dylib)
     // heap using vm_base ~ vmbase + 12G
     // stack using vmbase + 12G ~ .
-    uint64_t unicorn_vm_size = 12UL * 1024 * 1024 * 1024;
+    uint64_t unicorn_vm_size = 0x60000000;
     uint64_t unicorn_pagezero_size = 0x100000000;
     uint64_t unicorn_vm_start = unicorn_pagezero_size;
     err = uc_mem_map(uc, 0, unicorn_pagezero_size, UC_PROT_NONE);
@@ -91,7 +93,7 @@ MachOLoader::MachOLoader()  {
         cout << termcolor::reset << endl;
         assert(false);
     }
-    err = uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size - unicorn_pagezero_size, UC_PROT_ALL);
+    err = uc_mem_map(uc, unicorn_vm_start, unicorn_vm_size, UC_PROT_ALL);
     if (err != UC_ERR_OK) {
         cout << termcolor::red << "[-] MachOLoader - Error: unicorn error " << uc_strerror(err);
         cout << termcolor::reset << endl;
@@ -114,7 +116,13 @@ MachOLoader::~MachOLoader() {
 shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     _defaultLoader = this->shared_from_this();
     assert(modules.size() == 0);
-    shared_ptr<MachOModule> mainModule = _loadModuleFromFile(filePath, true);
+    
+    SharedCacheLoadInfo sharedCacheLoadInfo = dyld::mapSharedCache(uc, 0);
+    DyldLinkContext linkContext;
+    linkContext.uc = uc;
+    linkContext.loadInfo = sharedCacheLoadInfo;
+    
+    shared_ptr<MachOModule> mainModule = _loadModuleFromFile(linkContext, filePath, true);
     
     printImageList();
     
@@ -444,7 +452,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     return mainModule;
 }
 
-shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, bool loadDylibs) {
+shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(DyldLinkContext linkContext, std::string filePath, bool loadDylibs) {
     string moduleName = StringUtils::path_basename(filePath);
     if (name2module.find(moduleName) != name2module.end()) {
         return name2module[moduleName];
@@ -780,7 +788,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
     for (MachODynamicLibrary &library : exportDynamicLibraries) {
         string path = resolveLibraryPath(library.path);
         if (path.length() > 0) {
-            _loadModuleFromFile(path, false);
+            _loadModuleFromFileUsingSharedCache(linkContext, path, false);
         } else {
             cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Error: unable to export dependent dylib %s", library.name.c_str());
             cout << termcolor::reset << endl;
@@ -839,7 +847,382 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(std::string filePath, b
         for (MachODynamicLibrary &library : dynamicLibraryDependencies) {
             string path = resolveLibraryPath(library.path);
             if (path.length() != 0) {
-                _loadModuleFromFile(path, true);
+                _loadModuleFromFileUsingSharedCache(linkContext, path, true);
+            } else {
+                cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Error: unable to load dependent dylib %s", library.path.c_str());
+                cout << termcolor::reset << endl;
+            }
+            if (!library.upward) {
+                dynamicLibraryDependenciesUnupward.push_back(library);
+            }
+        }
+    }
+    
+    module->dynamicLibraryDependenciesUnupward = dynamicLibraryDependenciesUnupward;
+    return module;
+}
+
+shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLinkContext linkContext, std::string filePath, bool loadDylibs) {
+    string moduleName = StringUtils::path_basename(filePath);
+    if (name2module.find(moduleName) != name2module.end()) {
+        return name2module[moduleName];
+    }
+    
+//    char *shadowFilePath = nullptr;
+//    if (workDirManager->createShadowFile(filePath, &shadowFilePath) != 0) {
+//        assert(false);
+//        return NULL;
+//    }
+//
+//    if (shadowFilePath == nullptr) {
+//        assert(false);
+//        return NULL;
+//    }
+    SharedCacheFindDylibResults findResult;
+    bool findInCache = findInSharedCacheImage(linkContext.uc, linkContext.loadInfo, filePath.c_str(), &findResult);
+    assert(findInCache);
+    
+    shared_ptr<MachOModule> module = make_shared<MachOModule>();
+    module->name = moduleName;
+    module->path = filePath;
+    module->orignalPath = findResult.pathInCache;
+
+    ib_mach_header_64 hdr = {0};
+    assert(uc_mem_read(uc, findResult.mhInCache, &hdr, sizeof(ib_mach_header_64)) == UC_ERR_OK);
+    
+    // parse section headers
+    // vmaddr base
+    uint64_t imageBase = loaderOffset;
+    uint64_t imageSize = 0;
+    vector<pair<uint64_t, uint64_t>> textSects;
+    uint64_t vmaddr_bss_start = 0;
+    uint64_t vmaddr_bss_end = 0;
+    uint64_t got_start = 0, got_size = 0;
+    uint64_t common_start = 0, common_size = 0;
+    
+    // offset, size, baseAddr, sect
+    vector<pair<pair<uint64_t, uint64_t>, pair<uint64_t, ib_section_64 *>>> allRelocs;
+    
+    struct ib_symtab_command *symtab_cmd = nullptr;
+    struct ib_dysymtab_command *dysymtab_cmd = nullptr;
+    struct ib_segment_command_64 *textSeg64 = nullptr;
+    struct ib_section_64 *textSect = nullptr;
+    struct ib_dyld_info_command *dyld_info = nullptr;
+    uint64_t objc_classlist_addr = 0, objc_catlist_addr = 0;
+    uint64_t objc_classlist_size = 0, objc_catlist_size = 0;
+    std::vector<struct ib_section_64 *> sectionHeaders;
+    std::vector<struct ib_segment_command_64 *> segmentHeaders;
+    
+    // symtab、dlsymtab、strtab's vmaddr base on LINKEDIT's vmaddr
+    uint64_t linkedit_base = 0;
+    uint64_t symoff = 0, symsize = 0;
+    uint64_t stroff = 0, strsize = 0;
+    uint32_t ncmds = hdr.ncmds;
+    uint64_t cmdsAddr = findResult.mhInCache + sizeof(struct ib_mach_header_64);
+    
+    vector<MachODynamicLibrary> dynamicLibraryDependencies;
+    vector<MachODynamicLibrary> dynamicLibraryOrdinalList;
+    vector<MachODynamicLibrary> exportDynamicLibraries;
+    vector<MachODynamicLibrary> dynamicLibraryDependenciesUnupward;
+    vector<MachOModInitFunc> modInitFuncList;
+    vector<MachORoutine> routineList;
+    printf("[+] MachOLoader - load module %s (%s) with offset 0x%llx\n", moduleName.c_str(), filePath.c_str(), imageBase);
+    uint64_t machHeader = 0;
+    for (uint32_t i = 0; i < ncmds; i++) {
+        struct ib_load_command lc;
+        ensure_uc_mem_read(cmdsAddr, &lc, sizeof(ib_load_command));
+        switch (lc.cmd) {
+            case IB_LC_SEGMENT_64: {
+                struct ib_segment_command_64 *seg64 = (struct ib_segment_command_64 *)malloc(sizeof(struct ib_segment_command_64));
+                ensure_uc_mem_read(cmdsAddr, seg64, sizeof(struct ib_segment_command_64));
+                
+                uint64_t size = std::min(seg64->vmsize, seg64->filesize);
+                if (size == 0) {
+                    cmdsAddr += lc.cmdsize;
+                    continue;
+                }
+                
+                if (strncmp(seg64->segname, "__TEXT", 6) == 0) {
+                    textSeg64 = seg64;
+                    if (!machHeader) {
+                        machHeader = seg64->vmaddr;
+                    }
+                } else if (strncmp(seg64->segname, "__LINKEDIT", 10) == 0) {
+                    linkedit_base = seg64->vmaddr - seg64->fileoff;
+                }
+                
+                if (seg64->nsects > 0) {
+                    uint64_t sectAddr = cmdsAddr + sizeof(struct ib_segment_command_64) + seg64->nsects * sizeof(struct ib_section_64);
+                    for (uint32_t i = 0; i < seg64->nsects; i++) {
+                        struct ib_section_64 *sect = (struct ib_section_64 *)malloc(sizeof(struct ib_section_64));
+                        ensure_uc_mem_read(sectAddr, sect, sizeof(ib_section_64));
+                        
+                        char *sectname = (char *)malloc(17);
+                        memcpy(sectname, sect->sectname, 16);
+                        sectname[16] = 0;
+                        module->addr2segInfo[sect->addr] = {string(sect->segname), string(sectname)};
+                        if (strcmp(sectname, "__text") == 0) {
+                            textSects.push_back({sect->addr, sect->size});
+                            textSect = sect;
+                        }
+                        if (strcmp(sectname, "__bss") == 0) {
+                            vmaddr_bss_start = sect->addr;
+                            vmaddr_bss_end = vmaddr_bss_start + sect->size;
+                        }
+                        if (strcmp(sectname, "__objc_classlist") == 0) {
+                            objc_classlist_addr = sect->addr;
+                            objc_classlist_size = sect->size;
+                        }
+                        if (strcmp(sectname, "__objc_catlist") == 0) {
+                            objc_catlist_addr = sect->addr;
+                            objc_catlist_size = sect->size;
+                        }
+                        if (strcmp(sectname, "__got") == 0) {
+                            got_start = sect->addr;
+                            got_size = sect->size;
+                        }
+                        if (strcmp(sectname, "__common") == 0) {
+                            common_start = sect->addr;
+                            common_size = sect->size;
+                        }
+                        if (sect->reloff > 0 && sect->nreloc > 0) {
+                            allRelocs.push_back({{sect->reloff, sect->nreloc}, {sect->addr, sect}});
+                        }
+                        sectionHeaders.push_back(sect);
+                        
+                        // check mod_init_func
+                        uint32_t type = sect->flags & IB_SECTION_TYPE;
+                        if (type == IB_S_MOD_INIT_FUNC_POINTERS) {
+                            uint64_t count = sect->size / sizeof(uint64_t);
+                            uint64_t size = sizeof(uint64_t) * count;
+                            uint64_t *modInitFuncs = (uint64_t *)malloc(size);
+                            ensure_uc_mem_read(sect->addr, modInitFuncs, size);
+                            for (uint64_t i = 0; i < count; i++) {
+                                uint64_t funcAddr = *modInitFuncs + imageBase;
+                                modInitFuncList.push_back({ .addr = funcAddr });
+                                modInitFuncs += 1;
+                            }
+                            free(modInitFuncs);
+                        }
+                        
+                        free(sectname);
+                        sect += 1;
+                    }
+                }
+                
+                // update size
+                uint64_t totalSize = seg64->vmaddr + seg64->vmsize - imageBase;
+                if (imageSize < totalSize) {
+                    imageSize = totalSize;
+                }
+                break;
+            }
+            case IB_LC_ROUTINES_64: {
+                struct ib_routines_command_64 routine_cmd;
+                ensure_uc_mem_read(cmdsAddr, &routine_cmd, sizeof(ib_routines_command_64));
+                uint64_t addr = routine_cmd.init_address + imageBase;
+                routineList.push_back({ .addr = addr });
+                break;
+            }
+            case IB_LC_SYMTAB: {
+                symtab_cmd = (struct ib_symtab_command *)malloc(sizeof(ib_symtab_command));
+                ensure_uc_mem_read(cmdsAddr, symtab_cmd, sizeof(ib_symtab_command));
+                symoff = symtab_cmd->symoff;
+                symsize = symtab_cmd->nsyms * sizeof(ib_nlist_64);
+                stroff = symtab_cmd->stroff;
+                strsize = symtab_cmd->strsize;
+                break;
+            }
+            case IB_LC_DYSYMTAB: {
+                dysymtab_cmd = (struct ib_dysymtab_command *)malloc(sizeof(struct ib_dysymtab_command));
+                ensure_uc_mem_read(cmdsAddr, dysymtab_cmd, sizeof(struct ib_dysymtab_command));
+                break;
+            }
+            case IB_LC_DYLD_INFO_ONLY: {
+                dyld_info = (struct ib_dyld_info_command *)malloc(sizeof(ib_dyld_info_command));
+                ensure_uc_mem_read(cmdsAddr, dyld_info, sizeof(ib_dyld_info_command));
+                break;
+            }
+            case IB_LC_MAIN: {
+                assert(false);
+                break;
+            }
+            case IB_LC_LOAD_DYLIB: {
+                struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)malloc(lc.cmdsize);
+                ensure_uc_mem_read(cmdsAddr, dylib_cmd, lc.cmdsize);
+                const char *path = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                string name = StringUtils::path_basename(std::string(path));
+                dynamicLibraryDependencies.push_back({.name = name, .path = std::string(path), .upward = false, .weak = false});
+                dynamicLibraryOrdinalList.push_back({.name = name, .path = std::string(path), .upward = false, .weak = false});
+                free(dylib_cmd);
+                break;
+            }
+            case IB_LC_LOAD_WEAK_DYLIB: {
+                struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)malloc(lc.cmdsize);
+                ensure_uc_mem_read(cmdsAddr, dylib_cmd, lc.cmdsize);
+                const char *path = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                string name = StringUtils::path_basename(std::string(path));
+                dynamicLibraryDependencies.push_back({.name = name, .path = std::string(path), .upward = false, .weak = true});
+                dynamicLibraryOrdinalList.push_back({.name = name, .path = std::string(path), .upward = false, .weak = true});
+                free(dylib_cmd);
+                break;
+            }
+            case IB_LC_REEXPORT_DYLIB: {
+                struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)malloc(lc.cmdsize);
+                ensure_uc_mem_read(cmdsAddr, dylib_cmd, lc.cmdsize);
+                const char *path = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                string name = StringUtils::path_basename(std::string(path));
+                dynamicLibraryOrdinalList.push_back({.name = name, .path = std::string(path), .upward = false, .weak = false});
+                exportDynamicLibraries.push_back({.name = name, .path = std::string(path), .upward = false, .weak = false});
+                free(dylib_cmd);
+                break;
+            }
+            case IB_LC_LAZY_LOAD_DYLIB: {
+                struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)malloc(lc.cmdsize);
+                ensure_uc_mem_read(cmdsAddr, dylib_cmd, lc.cmdsize);
+                const char *path = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                string name = StringUtils::path_basename(std::string(path));
+                dynamicLibraryOrdinalList.push_back({.name = name, .path = std::string(path), .upward = false, .weak = false});
+                free(dylib_cmd);
+                break;
+            }
+            case IB_LC_LOAD_UPWARD_DYLIB: {
+                struct ib_dylib_command *dylib_cmd = (struct ib_dylib_command *)malloc(lc.cmdsize);
+                ensure_uc_mem_read(cmdsAddr, dylib_cmd, lc.cmdsize);
+                const char *path = (const char *)dylib_cmd + dylib_cmd->dylib.name.offset;
+                string name = StringUtils::path_basename(std::string(path));
+                dynamicLibraryDependencies.push_back({.name = name, .path = std::string(path), .upward = true, .weak = false});
+                dynamicLibraryOrdinalList.push_back({.name = name, .path = std::string(path), .upward = true, .weak = false});
+                free(dylib_cmd);
+                break;
+            }
+            default:
+                break;
+        }
+        cmdsAddr += lc.cmdsize;
+    }
+    
+    // init bss
+    uint64_t bssSize = vmaddr_bss_end - vmaddr_bss_start;
+    if (bssSize > 0) {
+        void *bssData = calloc(1, bssSize);
+        assert(uc_mem_write(uc, vmaddr_bss_start, bssData, bssSize) == UC_ERR_OK);
+        free(bssData);
+    }
+    
+    // init common
+    if (common_start > 0 && common_size > 0) {
+        void *data = calloc(1, common_size);
+        assert(uc_mem_write(uc, common_start, data, common_size) == UC_ERR_OK);
+        free(data);
+    }
+    
+    loaderOffset += imageSize;
+    module->machHeader = machHeader;
+    module->modInitFuncs = modInitFuncList;
+    module->routines = routineList;
+    
+    shared_ptr<StringTable> strtab = make_shared<StringTable>();
+    module->strtab = strtab;
+    uint64_t strtab_vmaddr = linkedit_base + symtab_cmd->stroff;
+    uint8_t *strtab_data = (uint8_t *)malloc(symtab_cmd->strsize);
+    ensure_uc_mem_read(strtab_vmaddr, strtab_data, symtab_cmd->strsize);
+    strtab->buildStringTable(strtab_vmaddr, strtab_data, symtab_cmd->strsize);
+    
+    // sort sectionHeaders by offset
+    sort(sectionHeaders.begin(), sectionHeaders.end(), [&](struct ib_section_64 *a, struct ib_section_64 *b) {
+        return a->offset < b->offset;
+    });
+    
+    shared_ptr<SymbolTable> symtab = make_shared<SymbolTable>(strtab);
+    symtab->moduleBase = imageBase;
+    if (dyld_info) {
+        symtab->buildExportNodes(linkContext, dyld_info->export_off, dyld_info->export_size);
+    }
+    module->symtab = symtab;
+    
+    uint8_t *symtab_data = NULL;
+    symtab->buildSymbolTable(moduleName, symtab_data, symtab_cmd->nsyms);
+    if (dysymtab_cmd) {
+        uint8_t *dysymtab_data = NULL; // dysymtab_cmd->indirectsymoff
+        symtab->buildDynamicSymbolTable(linkContext, sectionHeaders, dysymtab_data, dysymtab_cmd->nindirectsyms);
+    }
+    symtab->sync();
+    
+    // map symtab & strtab
+    
+//    if (uc != this->uc) {
+//        // sync text segment since we may have fixed it
+//        for (pair<uint64_t, uint32_t> patch : textPatch) {
+//            uc_mem_write(uc, patch.first, &patch.second, sizeof(uint32_t));
+//        }
+//        relocAllRegions(symtab, objcRuntime, uc);
+//    }
+    
+    // handle export dylibs
+    for (MachODynamicLibrary &library : exportDynamicLibraries) {
+        string path = resolveLibraryPath(library.path);
+        if (path.length() > 0) {
+            _loadModuleFromFileUsingSharedCache(linkContext, path, false);
+        } else {
+            cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Error: unable to export dependent dylib %s", library.name.c_str());
+            cout << termcolor::reset << endl;
+        }
+    }
+    
+    module->addr = imageBase;
+    module->size = imageSize;
+    module->dynamicLibraryDependencies = dynamicLibraryDependencies;
+    module->dynamicLibraryOrdinalList = dynamicLibraryOrdinalList;
+    module->exportDynamicLibraries = exportDynamicLibraries;
+    module->dyldInfoCommand = dyld_info;
+    module->segmentHeaders = segmentHeaders;
+    module->sectionHeaders = sectionHeaders;
+    module->loader = shared_from_this();
+    
+    modules.push_back(module);
+    assert(name2module.find(moduleName) == name2module.end());
+    name2module[moduleName] = module;
+    addr2module[module->addr] = module;
+    
+    // rebase module
+    if (imageBase > 0) {
+        // FIXME: rebase info uc
+        DyldSimulator::doRebase(imageBase, imageSize, NULL, segmentHeaders, dyld_info, [&](uint64_t addr, uint64_t slide, uint8_t type) {
+            switch (type) {
+                case IB_REBASE_TYPE_POINTER:
+                case IB_REBASE_TYPE_TEXT_ABSOLUTE32: {
+                    uint64_t ptrAddr = addr;
+                    uint64_t ptrValue = 0;
+                    uc_err err = uc_mem_read(uc, ptrAddr, &ptrValue, 8);
+                    if (err != UC_ERR_OK) {
+                        cout << termcolor::red << StringUtils::format("[-] MachOLoader - Error: cannot do rebase at 0x%llx, %s", addr, uc_strerror(err));
+                        cout << termcolor::reset << endl;
+                        assert(false);
+                    }
+                    
+                    ptrValue += imageBase;
+                    err = uc_mem_write(uc, ptrAddr, &ptrValue, 8);
+                    if (err != UC_ERR_OK) {
+                        cout << termcolor::red << StringUtils::format("[-] MachOLoader - Error: cannot do rebase at 0x%llx, %s", addr, uc_strerror(err));
+                        cout << termcolor::reset << endl;
+                        assert(false);
+                    }
+                    break;
+                }
+                default:
+                    assert(false);
+                    break;
+            }
+        });
+    }
+    
+    // load dependencies
+    if (loadDylibs) {
+        for (MachODynamicLibrary &library : dynamicLibraryDependencies) {
+            string path = resolveLibraryPath(library.path);
+            if (path.length() != 0) {
+                _loadModuleFromFileUsingSharedCache(linkContext, path, true);
             } else {
                 cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Error: unable to load dependent dylib %s", library.path.c_str());
                 cout << termcolor::reset << endl;

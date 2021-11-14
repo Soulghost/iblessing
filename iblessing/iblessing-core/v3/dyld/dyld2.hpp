@@ -10,11 +10,13 @@
 #define dyld2_hpp
 
 #include <stdio.h>
+#include <iblessing-core/v2/vendor/unicorn/unicorn.h>
+#include "dyld-sharedcache-loader.hpp"
 
 namespace dyld {
     extern void log(const char*, ...);
     extern void logToConsole(const char* format, ...);
-    extern void mapSharedCache(uintptr_t mainExecutableSlide);
+    extern SharedCacheLoadInfo mapSharedCache(uc_engine *uc, uintptr_t mainExecutableSlide);
 }
 
 #endif /* dyld2_hpp */

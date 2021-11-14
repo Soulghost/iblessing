@@ -9,7 +9,10 @@
 #ifndef dyld_sharedcache_loader_hpp
 #define dyld_sharedcache_loader_hpp
 
+#include <iblessing-core/v2/common/ibtypes.h>
+#include <iblessing-core/core/polyfill/mach-universal.hpp>
 #include <iblessing-core/v3/dyld/DyldSharedCache.hpp>
+#include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 
 struct SharedCacheOptions {
     const char*     cacheDirOverride;
@@ -20,13 +23,30 @@ struct SharedCacheOptions {
 };
 
 struct SharedCacheLoadInfo {
-    typedef const DyldSharedCache* DyldCachePtrType;
-    DyldCachePtrType             loadAddress;
+//    typedef const DyldSharedCache* DyldCachePtrType;
+    uint64_t                     loadAddress;
     long                         slide;
     const char*                  errorMessage;
     char                         path[256];
 };
 
-bool loadDyldCache(const SharedCacheOptions& options, SharedCacheLoadInfo* results);
+struct SharedCacheFindDylibResults {
+    uint64_t                    mhInCache;
+    const char*                 pathInCache;
+    long                        slideInCache;
+};
+
+bool loadDyldCache(uc_engine *uc, const SharedCacheOptions& options, SharedCacheLoadInfo* results);
+bool findInSharedCacheImage(uc_engine *uc, const SharedCacheLoadInfo& loadInfo, const char* dylibPathToFind, SharedCacheFindDylibResults* results);
+
+NS_IB_BEGIN
+
+typedef struct DyldLinkContext {
+    uc_engine *uc;
+    SharedCacheLoadInfo loadInfo;
+} DyldLinkContext;
+
+NS_IB_END
+
 
 #endif /* dyld_sharedcache_loader_hpp */
