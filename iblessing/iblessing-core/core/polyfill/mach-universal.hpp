@@ -870,4 +870,40 @@ enum ib_dyld_image_states
 #define IB_RTLD_DEFAULT     -2     /* Use default search algorithm. */
 #define IB_RTLD_MAIN_ONLY   -5    /* Search main executable only (Mac OS X 10.5 and later) */
 
+typedef uint64_t                ib_mach_vm_address_t;
+typedef uint64_t                ib_mach_vm_offset_t;
+typedef uint64_t                ib_mach_vm_size_t;
+typedef uint64_t                ib_user_addr_t;
+typedef int                     ib_vm_prot_t;
+
+struct ib_shared_file_mapping_slide_np {
+    ib_mach_vm_address_t       sms_address;     /* address at which to create mapping */
+    ib_mach_vm_size_t          sms_size;        /* size of region to map */
+    ib_mach_vm_offset_t        sms_file_offset; /* offset into file to be mapped */
+    ib_user_addr_t             sms_slide_size;  /* size of data at sms_slide_start */
+    ib_user_addr_t             sms_slide_start; /* address from which to get relocation data */
+    ib_vm_prot_t               sms_max_prot;    /* protections, plus flags, see below */
+    ib_vm_prot_t               sms_init_prot;
+};
+
+struct ib_shared_file_np {
+    int                     sf_fd;             /* file to be mapped into shared region */
+    uint32_t                sf_mappings_count; /* number of mappings */
+    uint32_t                sf_slide;          /* distance in bytes of the slide */
+};
+
+struct ib_shared_file_mapping_np {
+    ib_mach_vm_address_t       sfm_address;
+    ib_mach_vm_size_t          sfm_size;
+    ib_mach_vm_offset_t        sfm_file_offset;
+    ib_vm_prot_t               sfm_max_prot;
+    ib_vm_prot_t               sfm_init_prot;
+};
+
+#define IB_VM_PROT_COW                      0x08
+#define IB_VM_PROT_ZF                       0x10
+#define IB_VM_PROT_SLIDE                    0x20
+#define IB_VM_PROT_NOAUTH                   0x40
+#define IB_VM_PROT_TRANSLATED_ALLOW_EXECUTE 0x80
+
 #endif /* mach_universal_hpp */

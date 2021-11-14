@@ -7,6 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		682911292740B24B00D35A2A /* dyld-sharedcache-loader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 682911272740B24B00D35A2A /* dyld-sharedcache-loader.cpp */; };
+		6829112A2740B24B00D35A2A /* dyld-sharedcache-loader.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 682911282740B24B00D35A2A /* dyld-sharedcache-loader.hpp */; };
+		6829112E2740B6FE00D35A2A /* MachOFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6829112C2740B6FE00D35A2A /* MachOFile.cpp */; };
+		6829112F2740B6FE00D35A2A /* MachOFile.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6829112D2740B6FE00D35A2A /* MachOFile.hpp */; };
+		682911342740BA0700D35A2A /* dyld2.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 682911322740BA0700D35A2A /* dyld2.cpp */; };
+		682911352740BA0700D35A2A /* dyld2.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 682911332740BA0700D35A2A /* dyld2.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
+		682911382740BC4900D35A2A /* DyldSharedCache.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 682911362740BC4900D35A2A /* DyldSharedCache.cpp */; };
+		682911392740BC4900D35A2A /* DyldSharedCache.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 682911372740BC4900D35A2A /* DyldSharedCache.hpp */; };
 		6829628724CBEEA300EF9251 /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829628624CBEEA300EF9251 /* AppDelegate.m */; };
 		6829628D24CBEEA300EF9251 /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6829628C24CBEEA300EF9251 /* ViewController.m */; };
 		6829629024CBEEA300EF9251 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6829628E24CBEEA300EF9251 /* Main.storyboard */; };
@@ -147,6 +155,15 @@
 		6817506F25BA7B920046328F /* SimpleSimProcedure.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = SimpleSimProcedure.cpp; sourceTree = "<group>"; };
 		6817507025BA7B920046328F /* SimpleSimProcedure.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = SimpleSimProcedure.hpp; sourceTree = "<group>"; };
 		68192CBF251F359500EB867C /* libkeystone.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libkeystone.a; sourceTree = "<group>"; };
+		682911272740B24B00D35A2A /* dyld-sharedcache-loader.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "dyld-sharedcache-loader.cpp"; sourceTree = "<group>"; };
+		682911282740B24B00D35A2A /* dyld-sharedcache-loader.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "dyld-sharedcache-loader.hpp"; sourceTree = "<group>"; };
+		6829112B2740B31800D35A2A /* dyld_cache_format.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dyld_cache_format.h; sourceTree = "<group>"; };
+		6829112C2740B6FE00D35A2A /* MachOFile.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = MachOFile.cpp; sourceTree = "<group>"; };
+		6829112D2740B6FE00D35A2A /* MachOFile.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = MachOFile.hpp; sourceTree = "<group>"; };
+		682911322740BA0700D35A2A /* dyld2.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = dyld2.cpp; sourceTree = "<group>"; };
+		682911332740BA0700D35A2A /* dyld2.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = dyld2.hpp; sourceTree = "<group>"; };
+		682911362740BC4900D35A2A /* DyldSharedCache.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = DyldSharedCache.cpp; sourceTree = "<group>"; };
+		682911372740BC4900D35A2A /* DyldSharedCache.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = DyldSharedCache.hpp; sourceTree = "<group>"; };
 		6829627724CBEE4A00EF9251 /* Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6829628324CBEEA300EF9251 /* iblessing-sample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "iblessing-sample.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6829628524CBEEA300EF9251 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -460,6 +477,22 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		682911262740B12F00D35A2A /* dyld */ = {
+			isa = PBXGroup;
+			children = (
+				682911272740B24B00D35A2A /* dyld-sharedcache-loader.cpp */,
+				682911282740B24B00D35A2A /* dyld-sharedcache-loader.hpp */,
+				6829112B2740B31800D35A2A /* dyld_cache_format.h */,
+				6829112C2740B6FE00D35A2A /* MachOFile.cpp */,
+				6829112D2740B6FE00D35A2A /* MachOFile.hpp */,
+				682911322740BA0700D35A2A /* dyld2.cpp */,
+				682911332740BA0700D35A2A /* dyld2.hpp */,
+				682911362740BC4900D35A2A /* DyldSharedCache.cpp */,
+				682911372740BC4900D35A2A /* DyldSharedCache.hpp */,
+			);
+			path = dyld;
+			sourceTree = "<group>";
+		};
 		6829628424CBEEA300EF9251 /* iblessing-sample */ = {
 			isa = PBXGroup;
 			children = (
@@ -528,6 +561,7 @@
 		68446FFE26D7BAD500FE4D70 /* v3 */ = {
 			isa = PBXGroup;
 			children = (
+				682911262740B12F00D35A2A /* dyld */,
 				68892F932734DF66000095A2 /* log */,
 				68772759271C07420081A4DA /* memory */,
 				68A44D43270C472700C91CC6 /* debugger */,
@@ -1319,14 +1353,18 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				682911392740BC4900D35A2A /* DyldSharedCache.hpp in Headers */,
 				68D341A62705AD4A00810C77 /* macho-memory.hpp in Headers */,
 				68A44D47270C473600C91CC6 /* uc_debugger_utils.hpp in Headers */,
 				6844700726D7C05400FE4D70 /* macho-loader.hpp in Headers */,
 				6844700326D7BB2600FE4D70 /* macho-module.hpp in Headers */,
+				6829112A2740B24B00D35A2A /* dyld-sharedcache-loader.hpp in Headers */,
 				6877275D271C07680081A4DA /* macho-memory-manager.hpp in Headers */,
 				6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */,
 				68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */,
 				68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */,
+				6829112F2740B6FE00D35A2A /* MachOFile.hpp in Headers */,
+				682911352740BA0700D35A2A /* dyld2.hpp in Headers */,
 				68892F9B2734DF92000095A2 /* buffered_logger.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1558,11 +1596,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				682911382740BC4900D35A2A /* DyldSharedCache.cpp in Sources */,
 				68B255CF26401EDE008FA1E2 /* CoreFoundation.cpp in Sources */,
 				68B255D426401EE9008FA1E2 /* mach-universal.cpp in Sources */,
 				68B255D926401EF0008FA1E2 /* Foundation.cpp in Sources */,
 				68892F9A2734DF92000095A2 /* buffered_logger.cpp in Sources */,
 				68B255DE26401EFB008FA1E2 /* Symbol.cpp in Sources */,
+				682911292740B24B00D35A2A /* dyld-sharedcache-loader.cpp in Sources */,
 				68B255DF26401EFB008FA1E2 /* StringTable.cpp in Sources */,
 				68B255E026401EFB008FA1E2 /* SymbolTable.cpp in Sources */,
 				68B255E526401F05008FA1E2 /* VirtualMemory.cpp in Sources */,
@@ -1580,6 +1620,7 @@
 				68B255FA26401F2E008FA1E2 /* ObjcRuntime.cpp in Sources */,
 				68B255FB26401F2E008FA1E2 /* ObjcIvar.cpp in Sources */,
 				68B255FC26401F2E008FA1E2 /* ObjcObject.cpp in Sources */,
+				6829112E2740B6FE00D35A2A /* MachOFile.cpp in Sources */,
 				68B255FD26401F2E008FA1E2 /* ObjcBlock.cpp in Sources */,
 				68B255FE26401F2E008FA1E2 /* ObjcCategory.cpp in Sources */,
 				68B2560426401F3C008FA1E2 /* Object.cpp in Sources */,
@@ -1591,6 +1632,7 @@
 				68B2561D26401F65008FA1E2 /* ScannerWorkDirManager.cpp in Sources */,
 				68B2562226401F73008FA1E2 /* Scanner.cpp in Sources */,
 				68A44D46270C473600C91CC6 /* uc_debugger_utils.cpp in Sources */,
+				682911342740BA0700D35A2A /* dyld2.cpp in Sources */,
 				68B2562726401F7C008FA1E2 /* StringUtils.cpp in Sources */,
 				68B2562C26401F81008FA1E2 /* FunctionXrefAnalyser.cpp in Sources */,
 				6844700626D7C05400FE4D70 /* macho-loader.cpp in Sources */,
