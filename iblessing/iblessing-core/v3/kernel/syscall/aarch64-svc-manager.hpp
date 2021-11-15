@@ -11,6 +11,7 @@
 
 #include <iblessing-core/v2/common/ibtypes.h>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
+#include <iblessing-core/v3/fs/darwin-file-system.hpp>
 #include <map>
 
 #define ensure_uc_mem_read(addr, bytes, size) assert(uc_mem_read(uc, addr, bytes, size) == UC_ERR_OK)
@@ -68,6 +69,7 @@ protected:
     uc_engine *uc;
     int swiGenerator;
     std::map<int, Aarch64SVC> svcMap;
+    std::shared_ptr<DarwinFileSystem> fs;
 };
 
 NS_IB_END

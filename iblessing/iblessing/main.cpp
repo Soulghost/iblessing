@@ -29,7 +29,8 @@ int main(int argc, const char *argv[]) {
     string modulePath = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample";
     string entry = "_test_malloc";
 //    entry = "_listClasses";
-    entry = "_testNSLog";
+    entry = "_testObjc";
+//    entry = "_testNSLog";
     
 #if 0
     modulePath = "/Users/soulghost/Desktop/git/unidbg/unidbg-ios/src/test/resources/native/macos/cpp/a12z_ios";
@@ -39,8 +40,11 @@ int main(int argc, const char *argv[]) {
     shared_ptr<MachOLoader> loader = make_shared<MachOLoader>();
     shared_ptr<MachOModule> module = loader->loadModuleFromFile(modulePath);
     shared_ptr<Aarch64Machine> machine = make_shared<Aarch64Machine>();
+    loader->machine = machine;
     machine->loader = loader;
     machine->svcManager = loader->svcManager;
+    // FIXME: tricky dependencies
+    loader->svcManager->machine = machine;
     machine->uc = loader->uc;
     machine->callModule(module, entry);
     

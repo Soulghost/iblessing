@@ -74,6 +74,7 @@ Aarch64SVCManager::Aarch64SVCManager(uc_engine *uc, uint64_t addr, uint64_t size
     }
     
     this->rlimit = nullptr;
+    this->fs = make_shared<DarwinFileSystem>(uc);
 }
 
 uint64_t Aarch64SVCManager::createSVC(Aarch64SVCCallback callback) {
@@ -165,6 +166,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
     // clear carry
     cspr &= ~(1UL << 29);
     ensure_uc_reg_write(UC_ARM64_REG_NZCV, &cspr);
+    // clear errno
+    machine.lock()->setErrno(0);
     
     if (trap_no > 0) {
         // posix
@@ -394,6 +397,16 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
+            case 338: { // stat64
+                uint64_t pathAddr, bufAddr;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &bufAddr);
+                
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                machine.lock()->setErrno(ENOENT);
+                syscall_return_value(-1);
+                return true;
+            }
             case 340: { // lstat64
                 uint64_t pathAddr, bufAddr;
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
@@ -479,7 +492,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     BufferedLogger::globalLogger()->printBuffer();
                     print_backtrace(uc);
                     
-                    char *passwd = strdup("root:p5Z3vjjEfs.bQ:0:0::0:0:System Administrator:/var/root:/bin/sh\n\0");
+                    char *passwd = strdup("root:p5Z3vjjEfs.bQ:0:0::0:0:System Administrator:/var/root:/bin/sh");
                     assert(strlen(passwd) < count);
                     count = (int)strlen(passwd);
                     ensure_uc_mem_write(bufferAddr, passwd, count);
@@ -494,8 +507,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     assert(false);
                 }
                 
-                uint64_t readLen = count;
-                ensure_uc_reg_write(UC_ARM64_REG_X0, &readLen);
+                int readLen = count;
+                ensure_uc_reg_write(UC_ARM64_REG_W0, &readLen);
                 return true;
             }
             case 397: { // write_NOCANCEL

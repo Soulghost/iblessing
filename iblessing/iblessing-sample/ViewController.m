@@ -49,7 +49,7 @@ void testObjc() {
     [md enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         printf("dict key %s, value %s\n", [key UTF8String], [[obj description] UTF8String]);
     }];
-    NSLog(@"dict contents %s\n", md);
+//    NSLog(@"dict contents %s\n", md);
 }
 
 uint64_t test_malloc(void) {

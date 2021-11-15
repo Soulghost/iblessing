@@ -18,7 +18,7 @@
 #define TraceLevelASM        1
 #define TraceLevelASMComment 2
 
-#define TraceLevel TraceLevelASMComment
+#define TraceLevel TraceLevelNone
 
 using namespace std;
 using namespace iblessing;
