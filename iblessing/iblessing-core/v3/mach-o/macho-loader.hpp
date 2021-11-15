@@ -21,6 +21,8 @@
 
 NS_IB_BEGIN
 
+class Aarch64Machine;
+
 class MachOLoader : public std::enable_shared_from_this<MachOLoader> {
 public:
     MachOLoader();
@@ -35,6 +37,7 @@ public:
     ScannerWorkDirManager *workDirManager;
     std::shared_ptr<MachOMemoryManager> memoryManager;
     std::shared_ptr<Aarch64SVCManager> svcManager;
+    std::weak_ptr<Aarch64Machine> machine;
     std::shared_ptr<MachOModule> findModuleByName(std::string moduleName);
     std::shared_ptr<MachOModule> findModuleByAddr(uint64_t addr);
     Symbol * getSymbolByAddress(uint64_t addr);

@@ -139,6 +139,9 @@ bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, v
         if (swi == 0x80) {
             return handleSyscall(uc, intno, swi, user_data);
         }
+        
+        BufferedLogger::globalLogger()->printBuffer();
+        print_backtrace(uc);
         assert(false);
         return false;
     }
@@ -156,6 +159,13 @@ bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, v
 bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
     int64_t trap_no = 0;
     assert(uc_reg_read(uc, UC_ARM64_REG_X16, &trap_no) == UC_ERR_OK);
+    
+    uint64_t cspr = 0;
+    assert(uc_reg_read(uc, UC_ARM64_REG_NZCV, &cspr) == UC_ERR_OK);
+    // clear carry
+    cspr &= ~(1UL << 29);
+    ensure_uc_reg_write(UC_ARM64_REG_NZCV, &cspr);
+    
     if (trap_no > 0) {
         // posix
         switch (trap_no) {
@@ -384,6 +394,22 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
+            case 340: { // lstat64
+                uint64_t pathAddr, bufAddr;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &bufAddr);
+                
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                if (strcmp(path, "/var/root/Documents/__ignore.unidbg_keychain.plist") == 0) {
+                    machine.lock()->setErrno(ENOENT);
+                    syscall_return_value(-1);
+                } else {
+                    assert(false);
+                }
+//                BufferedLogger::globalLogger()->printBuffer();
+//                print_backtrace(uc);
+                return true;
+            }
             case 357: { // getaudit_addr
                 uint64_t addr;
                 int size;
@@ -450,7 +476,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         ensure_uc_mem_write(bufferAddr, &tailVal, rest);
                     }
                 } else if (fd == IB_FD_PASSWD) {
-                    char *passwd = strdup("root:p5Z3vjjEfs.bQ:0:0::0:0:System Administrator:/var/root:/bin/sh");
+                    BufferedLogger::globalLogger()->printBuffer();
+                    print_backtrace(uc);
+                    
+                    char *passwd = strdup("root:p5Z3vjjEfs.bQ:0:0::0:0:System Administrator:/var/root:/bin/sh\n\0");
                     assert(strlen(passwd) < count);
                     count = (int)strlen(passwd);
                     ensure_uc_mem_write(bufferAddr, passwd, count);
@@ -494,10 +523,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     strcmp(path, "/dev/random") == 0 ||
                     strcmp(path, "/dev/srandom") == 0) {
                     fd = IB_FD_URANDOM;
-                } else if (strcmp(path, "/etc/passwd") == 0) {
+                } else if (strcmp(path, "/etc/master.passwd") == 0) {
                     fd = IB_FD_PASSWD;
-                    BufferedLogger::globalLogger()->printBuffer();
-                    print_backtrace(uc);
                 } else if (strcmp(path, ".") == 0) {
                     fd = IB_FD_CWD;
                 } else {
@@ -506,11 +533,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 free(path);
                 ensure_uc_reg_write(UC_ARM64_REG_W0, &fd);
                 
-                uint64_t cspr = 0;
-                assert(uc_reg_read(uc, UC_ARM64_REG_NZCV, &cspr) == UC_ERR_OK);
-                // clear carry
-                cspr &= ~(1UL << 29);
-                ensure_uc_reg_write(UC_ARM64_REG_NZCV, &cspr);
+                machine.lock()->setErrno(0);
                 return true;
             }
             case 399: { // close_NOCANCEL
@@ -549,6 +572,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         
                         uint64_t tsdAddr = threadAddr + __offsetof(ib_pthread, self);
                         assert(uc_reg_write(uc, UC_ARM64_REG_TPIDRRO_EL0, &tsdAddr) == UC_ERR_OK);
+                        
+                        uint64_t errnoAddr = pthread->errno_;
+                        shared_ptr<Aarch64Machine> a64Machine = this->machine.lock();
+                        assert(a64Machine != nullptr);
+                        a64Machine->setErrnoAddr(errnoAddr);
                         
                         // FIXME: set errno
                         int ret = 0;
@@ -1012,6 +1040,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
     }
     
     BufferedLogger::globalLogger()->printBuffer();
+    print_backtrace(uc);
     assert(false);
     return false;
 }

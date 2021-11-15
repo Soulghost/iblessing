@@ -33,6 +33,8 @@ uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t size, int prot, int
 
 NS_IB_BEGIN
 
+class Aarch64Machine;
+
 typedef std::function<void (uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data)> Aarch64SVCCallback;
 
 struct Aarch64SVC {
@@ -43,6 +45,8 @@ struct Aarch64SVC {
 class Aarch64SVCManager {
 public:
     Aarch64SVCManager(uc_engine *uc, uint64_t addr, uint64_t size, int swiInitValue);
+    
+    std::weak_ptr<Aarch64Machine> machine;
     
     uint64_t createSVC(int swi, Aarch64SVCCallback callback);
     uint64_t createSVC(Aarch64SVCCallback callback);

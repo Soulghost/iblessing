@@ -30,6 +30,13 @@ public:
     
     int callModule(std::shared_ptr<MachOModule> module, std::string symbolName = "");
     void initModule(std::shared_ptr<MachOModule> module, ib_module_init_env &env);
+    void initModule(std::shared_ptr<MachOModule> module);
+    void setErrno(int no);
+    void setErrnoAddr(uint64_t addr);
+    
+protected:
+    ib_module_init_env defaultEnv;
+    uint64_t errnoAddr;
 };
 
 NS_IB_END
