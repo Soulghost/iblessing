@@ -50,7 +50,7 @@ typedef struct ib_pthread {
     uint64_t guardsize; // guard page size in bytes
     
     uint64_t self;
-    uint64_t errno;
+    uint64_t errno_;
     uint64_t mig_reply;
     uint64_t machThreadSelf;
     uint64_t padding;

@@ -52,7 +52,8 @@ static string resolveLibraryPath(string &name) {
         }
     }
     std::string libRoot = "/Users/soulghost/Desktop/git/iblessing/iblessing/resource/Frameworks/7.1";
-    if (StringUtils::has_prefix(name, "/System/Library/Frameworks/")) {
+    if (StringUtils::has_prefix(name, "/System/Library/Frameworks/") ||
+        StringUtils::has_prefix(name, "/System/Library/PrivateFrameworks/")) {
         path = libRoot + name;
     } else if (StringUtils::has_prefix(name, "/usr/lib/")) {
         // FIXME: check file exists
@@ -126,7 +127,7 @@ MachOLoader::~MachOLoader() {
 
 shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     _defaultLoader = this->shared_from_this();
-    assert(modules.size() == 0);
+//    assert(modules.size() == 0);
     
     SharedCacheLoadInfo sharedCacheLoadInfo = dyld::mapSharedCache(uc, 0);
     DyldLinkContext linkContext;
@@ -164,6 +165,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 static uint64_t _dyld_image_path_containing_address = 0;
                 static uint64_t _dyld_dlopen_address = 0;
                 static uint64_t _dyld_NSGetExecutablePath_address = 0;
+                static uint64_t _dyld_dlsym_address = 0;
                 if (_dyld_fast_stub_entryAddr == 0) {
                     Dyld::bindHooks["_abort"] = [&](string symbolName, uint64_t symbolAddr) {
                         static uint64_t _abortAddr = 0;
@@ -386,7 +388,14 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         } else {
                             string moduleName = StringUtils::path_basename(path);
                             shared_ptr<MachOModule> module = findModuleByName(moduleName);
-                            assert(module != nullptr);
+                            if (module == nullptr) {
+                                string _path = string(path);
+                                string realPath = resolveLibraryPath(_path);
+                                module = loadModuleFromFile(realPath);
+                                
+                                shared_ptr<Aarch64Machine> a64Machine = this->machine.lock();
+                                a64Machine->initModule(module);
+                            }
                             ret = module->machHeader;
                         }
                         ensure_uc_reg_write(UC_ARM64_REG_X0, &ret);
@@ -419,6 +428,52 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         ensure_uc_mem_write(bufAddr + path.length(), &null64, 1);
                     });
                 }
+                if (_dyld_dlsym_address == 0) {
+                    _dyld_dlsym_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        int64_t handle;
+                        uint64_t symbolAddr;
+                        ensure_uc_reg_read(UC_ARM64_REG_X0, &handle);
+                        ensure_uc_reg_read(UC_ARM64_REG_X1, &symbolAddr);
+                        char *symbolName = MachoMemoryUtils::uc_read_string(uc, symbolAddr, 1000);
+                        if (handle == IB_RTLD_MAIN_ONLY) {
+                            if (strcmp(symbolName, "_os_trace_redirect_func") == 0) {
+                                assert(false);
+                            }
+                        }
+                        if (strcmp(symbolName, "sandbox_check") == 0) {
+                            assert(false);
+                        }
+                        if (strcmp(symbolName, "_availability_version_check") == 0) {
+                            assert(false);
+                        }
+                        if (strcmp(symbolName, "dispatch_after") == 0) {
+                            assert(false);
+                        }
+                        if (strcmp(symbolName, "dispatch_async") == 0) {
+                            assert(false);
+                        }
+                        
+                        Symbol *symbol = nullptr;
+                        string symName = StringUtils::format("_%s", symbolName);
+                        free(symbolName);
+                        symbolName = (char *)symName.c_str();
+                        if (handle > 0) {
+                            shared_ptr<MachOModule> module = findModuleByAddr(handle);
+                            symbol = module->getSymbolByName(symbolName, false);
+                        } else {
+                            for (shared_ptr<MachOModule> module : modules) {
+                                symbol = module->getSymbolByName(symbolName, false);
+                                if (symbol) {
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        uint64_t targetAddr = symbol ? symbol->info->n_value : 0;
+                        ensure_uc_reg_write(UC_ARM64_REG_X0, &targetAddr);
+                    });
+                }
+                
                 static uint64_t dyldLazyBinderAddr = 0, dyldFunctionLookupAddr = 0;
                 if (dyldLazyBinderAddr == 0) {
                     dyldLazyBinderAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
@@ -454,6 +509,9 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         } else if (strcmp(dyldFuncName, "__dyld_dlopen") == 0) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_dlopen_address, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_dlopen_address, 8) == UC_ERR_OK);
+                        } else if (strcmp(dyldFuncName, "__dyld_dlsym") == 0) {
+                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_dlsym_address, dyldFuncBindToAddr);
+                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_dlsym_address, 8) == UC_ERR_OK);
                         } else if (strcmp(dyldFuncName, "__dyld__NSGetExecutablePath") == 0) {
                             printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_NSGetExecutablePath_address, dyldFuncBindToAddr);
                             assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_NSGetExecutablePath_address, 8) == UC_ERR_OK);
@@ -1249,7 +1307,7 @@ shared_ptr<MachOModule> MachOLoader::findModuleByName(string moduleName) {
 //    }
     if (name2module.find(moduleName) == name2module.end()) {
         if (moduleName != "libsystem_stats.dylib") {
-            assert(false);
+//            assert(false);
         }
         return nullptr;
     }
