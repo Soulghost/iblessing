@@ -11,6 +11,7 @@
 
 #include <iblessing-core/v2/common/ibtypes.h>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
+#include <iblessing-core/v3/fs/darwin-file-system.hpp>
 #include <map>
 
 #define ensure_uc_mem_read(addr, bytes, size) assert(uc_mem_read(uc, addr, bytes, size) == UC_ERR_OK)
@@ -38,6 +39,8 @@ uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t size, int prot, int
 
 NS_IB_BEGIN
 
+class Aarch64Machine;
+
 typedef std::function<void (uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data)> Aarch64SVCCallback;
 
 struct Aarch64SVC {
@@ -48,6 +51,8 @@ struct Aarch64SVC {
 class Aarch64SVCManager {
 public:
     Aarch64SVCManager(uc_engine *uc, uint64_t addr, uint64_t size, int swiInitValue);
+    
+    std::weak_ptr<Aarch64Machine> machine;
     
     uint64_t createSVC(int swi, Aarch64SVCCallback callback);
     uint64_t createSVC(Aarch64SVCCallback callback);
@@ -69,6 +74,7 @@ protected:
     uc_engine *uc;
     int swiGenerator;
     std::map<int, Aarch64SVC> svcMap;
+    std::shared_ptr<DarwinFileSystem> fs;
 };
 
 NS_IB_END
