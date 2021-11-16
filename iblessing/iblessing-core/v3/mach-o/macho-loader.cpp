@@ -127,10 +127,19 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     printImageList();
     
     set<pair<string, string>> symbolNotFoundErrorSet;
+    bool isExecutable = false;
     for (shared_ptr<MachOModule> module : modules) {
-        DyldSimulator::eachBind(module->mappedBuffer, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int libraryOrdinal, const char *msg) {
-            Dyld::bindAt(module, this->shared_from_this(), libraryOrdinal, symbolName, addr, addend, type);
-        });
+        if (isExecutable) {
+            DyldSimulator::eachBind(module->mappedBuffer, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int libraryOrdinal, const char *msg) {
+                Dyld::bindAt(module, this->shared_from_this(), libraryOrdinal, symbolName, addr, addend, type);
+            });
+            isExecutable = false;
+        } else {
+            DyldSimulator::eachBind(linkContext, module->linkedit_base, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int libraryOrdinal, const char *msg) {
+                Dyld::bindAt(module, this->shared_from_this(), libraryOrdinal, symbolName, addr, addend, type);
+            });
+        }
+        
         
         for (struct ib_section_64 *sect : module->sectionHeaders) {
             if (strncmp(sect->segname, "__DATA", 16) == 0 &&
@@ -797,6 +806,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(DyldLinkContext linkCon
     
     module->addr = imageBase;
     module->size = imageSize;
+    module->linkedit_base = linkedit_base;
     module->dynamicLibraryDependencies = dynamicLibraryDependencies;
     module->dynamicLibraryOrdinalList = dynamicLibraryOrdinalList;
     module->exportDynamicLibraries = exportDynamicLibraries;
@@ -935,6 +945,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
             case IB_LC_SEGMENT_64: {
                 struct ib_segment_command_64 *seg64 = (struct ib_segment_command_64 *)malloc(sizeof(struct ib_segment_command_64));
                 ensure_uc_mem_read(cmdsAddr, seg64, sizeof(struct ib_segment_command_64));
+                segmentHeaders.push_back(seg64);
                 
                 uint64_t size = std::min(seg64->vmsize, seg64->filesize);
                 if (size == 0) {
@@ -1176,6 +1187,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
     
     module->addr = imageBase;
     module->size = imageSize;
+    module->linkedit_base = linkedit_base;
     module->dynamicLibraryDependencies = dynamicLibraryDependencies;
     module->dynamicLibraryOrdinalList = dynamicLibraryOrdinalList;
     module->exportDynamicLibraries = exportDynamicLibraries;
@@ -1242,9 +1254,9 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
 }
 
 shared_ptr<MachOModule> MachOLoader::findModuleByName(string moduleName) {
-    if (moduleName.rfind("libc++") != string::npos) {
-        StringUtils::replace(moduleName, "libc++", "libcpp");
-    }
+//    if (moduleName.rfind("libc++") != string::npos) {
+//        StringUtils::replace(moduleName, "libc++", "libcpp");
+//    }
     if (name2module.find(moduleName) == name2module.end()) {
         if (moduleName != "libsystem_stats.dylib") {
             assert(false);
