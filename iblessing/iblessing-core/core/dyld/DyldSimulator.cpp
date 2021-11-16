@@ -257,6 +257,97 @@ void DyldSimulator::doRebase(uint64_t moduleBase, uint64_t moduleSize, uint8_t *
     }
 }
 
+void DyldSimulator::doRebase(DyldLinkContext linkContext, uint64_t moduleBase, uint64_t moduleSize, vector<struct ib_segment_command_64 *> segmentHeaders, ib_dyld_info_command *dyldinfo, DyldRebaseHandler handler) {
+    uint8_t *rebaseData = (uint8_t *)malloc(dyldinfo->rebase_size);
+    uint64_t rebaseAddr = linkContext.loadInfo.loadAddress + dyldinfo->rebase_off;
+    assert(uc_mem_read(linkContext.uc, rebaseAddr, rebaseData, dyldinfo->rebase_size) == UC_ERR_OK);
+    uint8_t *start = rebaseData;
+    uint8_t *end = rebaseData + dyldinfo->rebase_size;
+    if (start == end) {
+        return;
+    }
+    
+    uint8_t type = 0;
+    int segmentIndex = 0;
+    uintptr_t slide = 0;
+    uintptr_t address = moduleBase;
+    uintptr_t segmentStartAddress = moduleBase;
+    uintptr_t segmentEndAddress = moduleBase + moduleSize;
+    uintptr_t count;
+    uintptr_t skip;
+    bool done = false;
+    const uint8_t* p = start;
+    while ( !done && (p < end) ) {
+        uint8_t immediate = *p & IB_REBASE_IMMEDIATE_MASK;
+        uint8_t opcode = *p & IB_REBASE_OPCODE_MASK;
+        ++p;
+        switch (opcode) {
+            case IB_REBASE_OPCODE_DONE:
+                done = true;
+                break;
+            case IB_REBASE_OPCODE_SET_TYPE_IMM:
+                type = immediate;
+                break;
+            case IB_REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB:
+                segmentIndex = immediate;
+                if ( segmentIndex >= segmentHeaders.size() ) {
+                    printf("[-] REBASE_OPCODE_SET_SEGMENT_AND_OFFSET_ULEB has segment %d which is too large (0..%d)",
+                            segmentIndex, segmentHeaders.size()-1);
+                    assert(false);
+                }
+                segmentStartAddress = segmentHeaders[segmentIndex]->vmaddr;
+                segmentEndAddress = segmentStartAddress + segmentHeaders[segmentIndex]->vmsize;
+                address = segmentStartAddress + read_uleb128(p, end);
+                break;
+            case IB_REBASE_OPCODE_ADD_ADDR_ULEB:
+                address += read_uleb128(p, end);
+                break;
+            case IB_REBASE_OPCODE_ADD_ADDR_IMM_SCALED:
+                address += immediate*sizeof(uintptr_t);
+                break;
+            case IB_REBASE_OPCODE_DO_REBASE_IMM_TIMES:
+                for (int i=0; i < immediate; ++i) {
+                    if ( (address < segmentStartAddress) || (address >= segmentEndAddress) ) {
+                        assert(false);
+                    }
+                    handler(address, slide, type);
+                    address += sizeof(uintptr_t);
+                }
+                break;
+            case IB_REBASE_OPCODE_DO_REBASE_ULEB_TIMES:
+                count = read_uleb128(p, end);
+                for (uint32_t i=0; i < count; ++i) {
+                    if ( (address < segmentStartAddress) || (address >= segmentEndAddress) ) {
+                        assert(false);
+                    }
+                    handler(address, slide, type);
+                    address += sizeof(uintptr_t);
+                }
+                break;
+            case IB_REBASE_OPCODE_DO_REBASE_ADD_ADDR_ULEB:
+                if ( (address < segmentStartAddress) || (address >= segmentEndAddress) ) {
+                    assert(false);
+                }
+                handler(address, slide, type);
+                address += read_uleb128(p, end) + sizeof(uintptr_t);
+                break;
+            case IB_REBASE_OPCODE_DO_REBASE_ULEB_TIMES_SKIPPING_ULEB:
+                count = read_uleb128(p, end);
+                skip = read_uleb128(p, end);
+                for (uint32_t i=0; i < count; ++i) {
+                    if ( (address < segmentStartAddress) || (address >= segmentEndAddress) ) {
+                        assert(false);
+                    }
+                    handler(address, slide, type);
+                    address += skip + sizeof(uintptr_t);
+                }
+                break;
+            default:
+                assert(false);
+        }
+    }
+}
+
 void DyldSimulator::processExportNode(const uint8_t* const start, const uint8_t* p, const uint8_t* const end,
                                     char* cummulativeString, int curStrOffset,
                                     std::vector<EntryWithOffset>& output)

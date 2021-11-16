@@ -46,7 +46,7 @@ public:
     virtual ~SymbolTable();
     static SymbolTable* getInstance();
     
-    void buildExportNodes(DyldLinkContext linkContext, uint32_t export_off, uint32_t export_size);
+    void buildExportNodes(DyldLinkContext linkContext, uint64_t linkeditBase, uint32_t export_off, uint32_t export_size);
     void buildExportNodes(uint8_t *data, uint32_t export_off, uint32_t export_size);
     
     void buildSymbolTable(std::string moduleName, uint8_t *data, uint64_t nSymbols);

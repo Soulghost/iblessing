@@ -8,7 +8,10 @@
 
 #include "StringTable.hpp"
 
+using namespace std;
 using namespace iblessing;
+
+static std::map<uint64_t, shared_ptr<StringTable>> sharedMap;
 
 StringTable* StringTable::_instance = nullptr;
 
@@ -21,6 +24,20 @@ StringTable* StringTable::getInstance() {
         StringTable::_instance = new StringTable();
     }
     return StringTable::_instance;
+}
+
+shared_ptr<StringTable> StringTable::makeOrGetSharedStringTable(DyldLinkContext linkContext, uint64_t addr, uint64_t size) {
+    if (sharedMap.find(addr) != sharedMap.end()) {
+        return sharedMap[addr];
+    }
+    
+    uint64_t strtab_vmaddr = addr;
+    uint8_t *strtab_data = (uint8_t *)malloc(size);
+    assert(uc_mem_read(linkContext.uc, strtab_vmaddr, strtab_data, size) == UC_ERR_OK);
+    shared_ptr<StringTable> strtab = make_shared<StringTable>();
+    strtab->buildStringTable(strtab_vmaddr, strtab_data, size);
+    sharedMap[addr] = strtab;
+    return strtab;
 }
 
 void StringTable::buildStringTable(uint64_t vmaddr, uint8_t *data, uint64_t size) {

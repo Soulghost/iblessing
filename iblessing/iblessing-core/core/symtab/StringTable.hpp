@@ -11,6 +11,7 @@
 
 #include <iblessing-core/infra/Object.hpp>
 #include <map>
+#include <iblessing-core/v3/dyld/dyld-sharedcache-loader.hpp>
 
 NS_IB_BEGIN
 
@@ -25,6 +26,8 @@ public:
     
     void buildStringTable(uint64_t vmaddr, uint8_t *data, uint64_t size);
     std::string getStringAtIndex(uint64_t index);
+    
+    static std::shared_ptr<StringTable> makeOrGetSharedStringTable(DyldLinkContext linkContext, uint64_t addr, uint64_t size);
     
 private:
     static StringTable *_instance;

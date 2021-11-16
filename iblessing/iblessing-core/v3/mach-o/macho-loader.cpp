@@ -892,7 +892,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
     
     // parse section headers
     // vmaddr base
-    uint64_t imageBase = loaderOffset;
+    uint64_t imageBase = findResult.mhInCache;
     uint64_t imageSize = 0;
     vector<pair<uint64_t, uint64_t>> textSects;
     uint64_t vmaddr_bss_start = 0;
@@ -952,10 +952,10 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
                 }
                 
                 if (seg64->nsects > 0) {
-                    uint64_t sectAddr = cmdsAddr + sizeof(struct ib_segment_command_64) + seg64->nsects * sizeof(struct ib_section_64);
+                    uint64_t sectAddr = cmdsAddr + sizeof(struct ib_segment_command_64);
                     for (uint32_t i = 0; i < seg64->nsects; i++) {
                         struct ib_section_64 *sect = (struct ib_section_64 *)malloc(sizeof(struct ib_section_64));
-                        ensure_uc_mem_read(sectAddr, sect, sizeof(ib_section_64));
+                        ensure_uc_mem_read(sectAddr, sect, sizeof(struct ib_section_64));
                         
                         char *sectname = (char *)malloc(17);
                         memcpy(sectname, sect->sectname, 16);
@@ -996,17 +996,18 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
                             uint64_t count = sect->size / sizeof(uint64_t);
                             uint64_t size = sizeof(uint64_t) * count;
                             uint64_t *modInitFuncs = (uint64_t *)malloc(size);
+                            uint64_t *modInitFuncsHead = modInitFuncs;
                             ensure_uc_mem_read(sect->addr, modInitFuncs, size);
                             for (uint64_t i = 0; i < count; i++) {
                                 uint64_t funcAddr = *modInitFuncs + imageBase;
                                 modInitFuncList.push_back({ .addr = funcAddr });
                                 modInitFuncs += 1;
                             }
-                            free(modInitFuncs);
+                            free(modInitFuncsHead);
                         }
                         
                         free(sectname);
-                        sect += 1;
+                        sectAddr += sizeof(struct ib_section_64);
                     }
                 }
                 
@@ -1122,12 +1123,9 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
     module->modInitFuncs = modInitFuncList;
     module->routines = routineList;
     
-    shared_ptr<StringTable> strtab = make_shared<StringTable>();
-    module->strtab = strtab;
     uint64_t strtab_vmaddr = linkedit_base + symtab_cmd->stroff;
-    uint8_t *strtab_data = (uint8_t *)malloc(symtab_cmd->strsize);
-    ensure_uc_mem_read(strtab_vmaddr, strtab_data, symtab_cmd->strsize);
-    strtab->buildStringTable(strtab_vmaddr, strtab_data, symtab_cmd->strsize);
+    shared_ptr<StringTable> strtab = StringTable::makeOrGetSharedStringTable(linkContext, strtab_vmaddr, symtab_cmd->strsize);
+    module->strtab = strtab;
     
     // sort sectionHeaders by offset
     sort(sectionHeaders.begin(), sectionHeaders.end(), [&](struct ib_section_64 *a, struct ib_section_64 *b) {
@@ -1137,14 +1135,20 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
     shared_ptr<SymbolTable> symtab = make_shared<SymbolTable>(strtab);
     symtab->moduleBase = imageBase;
     if (dyld_info) {
-        symtab->buildExportNodes(linkContext, dyld_info->export_off, dyld_info->export_size);
+        symtab->buildExportNodes(linkContext, linkedit_base, dyld_info->export_off, dyld_info->export_size);
     }
     module->symtab = symtab;
     
-    uint8_t *symtab_data = NULL;
+    size_t symtab_size = sizeof(ib_nlist_64) * symtab_cmd->nsyms;
+    uint8_t *symtab_data = (uint8_t *)malloc(symtab_size);
+    uint64_t symtab_addr = linkedit_base + symtab_cmd->symoff;
+    ensure_uc_mem_read(symtab_addr, symtab_data, symtab_size);
     symtab->buildSymbolTable(moduleName, symtab_data, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
-        uint8_t *dysymtab_data = NULL; // dysymtab_cmd->indirectsymoff
+        size_t dysymtab_size = sizeof(uint32_t) * dysymtab_cmd->nindirectsyms;
+        uint8_t *dysymtab_data = (uint8_t *)malloc(dysymtab_size);
+        uint64_t dysymtab_addr = linkedit_base + dysymtab_cmd->indirectsymoff;
+        ensure_uc_mem_read(dysymtab_addr, dysymtab_data, dysymtab_size);
         symtab->buildDynamicSymbolTable(linkContext, sectionHeaders, dysymtab_data, dysymtab_cmd->nindirectsyms);
     }
     symtab->sync();
@@ -1188,7 +1192,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
     // rebase module
     if (imageBase > 0) {
         // FIXME: rebase info uc
-        DyldSimulator::doRebase(imageBase, imageSize, NULL, segmentHeaders, dyld_info, [&](uint64_t addr, uint64_t slide, uint8_t type) {
+        DyldSimulator::doRebase(linkContext, imageBase, imageSize, segmentHeaders, dyld_info, [&](uint64_t addr, uint64_t slide, uint8_t type) {
             switch (type) {
                 case IB_REBASE_TYPE_POINTER:
                 case IB_REBASE_TYPE_TEXT_ABSOLUTE32: {
