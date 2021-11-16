@@ -40,6 +40,7 @@ public:
     uint64_t addr;
     uint64_t size;
     uint64_t machHeader;
+    uint64_t linkedit_base;
     bool hasInit;
     
     MachOModule();

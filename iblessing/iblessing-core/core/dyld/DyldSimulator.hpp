@@ -38,6 +38,7 @@ struct EntryWithOffset
 
 class DyldSimulator {
 public:
+    static bool eachBind(DyldLinkContext linkContext, uint64_t linkedit_base, std::vector<struct ib_segment_command_64 *> segmentHeaders, ib_dyld_info_command *dyldinfo, DyldBindHandler handler);
     static bool eachBind(uint8_t *mappedData, std::vector<struct ib_segment_command_64 *> segmentHeaders, ib_dyld_info_command *dyldinfo, DyldBindHandler handler);
     static void doRebase(uint64_t moduleBase, uint64_t moduleSize, uint8_t *mappedData, std::vector<struct ib_segment_command_64 *> segmentHeaders, ib_dyld_info_command *dyldinfo, DyldRebaseHandler handler);
     static void doRebase(DyldLinkContext linkContext, uint64_t moduleBase, uint64_t moduleSize, std::vector<struct ib_segment_command_64 *> segmentHeaders, ib_dyld_info_command *dyldinfo, DyldRebaseHandler handler);
