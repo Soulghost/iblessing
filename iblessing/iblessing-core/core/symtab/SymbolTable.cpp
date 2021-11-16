@@ -34,15 +34,26 @@ void SymbolTable::sync() {
     this->symbolMapCpp = mm;
 }
 
-void SymbolTable::buildExportNodes(DyldLinkContext linkContext, uint32_t export_off, uint32_t export_size) {
+void SymbolTable::buildExportNodes(DyldLinkContext linkContext, uint64_t linkeditBase, uint32_t export_off, uint32_t export_size) {
     if (export_size == 0) {
         return;
     }
     
     uint8_t *data = (uint8_t *)malloc(export_size);
-    uint64_t exportInfoAddr = linkContext.loadInfo.loadAddress + export_off;
+    uint64_t exportInfoAddr = linkeditBase + export_off;
     assert(uc_mem_read(linkContext.uc, exportInfoAddr, data, export_size) == UC_ERR_OK);
-    buildExportNodes(data, export_off, export_size);
+    
+    const uint8_t *start = data;
+    const uint8_t *end = start + export_size;
+    char cummulativeString[32000];
+    vector<EntryWithOffset> entries;
+    DyldSimulator::processExportNode(start, start, end, cummulativeString, 0, entries);
+    exportSymbols.clear();
+    for (EntryWithOffset &e : entries) {
+        e.entry.address += moduleBase;
+        e.entry.other += moduleBase;
+        exportSymbols[e.entry.name] = e.entry;
+    }
 }
 
 void SymbolTable::buildExportNodes(uint8_t *data, uint32_t export_off, uint32_t export_size) {
