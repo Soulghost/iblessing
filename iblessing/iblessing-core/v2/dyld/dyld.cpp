@@ -137,6 +137,10 @@ uint64_t Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> lo
         
         MachODynamicLibrary &library = module->dynamicLibraryOrdinalList[libraryOrdinal - 1];
         string libraryName = library.name;
+        if (libraryName == "UIKit") {
+            printf("[-] Warn: ignore bind UIKit symbols\n");
+            return 0;
+        }
         targetModule = loader->findModuleByName(libraryName);
     }
     assert(targetModule != nullptr);

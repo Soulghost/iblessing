@@ -94,7 +94,10 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64
             // non-lazy symbol
             // NOTICE: ignore export symbol
             if (li->n_value != 0) {
-                li->n_value += moduleBase;
+                // FIXME: symbol base in sharedcache
+                if (li->n_value < moduleBase) {
+                    li->n_value += moduleBase;
+                }
                 if (exportSymbols.size() == 0) {
                     // add symbol directly
                     symbolMap.insert(li->n_value, symbol);
@@ -103,10 +106,11 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64
                 } else {
                     if (exportSymbols.find(symName) != exportSymbols.end()) {
                         if (exportSymbols[symName].other == li->n_value) {
-    //                        symbolMap.insert(li->n_value, symbol);
-    //                        name2symbol[symName].pushBack(symbol);
-    //                        symbol->release();
-                            assert(false);
+                            // FIXME: exportSymbol .other
+                            symbolMap.insert(li->n_value, symbol);
+                            name2symbol[symName].pushBack(symbol);
+                            symbol->release();
+//                            assert(false);
                         } else {
                             symbolMap.insert(li->n_value, symbol);
                             name2symbol[symName].pushBack(symbol);

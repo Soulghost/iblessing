@@ -25,6 +25,7 @@
 #include <iblessing-core/v2/vendor/keystone/keystone.h>
 #include "uc_debugger_utils.hpp"
 #include "dyld2.hpp"
+#include "aarch64-machine.hpp"
 
 #ifdef IB_PLATFORM_DARWIN
 namespace fs = std::filesystem;
@@ -100,6 +101,16 @@ MachOLoader::MachOLoader()  {
         assert(false);
     }
     
+    uint64_t stack_top = UnicornStackTopAddr;
+    uint64_t stack_size = 0x10000;
+    uint64_t stack_addr = stack_top - stack_size;
+    err = uc_mem_map(uc, stack_addr, stack_size, UC_PROT_ALL);
+    if (err != UC_ERR_OK) {
+        cout << termcolor::red << "[-] MachOLoader - Error: unicorn error " << uc_strerror(err);
+        cout << termcolor::reset << endl;
+        assert(false);
+    }
+    
     // memory
     shared_ptr<MachOMemoryManager> memoryManager = make_shared<MachOMemoryManager>(uc);
     this->memoryManager = memoryManager;
@@ -127,7 +138,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     printImageList();
     
     set<pair<string, string>> symbolNotFoundErrorSet;
-    bool isExecutable = false;
+    bool isExecutable = true;
     for (shared_ptr<MachOModule> module : modules) {
         if (isExecutable) {
             DyldSimulator::eachBind(module->mappedBuffer, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int libraryOrdinal, const char *msg) {
@@ -855,6 +866,10 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(DyldLinkContext linkCon
     // load dependencies
     if (loadDylibs) {
         for (MachODynamicLibrary &library : dynamicLibraryDependencies) {
+            if (library.name == "UIKit") {
+                printf("[-] Warn: ignore UIKit\n");
+                continue;
+            }
             string path = resolveLibraryPath(library.path);
             if (path.length() != 0) {
                 _loadModuleFromFileUsingSharedCache(linkContext, path, true);
@@ -1010,7 +1025,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
                             uint64_t *modInitFuncsHead = modInitFuncs;
                             ensure_uc_mem_read(sect->addr, modInitFuncs, size);
                             for (uint64_t i = 0; i < count; i++) {
-                                uint64_t funcAddr = *modInitFuncs + imageBase;
+                                uint64_t funcAddr = *modInitFuncs & 0xfffffffffULL;
                                 modInitFuncList.push_back({ .addr = funcAddr });
                                 modInitFuncs += 1;
                             }
