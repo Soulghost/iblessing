@@ -414,6 +414,16 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     ib_module_init_env initEnv;
     initEnv.varsAddr = varsAddr;
     
+    // setup libSystem kerneltrace page
+    uint64_t kernel_trace_page_addr = 0xFFFFF0000;
+    uint64_t kernel_trace_page_size = 0x10000;
+    assert(uc_mem_map(uc, kernel_trace_page_addr, kernel_trace_page_size, UC_PROT_READ) == UC_ERR_OK);
+    {
+        void *nullchunk = calloc(1, kernel_trace_page_size);
+        ensure_uc_mem_write(kernel_trace_page_addr, nullchunk, kernel_trace_page_size);
+    }
+    
+    
     // setup kern common pages
     assert(uc_mem_map(uc, IB_KERNEL_BASE64, 0x10000, UC_PROT_READ) == UC_ERR_OK);
     uint64_t cpuCount = 1;
