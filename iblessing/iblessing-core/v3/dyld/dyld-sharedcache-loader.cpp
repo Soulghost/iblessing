@@ -12,6 +12,7 @@
 #include "MachOFile.hpp"
 #include "dyld2.hpp"
 #include "macho-memory.hpp"
+#include "StringUtils.h"
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -65,7 +66,9 @@ int __shared_region_map_and_slide_2_np(uint32_t files_count, const ib_shared_fil
 
 static void getCachePath(const SharedCacheOptions& options, size_t pathBufferSize, char pathBuffer[])
 {
-    static char *cachePath = strdup("/Users/soulghost/Desktop/git/iblessing/dyld/iPhone10,3,iPhone10,6_14.8_18H17_Restore.dyld_shared_cache_arm64");
+    char *src = getenv("IB_SOURCE_ROOT");
+    string dyldPath = StringUtils::path_join(string(src), "../dyld/iPhone10,3,iPhone10,6_14.8_18H17_Restore.dyld_shared_cache_arm64");
+    const char *cachePath = dyldPath.c_str();
     assert(strlen(cachePath) + 1 < pathBufferSize);
     strcpy(pathBuffer, cachePath);
 }
