@@ -26,15 +26,11 @@ using namespace argparse;
 using namespace iblessing;
 
 int main(int argc, const char *argv[]) {
-    string modulePath = "/Users/soulghost/Desktop/git/iblessing/iblessing/build/Debug-iphoneos/iblessing-sample.app/iblessing-sample";
+    char *productRoot = getenv("IB_SOURCE_ROOT");
+    string modulePath = StringUtils::path_join(productRoot, "build/Debug-iphoneos/iblessing-sample.app/iblessing-sample");
     string entry = "_test_malloc";
 //    entry = "_listClasses";
     entry = "_testNSLog";
-    
-#if 0
-    modulePath = "/Users/soulghost/Desktop/git/unidbg/unidbg-ios/src/test/resources/native/macos/cpp/a12z_ios";
-    entry = "_main";
-#endif
     
     shared_ptr<MachOLoader> loader = make_shared<MachOLoader>();
     shared_ptr<MachOModule> module = loader->loadModuleFromFile(modulePath);
