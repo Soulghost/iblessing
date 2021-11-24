@@ -19,7 +19,9 @@ NS_IB_BEGIN
 #define UnicornStackTopAddr      0x300000000
 
 typedef struct ib_module_init_env {
+    uint64_t environAddr;
     uint64_t varsAddr;
+    uint64_t appleAddr;
 } ib_module_init_env;
 
 class Aarch64Machine {

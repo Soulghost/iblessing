@@ -719,20 +719,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             ib_host_flavor_t flavor;
                             ib_mach_msg_type_number_t host_info_outCnt;
                             ib_mach_msg_trailer_t trailer;
-                        } Request __attribute__((unused));
+                        } __Request__host_info_t __attribute__((unused));
                         #pragma pack(pop)
                         
-                        #pragma pack(push, 4)
-                        typedef struct {
-                            ib_mach_msg_header_t Head;
-                            ib_NDR_record_t NDR;
-                            ib_kern_return_t RetCode;
-                            ib_mach_msg_type_number_t host_info_outCnt;
-                            int host_info_out[68];
-                        } Reply __attribute__((unused));
-                        #pragma pack(pop)
-                        
-                        Request *request = (Request *)hdr;
+                        __Request__host_info_t *request = (__Request__host_info_t *)hdr;
                         switch (request->flavor) {
                             case 5: { // HOST_PRIORITY_INFO
                                 struct host_priority_info {
@@ -756,7 +746,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                                 } HostPriorityReply __attribute__((unused));
                                 #pragma pack(pop)
                                 HostPriorityReply *reply = (HostPriorityReply *)hdr;
-                                reply->Head.msgh_remote_port = hdr->msgh_local_port;
+                                // do not set remote_port
+                                reply->Head.msgh_remote_port = 0;
                                 reply->Head.msgh_local_port = 0;
                                 reply->Head.msgh_id += 100;
                                 reply->Head.msgh_bits &= 0xff;
@@ -772,8 +763,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                                 reply->RetCode = 0;
                                 reply->host_info_outCnt = 8;
                                 assert(uc_mem_write(uc, msg, reply, reply->Head.msgh_size) == UC_ERR_OK);
-                                int ret = 0;
-                                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                                
+                                syscall_return_value64(0);
                                 return true;
                                 break;
                             }
