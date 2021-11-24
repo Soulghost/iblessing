@@ -263,16 +263,20 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
         // argv
         assert(uc_reg_write(uc, UC_ARM64_REG_X1, &nullval) == UC_ERR_OK);
         // envp
-        assert(uc_reg_write(uc, UC_ARM64_REG_X2, &nullval) == UC_ERR_OK);
+        assert(uc_reg_write(uc, UC_ARM64_REG_X2, &env.environAddr) == UC_ERR_OK);
         // apple
-        assert(uc_reg_write(uc, UC_ARM64_REG_X3, &nullval) == UC_ERR_OK);
+        assert(uc_reg_write(uc, UC_ARM64_REG_X3, &env.appleAddr) == UC_ERR_OK);
         // vars
         assert(uc_reg_write(uc, UC_ARM64_REG_X4, &env.varsAddr) == UC_ERR_OK);
         
         assert(uc_reg_write(uc, UC_ARM64_REG_LR, &callFunctionLR) == UC_ERR_OK);
         uc_err err = uc_emu_start(uc, addr, callFunctionLR, 0, 0);
         printf("  [*] execute mod_init_func in engine result %s\n", uc_strerror(err));
-        assert(err == UC_ERR_OK);
+        if (err != UC_ERR_OK) {
+            BufferedLogger::globalLogger()->printBuffer();
+            print_backtrace(uc);
+            assert(false);
+        }
     }
     module->hasInit = true;
 }
@@ -281,6 +285,22 @@ static uint64_t uc_alloca(uint64_t sp, uint64_t size) {
     sp -= size;
     sp &= (~15);
     return sp;
+}
+
+static uint64_t createEnv(uc_engine *uc, uint64_t *sp, vector<string> envList) {
+    *sp = uc_alloca(*sp, sizeof(uint64_t) * (envList.size() + 1));
+    uint64_t environ = *sp;
+    uint64_t null64 = 0;
+    uint64_t environ_cursor = environ;
+    for (string &env : envList) {
+        *sp = uc_alloca(*sp, env.length() + 1);
+        assert(uc_mem_write(uc, *sp, env.c_str(), env.length()) == UC_ERR_OK);
+        assert(uc_mem_write(uc, *sp + env.length(), &null64, 1) == UC_ERR_OK);
+        assert(uc_mem_write(uc, environ_cursor, sp, sizeof(uint64_t)) == UC_ERR_OK);
+        environ_cursor += sizeof(uint64_t);
+    }
+    assert(uc_mem_write(uc, environ_cursor, &null64, sizeof(uint64_t)) == UC_ERR_OK);
+    return environ;
 }
 
 int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName) {
@@ -328,20 +348,8 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
      */
     // env
     // environ
-    vector<string> envList = {"MallocCorruptionAbort=0"};
-    sp = uc_alloca(sp, sizeof(uint64_t) * (envList.size() + 1));
-    uint64_t environ = sp;
-    
     uint64_t null64 = 0;
-    uint64_t environ_cursor = environ;
-    for (string &env : envList) {
-        sp = uc_alloca(sp, env.length() + 1);
-        assert(uc_mem_write(uc, sp, env.c_str(), env.length()) == UC_ERR_OK);
-        assert(uc_mem_write(uc, sp + env.length(), &null64, 1) == UC_ERR_OK);
-        assert(uc_mem_write(uc, environ_cursor, &sp, sizeof(uint64_t)) == UC_ERR_OK);
-        environ_cursor += sizeof(uint64_t);
-    }
-    assert(uc_mem_write(uc, environ_cursor, &null64, sizeof(uint64_t)) == UC_ERR_OK);
+    uint64_t environ = createEnv(uc, &sp, {"MallocCorruptionAbort=0", "PTHREAD_PTR_MUNGE_TOKEN=0x1"});
     
     // _NSGetEnviron
     sp = uc_alloca(sp, sizeof(uint64_t));
@@ -407,12 +415,17 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
 //    assert(uc_reg_write(uc, UC_ARM64_REG_TPIDRRO_EL0, &tsdObjectAddr) == UC_ERR_OK);
     // pthread end
     
+    // apple args
+    uint64_t appleAddr = 0;
+    
     // set sp
     uc_reg_write(uc, UC_ARM64_REG_SP, &sp);
     
     // call init funcs
     ib_module_init_env initEnv;
+    initEnv.environAddr = environ;
     initEnv.varsAddr = varsAddr;
+    initEnv.appleAddr = appleAddr;
     
     // setup libSystem kerneltrace page
     uint64_t kernel_trace_page_addr = 0xFFFFF0000;

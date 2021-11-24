@@ -891,6 +891,7 @@ struct ib_shared_file_mapping_slide_np {
     ib_mach_vm_size_t          sms_size;        /* size of region to map */
     ib_mach_vm_offset_t        sms_file_offset; /* offset into file to be mapped */
     ib_user_addr_t             sms_slide_size;  /* size of data at sms_slide_start */
+    ib_user_addr_t             sms_slide_offset;
     ib_user_addr_t             sms_slide_start; /* address from which to get relocation data */
     ib_vm_prot_t               sms_max_prot;    /* protections, plus flags, see below */
     ib_vm_prot_t               sms_init_prot;
