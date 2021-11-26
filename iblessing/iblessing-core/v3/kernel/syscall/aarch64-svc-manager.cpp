@@ -349,7 +349,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_read(uc, UC_ARM64_REG_W0, &fd) == UC_ERR_OK);
                 assert(uc_reg_read(uc, UC_ARM64_REG_X1, &buf) == UC_ERR_OK);
                 printf("[+] handle syscall fstat64(339) with fd %d, buf 0x%llx\n", fd, buf);
-                if (fd >= 0 && fd <= IB_FD_BOUND) {
+                if ((fd >= 0 && fd <= IB_FD_BOUND) || fs->has(fd)) {
                     int st_mode;
                     if (fd == 1) {
                         st_mode = S_IFCHR | S_IRWXU | S_IRWXG | S_IRWXO;
@@ -488,15 +488,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         int tailVal = 255;
                         ensure_uc_mem_write(bufferAddr, &tailVal, rest);
                     }
-                } else if (fd == IB_FD_PASSWD) {
-                    BufferedLogger::globalLogger()->printBuffer();
-                    print_backtrace(uc);
-                    
-                    char *passwd = strdup("root:p5Z3vjjEfs.bQ:0:0::0:0:System Administrator:/var/root:/bin/sh");
-                    assert(strlen(passwd) < count);
-                    count = (int)strlen(passwd);
-                    ensure_uc_mem_write(bufferAddr, passwd, count);
-                    free(passwd);
                 } else if (fd == IB_FD_CWD) {
                     char *content = strdup("/");
                     assert(strlen(content) < count);
@@ -504,7 +495,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     ensure_uc_mem_write(bufferAddr, content, count);
                     free(content);
                 } else {
-                    assert(false);
+                    count = fs->read(fd, bufferAddr, count);
+                    assert(count >= 0);
                 }
                 
                 int readLen = count;
@@ -536,12 +528,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     strcmp(path, "/dev/random") == 0 ||
                     strcmp(path, "/dev/srandom") == 0) {
                     fd = IB_FD_URANDOM;
-                } else if (strcmp(path, "/etc/master.passwd") == 0) {
-                    fd = IB_FD_PASSWD;
                 } else if (strcmp(path, ".") == 0) {
                     fd = IB_FD_CWD;
                 } else {
-                    assert(false);
+                    fd = fs->open(path, oflags);
+                    assert(fd >= 0);
                 }
                 free(path);
                 ensure_uc_reg_write(UC_ARM64_REG_W0, &fd);
@@ -552,8 +543,18 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             case 399: { // close_NOCANCEL
                 int fd;
                 ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
-                assert(fd == IB_FD_URANDOM || fd == IB_FD_PASSWD || fd == IB_FD_CWD);
-                printf("[Stalker][+] handle close_NOCANCEL with fd %d\n", fd);
+                
+                int code = 0;
+                if (fd == IB_FD_URANDOM || fd == IB_FD_PASSWD || fd == IB_FD_CWD) {
+                    code = 0;
+                } else {
+                    code = fs->close(fd);
+                }
+                
+                printf("[Stalker][+] handle close_NOCANCEL with fd %d, code %d\n", fd, code);
+                assert(code == 0);
+                machine.lock()->setErrno(code);
+                syscall_return_value(code);
                 return true;
             }
             case 406: { // fcntl_NOCANCEL

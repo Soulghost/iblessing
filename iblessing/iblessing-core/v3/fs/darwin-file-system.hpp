@@ -33,6 +33,7 @@ public:
     int read(int fd, uint64_t bufferAddr, int count);
     int write(int fd, uint64_t bufferAddr, int count);
     int close(int fd);
+    bool has(int fd);
     
 protected:
     uc_engine *uc;
