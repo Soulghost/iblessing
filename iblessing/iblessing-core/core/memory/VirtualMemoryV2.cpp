@@ -133,7 +133,8 @@ int VirtualMemoryV2::mappingMachOToEngine(shared_ptr<SymbolTable> symtab, shared
                 if (seg64->nsects > 0) {
                     struct ib_section_64 *sect = (struct ib_section_64 *)((uint8_t *)seg64 + sizeof(struct ib_segment_command_64));
                     for (uint32_t i = 0; i < seg64->nsects; i++) {
-                        char *sectname = (char *)malloc(16);
+                        char *sectname = (char *)malloc(17);
+                        memset(sectname, 0, 17);
                         memcpy(sectname, sect->sectname, 16);
                         addr2segInfo[sect->addr] = {string(sect->segname), string(sectname)};
                         free(sectname);
@@ -330,7 +331,8 @@ CFString* VirtualMemoryV2::readAsCFString(uint64_t address, bool needCheck) {
         }
         
         int checkLen = std::min((int)str->length, 10);
-        char *tmpBuf = (char *)malloc(checkLen);
+        char *tmpBuf = (char *)malloc(checkLen + 1);
+        memset(tmpBuf, 0, checkLen + 1);
         err = uc_mem_read(uc, str->data, tmpBuf, checkLen);
         if (err != UC_ERR_OK) {
             free(str);
