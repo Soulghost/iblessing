@@ -315,6 +315,19 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 }
                 return true;
             }
+            case 266: { // shm_open
+                uint64_t pathAddr;
+                int oflags, mode;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &oflags);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &mode);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                printf("[Stalker][+][Syscall] shm_open %s, oflags %d, mode %d\n", path, oflags, mode);
+                free(path);
+                
+                
+                return true;
+            }
             case 286: { // pthread_getugid_np
                 uint64_t uidAddr, gidAddr;
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &uidAddr);
@@ -793,21 +806,21 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             ib_mach_msg_body_t msgh_body;
                             ib_mach_msg_port_descriptor_t clock_server;
                             /* end of the kernel processed data */
-                        } Reply __attribute__((unused));
+                        } __Reply__host_get_clock_service_t __attribute__((unused));
                         #pragma pack(pop)
                         
-                        Reply *OutP = (Reply *)hdr;
-                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        __Reply__host_get_clock_service_t *OutP = (__Reply__host_get_clock_service_t *)hdr;
+                        OutP->Head.msgh_remote_port = 0;
                         OutP->Head.msgh_local_port = 0;
                         OutP->Head.msgh_id += 100;
                         OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
-                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(Reply));
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__host_get_clock_service_t));
                         
                         OutP->msgh_body.msgh_descriptor_count = 1;
                         OutP->clock_server.name = CLOCK_SERVER_PORT;
                         OutP->clock_server.pad1 = 0;
                         OutP->clock_server.pad2 = 0;
-                        OutP->clock_server.disposition = 17;
+                        OutP->clock_server.disposition = 0x11;
                         OutP->clock_server.type = IB_MACH_MSG_PORT_DESCRIPTOR;
                         assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
                         
@@ -960,26 +973,25 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             ib_mach_msg_body_t msgh_body;
                             ib_mach_msg_port_descriptor_t semaphore;
                             /* end of the kernel processed data */
-                        } Reply __attribute__((unused));
+                        } __Reply__semaphore_create_t __attribute__((unused));
                         #pragma pack(pop)
                         
-                        Reply *OutP = (Reply *)hdr;
-                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        __Reply__semaphore_create_t *OutP = (__Reply__semaphore_create_t *)hdr;
+                        OutP->Head.msgh_remote_port = 0;
                         OutP->Head.msgh_local_port = 0;
                         OutP->Head.msgh_id += 100;
                         OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
-                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(Reply));
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__semaphore_create_t));
                         
                         OutP->msgh_body.msgh_descriptor_count = 1;
                         OutP->semaphore.name = SEMAPHORE_PORT;
                         OutP->semaphore.pad1 = 0;
                         OutP->semaphore.pad2 = 0;
-                        OutP->semaphore.disposition = 17;
+                        OutP->semaphore.disposition = 0x11;
                         OutP->semaphore.type = IB_MACH_MSG_PORT_DESCRIPTOR;
                         assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
                         
-                        int ret = 0;
-                        assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                        syscall_return_success;
                         return true;
                     }
                     default:
@@ -1005,6 +1017,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
     }
     
     BufferedLogger::globalLogger()->printBuffer();
+    print_backtrace(uc);
     assert(false);
     return false;
 }
