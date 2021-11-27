@@ -75,6 +75,19 @@ struct dyld_cache_mapping_info {
     uint32_t    initProt;
 };
 
+struct dyld_cache_slide_info2 {
+    uint32_t    version;            // currently 2
+    uint32_t    page_size;          // currently 4096 (may also be 16384)
+    uint32_t    page_starts_offset;
+    uint32_t    page_starts_count;
+    uint32_t    page_extras_offset;
+    uint32_t    page_extras_count;
+    uint64_t    delta_mask;         // which (contiguous) set of bits contains the delta to the next rebase location
+    uint64_t    value_add;
+    // uint16_t    page_starts[page_starts_count];
+    // uint16_t    page_extras[page_extras_count];
+};
+
 struct dyld_cache_mapping_and_slide_info {
     uint64_t    address;
     uint64_t    size;
@@ -110,6 +123,9 @@ struct dyld_sharedcache {
 
     FSeek(header.imagesOffset);
     struct dyld_cache_image_info imageInfos[header.imagesCount];
+
+    FSeek(dataMappingSlideInfos[0].slideInfoFileOffset);
+    struct dyld_cache_slide_info2 info;
 };
 
 dyld_sharedcache file;

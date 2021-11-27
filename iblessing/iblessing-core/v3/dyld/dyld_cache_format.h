@@ -98,6 +98,18 @@ enum {
     DYLD_CACHE_MAPPING_CONST_DATA           = 1 << 2U,
 };
 
+struct dyld_cache_slide_info
+{
+    uint32_t    version;        // currently 1
+    uint32_t    toc_offset;
+    uint32_t    toc_count;
+    uint32_t    entries_offset;
+    uint32_t    entries_count;
+    uint32_t    entries_size;  // currently 128
+    // uint16_t toc[toc_count];
+    // entrybitmap entries[entries_count];
+};
+
 struct dyld_cache_slide_info2
 {
     uint32_t    version;            // currently 2
@@ -111,5 +123,10 @@ struct dyld_cache_slide_info2
     //uint16_t    page_starts[page_starts_count];
     //uint16_t    page_extras[page_extras_count];
 };
+
+#define DYLD_CACHE_SLIDE_PAGE_ATTRS                0xC000  // high bits of uint16_t are flags
+#define DYLD_CACHE_SLIDE_PAGE_ATTR_EXTRA           0x8000  // index is into extras array (not starts array)
+#define DYLD_CACHE_SLIDE_PAGE_ATTR_NO_REBASE       0x4000  // page has no rebasing
+#define DYLD_CACHE_SLIDE_PAGE_ATTR_END             0x8000  // last chain entry for page
 
 #endif /* dyld_cache_format_h */

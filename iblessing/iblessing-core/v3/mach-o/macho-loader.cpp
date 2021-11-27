@@ -136,7 +136,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     linkContext.loadInfo = sharedCacheLoadInfo;
     
     shared_ptr<MachOModule> mainModule = _loadModuleFromFile(linkContext, filePath, true);
-    
+    // rebase
     printImageList();
     
     set<pair<string, string>> symbolNotFoundErrorSet;
@@ -1016,23 +1016,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
                         if (sect->reloff > 0 && sect->nreloc > 0) {
                             allRelocs.push_back({{sect->reloff, sect->nreloc}, {sect->addr, sect}});
                         }
-                        if (strcmp(sect->sectname, "__la_symbol_ptr") == 0 ||
-                            strcmp(sect->sectname, "__la_resolver") == 0) {
-                            uint64_t count = sect->size / sizeof(uint64_t);
-                            uint64_t size = sizeof(uint64_t) * count;
-                            uint64_t *ptrs = (uint64_t *)malloc(size);
-                            uint64_t *ptrsHead = ptrs;
-                            ensure_uc_mem_read(sect->addr, ptrs, size);
-                            for (uint64_t i = 0; i < count; i++) {
-                                uint64_t funcAddr = *ptrs;
-                                if ((funcAddr >> 40) > 0) {
-                                    funcAddr &= 0xfffffffffULL;
-                                    ensure_uc_mem_write(sect->addr + i * sizeof(uint64_t), &funcAddr, sizeof(uint64_t));
-                                }
-                                ptrs += 1;
-                            }
-                            free(ptrsHead);
-                        }
+                        
                         sectionHeaders.push_back(sect);
                         
                         // check mod_init_func
@@ -1238,33 +1222,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
     // rebase module
     if (imageBase > 0) {
         // FIXME: rebase info uc
-        DyldSimulator::doRebase(linkContext, imageBase, imageSize, segmentHeaders, dyld_info, [&](uint64_t addr, uint64_t slide, uint8_t type) {
-            switch (type) {
-                case IB_REBASE_TYPE_POINTER:
-                case IB_REBASE_TYPE_TEXT_ABSOLUTE32: {
-                    uint64_t ptrAddr = addr;
-                    uint64_t ptrValue = 0;
-                    uc_err err = uc_mem_read(uc, ptrAddr, &ptrValue, 8);
-                    if (err != UC_ERR_OK) {
-                        cout << termcolor::red << StringUtils::format("[-] MachOLoader - Error: cannot do rebase at 0x%llx, %s", addr, uc_strerror(err));
-                        cout << termcolor::reset << endl;
-                        assert(false);
-                    }
-                    
-                    ptrValue += imageBase;
-                    err = uc_mem_write(uc, ptrAddr, &ptrValue, 8);
-                    if (err != UC_ERR_OK) {
-                        cout << termcolor::red << StringUtils::format("[-] MachOLoader - Error: cannot do rebase at 0x%llx, %s", addr, uc_strerror(err));
-                        cout << termcolor::reset << endl;
-                        assert(false);
-                    }
-                    break;
-                }
-                default:
-                    assert(false);
-                    break;
-            }
-        });
+        assert(dyld_info->rebase_size == 0);
     }
     
     // load dependencies

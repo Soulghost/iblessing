@@ -34,7 +34,82 @@ struct CacheInfo
     uint64_t                                maxSlide;
 };
 
-int __shared_region_map_and_slide_np(uc_engine *uc, int fd, uint32_t count, const ib_shared_file_mapping_np mappings[], long slide, const dyld_cache_slide_info2* slideInfo, size_t slideInfoSize) {
+static void rebaseChainV2(uc_engine *uc, uint64_t pageAddr, uint16_t startOffset, uintptr_t slideAmount, const dyld_cache_slide_info2* slideInfo)
+{
+    const uintptr_t   deltaMask    = (uintptr_t)(slideInfo->delta_mask);
+    const uintptr_t   valueMask    = ~deltaMask;
+    const uintptr_t   valueAdd     = (uintptr_t)(slideInfo->value_add);
+    const unsigned    deltaShift   = __builtin_ctzll(deltaMask) - 2;
+
+    uint32_t pageOffset = startOffset;
+    uint32_t delta = 1;
+    while ( delta != 0 ) {
+        uintptr_t rawValue;
+        uint64_t valueAddr = pageAddr + pageOffset;
+        assert(uc_mem_read(uc, valueAddr, &rawValue, sizeof(uintptr_t)) == UC_ERR_OK);
+        delta = (uint32_t)((rawValue & deltaMask) >> deltaShift);
+        uintptr_t value = (rawValue & valueMask);
+        if ( value != 0 ) {
+            value += valueAdd;
+            value += slideAmount;
+        }
+//        *((uintptr_t*)loc) = value;
+        
+        assert(uc_mem_write(uc, valueAddr, &value, sizeof(uintptr_t)) == UC_ERR_OK);
+//        printf("[+] fix pointer at 0x%llx: 0x%lx-> 0x%lx\n", valueAddr, rawValue, value);
+        //dyld::log("         pageOffset=0x%03X, loc=%p, org value=0x%08llX, new value=0x%08llX, delta=0x%X\n", pageOffset, loc, (uint64_t)rawValue, (uint64_t)value, delta);
+        pageOffset += delta;
+    }
+}
+
+static bool rebaseDataPages(uc_engine *uc, bool isVerbose, uint64_t slideInfoAddr, const dyld_cache_slide_info* slideInfo, uint64_t dataPagesStart, uint64_t sharedRegionStart, long slide) {
+    const dyld_cache_slide_info* slideInfoHeader = slideInfo;
+    if ( slideInfoHeader != nullptr ) {
+        if ( slideInfoHeader->version == 2 ) {
+            const dyld_cache_slide_info2* slideHeader = (dyld_cache_slide_info2*)slideInfo;
+            const uint32_t  page_size = slideHeader->page_size;
+            uint64_t page_starts_addr = slideInfoAddr + slideHeader->page_starts_offset;
+            uint64_t page_extras_addr = slideInfoAddr + slideHeader->page_extras_offset;
+            
+            size_t page_starts_size = slideHeader->page_starts_count * sizeof(uint16_t);
+            uint16_t *page_starts = (uint16_t *)malloc(page_starts_size);
+            assert(uc_mem_read(uc, page_starts_addr, page_starts, page_starts_size) == UC_ERR_OK);
+            
+            for (int i=0; i < slideHeader->page_starts_count; ++i) {
+                uint64_t pageAddr = dataPagesStart + (page_size*i);
+                uint16_t pageEntry = page_starts[i];
+                //dyld::log("page[%d]: page_starts[i]=0x%04X\n", i, pageEntry);
+                if ( pageEntry == DYLD_CACHE_SLIDE_PAGE_ATTR_NO_REBASE )
+                    continue;
+                if ( pageEntry & DYLD_CACHE_SLIDE_PAGE_ATTR_EXTRA ) {
+                    uint16_t chainIndex = (pageEntry & 0x3FFF);
+                    bool done = false;
+                    while ( !done ) {
+                        uint64_t pageExtraAddr = page_extras_addr + chainIndex * sizeof(uint16_t);
+                        uint16_t pInfo;
+                        assert(uc_mem_read(uc, pageExtraAddr, &pInfo, sizeof(uint16_t)) == UC_ERR_OK);
+                        uint16_t pageStartOffset = (pInfo & 0x3FFF)*4;
+                        //dyld::log("     chain[%d] pageOffset=0x%03X\n", chainIndex, pageStartOffset);
+                        rebaseChainV2(uc, pageAddr, pageStartOffset, slide, slideHeader);
+                        done = (pInfo & DYLD_CACHE_SLIDE_PAGE_ATTR_END);
+                        ++chainIndex;
+                    }
+                }
+                else {
+                    uint32_t pageOffset = pageEntry * 4;
+                    //dyld::log("     start pageOffset=0x%03X\n", pageOffset);
+                    rebaseChainV2(uc, pageAddr, pageOffset, slide, slideHeader);
+                }
+            }
+        }
+    } else {
+        assert(false);
+    }
+    
+    return true;
+}
+
+int __shared_region_map_and_slide_np(uc_engine *uc, int fd, uint32_t count, const ib_shared_file_mapping_np mappings[], CacheInfo info, long slide) {
     struct stat fileStatus;
     fstat(fd, &fileStatus);
     uint8_t *mappedFile = (uint8_t *)mmap(nullptr, fileStatus.st_size, PROT_READ, MAP_FILE | MAP_SHARED, fd, 0);
@@ -49,13 +124,15 @@ int __shared_region_map_and_slide_np(uc_engine *uc, int fd, uint32_t count, cons
         if (err != UC_ERR_OK) {
             printf("[-] failed to map sharedcache region 0x%llx, size 0x%llx, prot 0x%x\n", mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot);
             assert(false);
+        } else {
+            printf("[+] mapping 0x%llx - 0x%llx, with fileoff 0x%llx\n", mapping.sfm_address, mapping.sfm_address + mapping.sfm_size, mapping.sfm_file_offset);
         }
         
         err = uc_mem_write(uc, mapping.sfm_address, mappedFile + mapping.sfm_file_offset, mapping.sfm_size);
         if (err != UC_ERR_OK) {
             printf("[-] failed to write sharedcache data from fileoff 0x%llx to address 0x%llx, size 0x%llx\n", mapping.sfm_file_offset, mapping.sfm_address, mapping.sfm_size);
+            assert(false);
         }
-        
     }
     return 0;
 }
@@ -250,6 +327,7 @@ static bool preflightCacheFile(const SharedCacheOptions& options, SharedCacheLoa
         if ( slideInfoFileSize != 0 ) {
             uint64_t offsetInLinkEditRegion = (slideInfoFileOffset - linkeditMapping->fileOffset);
             info->mappings[i].sms_slide_start   = (user_addr_t)(linkeditMapping->address + offsetInLinkEditRegion);
+            info->mappings[i].sms_slide_offset   = slideInfoFileOffset;
             info->mappings[i].sms_slide_size    = (user_addr_t)slideInfoFileSize;
             info->mappings[i].sms_init_prot    |= (IB_VM_PROT_SLIDE | authProt);
             info->mappings[i].sms_max_prot     |= (IB_VM_PROT_SLIDE | authProt);
@@ -359,8 +437,6 @@ static bool mapCacheSystemWide(uc_engine *uc, const SharedCacheOptions& options,
         }
 
         // If we get here then we don't have the new kernel function, so use the old one
-        const dyld_cache_slide_info2*   slideInfo       = nullptr;
-        size_t                          slideInfoSize   = 0;
         ib_shared_file_mapping_np mappings[3];
         for (unsigned i = 0; i != 3; ++i) {
             mappings[i].sfm_address         = info.mappings[i].sms_address;
@@ -368,18 +444,15 @@ static bool mapCacheSystemWide(uc_engine *uc, const SharedCacheOptions& options,
             mappings[i].sfm_file_offset     = info.mappings[i].sms_file_offset;
             mappings[i].sfm_max_prot        = info.mappings[i].sms_max_prot;
             mappings[i].sfm_init_prot       = info.mappings[i].sms_init_prot;
-            if ( info.mappings[i].sms_slide_size != 0 ) {
-                slideInfo       = (dyld_cache_slide_info2*)info.mappings[i].sms_slide_start;
-                slideInfoSize   = (size_t)info.mappings[i].sms_slide_size;
-            }
         }
-        result = __shared_region_map_and_slide_np(uc, info.fd, 3, mappings, results->slide, slideInfo, slideInfoSize);
+        result = __shared_region_map_and_slide_np(uc, info.fd, 3, mappings, info, results->slide);
     }
 
     close(info.fd);
     if ( result == 0 ) {
         results->loadAddress = info.mappings[0].sms_address;
         if ( info.mappingsCount != 3 ) {
+            assert(false);
             // We don't know our own slide any more as the kernel owns it, so ask for it again now
             if ( reuseExistingCache(options, results) ) {
 
@@ -413,6 +486,20 @@ static bool mapCacheSystemWide(uc_engine *uc, const SharedCacheOptions& options,
     if ( options.verbose ) {
         dyld::log("mapped dyld cache file system wide: %s\n", results->path);
         verboseSharedCacheMappings(info.mappings, info.mappingsCount);
+    }
+    
+    // do rebase?
+    // rebase slide
+    for (int i = 0; i < info.mappingsCount; i++) {
+        if ( info.mappings[i].sms_slide_size == 0 ) {
+            continue;
+        }
+        
+        struct dyld_cache_slide_info2 *slideInfo = (struct dyld_cache_slide_info2 *)malloc(sizeof(struct dyld_cache_slide_info2));
+        assert(uc_mem_read(uc, info.mappings[i].sms_slide_start, slideInfo, sizeof(struct dyld_cache_slide_info2)) == UC_ERR_OK);
+        assert(slideInfo->version == 2);
+        rebaseDataPages(uc, true, info.mappings[i].sms_slide_start, (dyld_cache_slide_info *)slideInfo, info.mappings[i].sms_address, info.sharedRegionStart, results->slide);
+        free(slideInfo);
     }
     return true;
 }
