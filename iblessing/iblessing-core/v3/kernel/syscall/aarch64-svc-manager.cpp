@@ -419,6 +419,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
                 machine.lock()->setErrno(ENOENT);
                 syscall_return_value(-1);
+                free(path);
                 return true;
             }
             case 340: { // lstat64
@@ -584,6 +585,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 int audit_self = IB_AUDIT_SESSION_SELF;
                 printf("[Stalker][+][Syscall] audit_session_self return %d", audit_self);
                 syscall_return_value(audit_self);
+                return true;
+            }
+            case 500: { // getentropy
+                assert(false);
                 return true;
             }
             case 0x80000000: { // pthread_set_self

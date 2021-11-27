@@ -423,7 +423,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // pthread end
     
     // apple args
-    uint64_t appleAddr = 0;
+    uint64_t appleAddr = createEnv(uc, &sp, {"malloc_entropy=0x0,0x0"});
     
     // set sp
     uc_reg_write(uc, UC_ARM64_REG_SP, &sp);
