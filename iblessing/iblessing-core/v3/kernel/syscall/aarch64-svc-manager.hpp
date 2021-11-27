@@ -52,7 +52,7 @@ public:
     bool handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data);
     
 protected:
-    bool handleSyscall(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data);
+    virtual bool handleSyscall(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data);
     
     // resources
     struct rlimit *rlimit;

@@ -137,7 +137,7 @@ bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, v
     assert(uc == this->uc);
     if (svcMap.find(swi) == svcMap.end()) {
         if (swi == 0x80) {
-            return handleSyscall(uc, intno, swi, user_data);
+            return this->handleSyscall(uc, intno, swi, user_data);
         }
         BufferedLogger::globalLogger()->printBuffer();
         print_backtrace(uc);

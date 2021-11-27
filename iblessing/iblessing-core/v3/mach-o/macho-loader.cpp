@@ -51,7 +51,8 @@ static string resolveLibraryPath(string &name) {
             StringUtils::replace(name, versionPart, "");
         }
     }
-    std::string libRoot = "/Users/soulghost/Desktop/git/iblessing/iblessing/resource/Frameworks/7.1";
+    //std::string libRoot = "/Users/soulghost/Desktop/git/iblessing/iblessing/resource/Frameworks/7.1";
+    std::string libRoot = "/Users/bxl/Tools/iblessing/iblessing/resource/Frameworks/7.1";
     if (StringUtils::has_prefix(name, "/System/Library/Frameworks/")) {
         path = libRoot + name;
     } else if (StringUtils::has_prefix(name, "/usr/lib/")) {
@@ -116,7 +117,8 @@ MachOLoader::MachOLoader()  {
     this->memoryManager = memoryManager;
     
     // svc
-    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCManager>(uc, 0x700000000, 8 * 0xff00, 233);
+    //shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCManager>(uc, 0x700000000, 8 * 0xff00, 233);
+    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCProxy>(uc, 0x700000000, 8 * 0xff00, 233);
     this->svcManager = svcManager;
 }
 

@@ -11,6 +11,7 @@
 
 #include <iblessing-core/v3/mach-o/macho-module.hpp>
 #include <iblessing-core/v3/kernel/syscall/aarch64-svc-manager.hpp>
+#include <iblessing-core/v3/kernel/syscall/aarch64-svc-proxy.hpp>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <iblessing-core/scanner/context/ScannerWorkDirManager.hpp>
 #include <iblessing-core/v3/memory/macho-memory-manager.hpp>
