@@ -7,7 +7,7 @@
 //
 
 
-ENTRY(mach_trap_wrapper)
+ENTRY(mach_trap_wrapper_kernelrpc_mach_vm_protect_trap)
     mov     %rcx, %r10
     mov     $100000Eh, %eax,
     syscall
