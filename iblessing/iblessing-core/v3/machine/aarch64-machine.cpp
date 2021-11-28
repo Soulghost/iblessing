@@ -334,7 +334,9 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     uc_hook_add(uc, &memexp_hook, UC_HOOK_MEM_INVALID, (void *)mem_exception_hook_callback, NULL, 1, 0);
     
     // init context
-    uint64_t unicorn_sp_start = UnicornStackTopAddr;
+    //uint64_t unicorn_sp_start = UnicornStackTopAddr;
+    // BXL modification: share stack between host and guest
+    uint64_t unicorn_sp_start = loader->memoryManager->stackNew();
     uint64_t sp = unicorn_sp_start;
     
     // setup common text
@@ -342,7 +344,6 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     sp = uc_alloca(sp, sizeof(uint32_t));
     callFunctionLR = sp;
     ensure_uc_mem_write(callFunctionLR, &nopCode, sizeof(uint32_t));
-    
     /**
         setup vars
      */

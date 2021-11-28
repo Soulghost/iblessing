@@ -11,11 +11,14 @@
 
 #include <iblessing-core/v2/common/ibtypes.h>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
+#include <set>
 
 NS_IB_BEGIN
 
 #define IB_STACK_START          0x300000000
+#define IB_STACK_END            0x400000000
 #define IB_STACK_SIZE           0x100000
+#define IB_STACK_MASK           (IB_STACK_SIZE-1)
 #define IB_SMALLHEAP_START      0x500000000
 #define IB_SMALLHEAP_SIZE       0x100000000
 
@@ -28,7 +31,7 @@ public:
     void dealloc(uint64_t addr);
     
     uint64_t stackNew();
-    uint64_t stackDelete(uint64_t addr_in_stack);
+    void stackDelete(uint64_t addr_in_stack);
     uint64_t stackPush(uint64_t *stackTop, size_t size);
     uint64_t stackPop(uint64_t *stackTop, size_t size);
     
@@ -38,6 +41,9 @@ private:
     uint64_t allocatedCur;
     uint64_t allocateBegin;
     uint64_t allocateEnd;
+    
+    uint64_t stackBegin;
+    uint64_t stackEnd;
     
     std::set<uint64_t> usedStackStarts;
     

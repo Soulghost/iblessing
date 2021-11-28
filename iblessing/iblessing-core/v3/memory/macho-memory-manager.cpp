@@ -23,10 +23,15 @@ MachOMemoryManager::MachOMemoryManager(uc_engine *uc) {
     allocateEnd = 0x600000000;
     allocatedCur = allocateBegin;
     
+    stackBegin = IB_STACK_START;
+    stackEnd = IB_STACK_END;
+    
     use_shared = true;
     
     if(use_shared){
+        mmapSharedMem(stackBegin, stackEnd-stackBegin, PROT_READ|PROT_WRITE);
         mmapSharedMem(allocateBegin, allocateEnd-allocateBegin, PROT_READ|PROT_WRITE);
+        
     }else{
         assert(uc_mem_map(uc, allocateBegin, allocateEnd - allocateBegin, UC_PROT_READ | UC_PROT_WRITE) == UC_ERR_OK);
     }
@@ -72,13 +77,48 @@ void MachOMemoryManager::dealloc(uint64_t addr) {
 
 void *MachOMemoryManager::mmapSharedMem(uint64_t guest_addr, size_t size, int prot) {
     size_t size_rounded = ROUNDUP(size, 0x1000);
-    void *mmaped_addr = mmap((void *)guest_addr, size_rounded, PROT_READ|PROT_WRITE, MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    void *mmaped_addr = mmap((void *)guest_addr, size_rounded, prot, MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
+    perror("mmap");
     assert(mmaped_addr == (void *)guest_addr);
     assert(uc_mem_map_ptr(uc, guest_addr, size_rounded, UC_PROT_READ | UC_PROT_WRITE, mmaped_addr) == UC_ERR_OK);
     return mmaped_addr;
 }
 
-void *MachOMemoryManager::stackNew() {
-    mmapSharedMem(allocateBegin, allocateEnd-allocateBegin, PROT_READ|PROT_WRITE);
+uint64_t MachOMemoryManager::stackNew() {
+    uint64_t newStackAddr = stackBegin;
+    bool found = false;
+    while(newStackAddr < stackEnd){
+        if(usedStackStarts.find(newStackAddr) == usedStackStarts.end()){
+            found = true;
+            usedStackStarts.insert(newStackAddr);
+            break;
+        }
+        newStackAddr += IB_STACK_SIZE;
+    }
+    if(found){
+        return newStackAddr;
+    }else{
+        return NULL;
+    }
 }
+
+void MachOMemoryManager::stackDelete(uint64_t addrInStack){
+    uint64_t stackStart = addrInStack & IB_STACK_MASK;
+    if(usedStackStarts.find(stackStart) != usedStackStarts.end()){
+        usedStackStarts.erase(stackStart);
+    }
+}
+
+uint64_t MachOMemoryManager::stackPush(uint64_t *stackTop, size_t size) {
+    *stackTop -= size;
+    *stackTop &= (~15);
+    return *stackTop;
+}
+
+uint64_t MachOMemoryManager::stackPop(uint64_t *stackTop, size_t size) {
+    *stackTop += size;
+    *stackTop &= (~15);
+    return *stackTop;
+}
+
 
