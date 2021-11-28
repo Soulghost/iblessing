@@ -74,6 +74,7 @@ Aarch64SVCManager::Aarch64SVCManager(uc_engine *uc, uint64_t addr, uint64_t size
     }
     
     this->rlimit = nullptr;
+    this->fs = make_shared<DarwinFileSystem>(uc);
 }
 
 uint64_t Aarch64SVCManager::createSVC(Aarch64SVCCallback callback) {
@@ -139,6 +140,7 @@ bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, v
         if (swi == 0x80) {
             return this->handleSyscall(uc, intno, swi, user_data);
         }
+        
         BufferedLogger::globalLogger()->printBuffer();
         print_backtrace(uc);
         assert(false);
@@ -158,6 +160,15 @@ bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, v
 bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
     int64_t trap_no = 0;
     assert(uc_reg_read(uc, UC_ARM64_REG_X16, &trap_no) == UC_ERR_OK);
+    
+    uint64_t cspr = 0;
+    assert(uc_reg_read(uc, UC_ARM64_REG_NZCV, &cspr) == UC_ERR_OK);
+    // clear carry
+    cspr &= ~(1UL << 29);
+    ensure_uc_reg_write(UC_ARM64_REG_NZCV, &cspr);
+    // clear errno
+    machine.lock()->setErrno(0);
+    
     if (trap_no > 0) {
         // posix
         switch (trap_no) {
@@ -315,6 +326,20 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 }
                 return true;
             }
+            case 266: { // shm_open
+                uint64_t pathAddr;
+                int oflags, mode;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &oflags);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &mode);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                printf("[Stalker][+][Syscall] shm_open %s, oflags %d, mode %d\n", path, oflags, mode);
+                free(path);
+                
+                machine.lock()->setErrno(EACCES);
+                syscall_return_value(-1);
+                return true;
+            }
             case 286: { // pthread_getugid_np
                 uint64_t uidAddr, gidAddr;
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &uidAddr);
@@ -338,7 +363,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_read(uc, UC_ARM64_REG_W0, &fd) == UC_ERR_OK);
                 assert(uc_reg_read(uc, UC_ARM64_REG_X1, &buf) == UC_ERR_OK);
                 printf("[+] handle syscall fstat64(339) with fd %d, buf 0x%llx\n", fd, buf);
-                if (fd >= 0 && fd <= IB_FD_BOUND) {
+                if ((fd >= 0 && fd <= IB_FD_BOUND) || fs->has(fd)) {
                     int st_mode;
                     if (fd == 1) {
                         st_mode = S_IFCHR | S_IRWXU | S_IRWXG | S_IRWXO;
@@ -384,6 +409,33 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     ret = 1;
                 }
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
+            case 338: { // stat64
+                uint64_t pathAddr, bufAddr;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &bufAddr);
+                
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                machine.lock()->setErrno(ENOENT);
+                syscall_return_value(-1);
+                free(path);
+                return true;
+            }
+            case 340: { // lstat64
+                uint64_t pathAddr, bufAddr;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &bufAddr);
+                
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                if (strcmp(path, "/var/root/Documents/__ignore.unidbg_keychain.plist") == 0) {
+                    machine.lock()->setErrno(ENOENT);
+                    syscall_return_value(-1);
+                } else {
+                    assert(false);
+                }
+//                BufferedLogger::globalLogger()->printBuffer();
+//                print_backtrace(uc);
                 return true;
             }
             case 357: { // getaudit_addr
@@ -451,12 +503,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         int tailVal = 255;
                         ensure_uc_mem_write(bufferAddr, &tailVal, rest);
                     }
-                } else if (fd == IB_FD_PASSWD) {
-                    char *passwd = strdup("root:p5Z3vjjEfs.bQ:0:0::0:0:System Administrator:/var/root:/bin/sh");
-                    assert(strlen(passwd) < count);
-                    count = (int)strlen(passwd);
-                    ensure_uc_mem_write(bufferAddr, passwd, count);
-                    free(passwd);
                 } else if (fd == IB_FD_CWD) {
                     char *content = strdup("/");
                     assert(strlen(content) < count);
@@ -464,11 +510,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     ensure_uc_mem_write(bufferAddr, content, count);
                     free(content);
                 } else {
-                    assert(false);
+                    count = fs->read(fd, bufferAddr, count);
+                    assert(count >= 0);
                 }
                 
-                uint64_t readLen = count;
-                ensure_uc_reg_write(UC_ARM64_REG_X0, &readLen);
+                int readLen = count;
+                ensure_uc_reg_write(UC_ARM64_REG_W0, &readLen);
                 return true;
             }
             case 397: { // write_NOCANCEL
@@ -496,30 +543,33 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     strcmp(path, "/dev/random") == 0 ||
                     strcmp(path, "/dev/srandom") == 0) {
                     fd = IB_FD_URANDOM;
-                } else if (strcmp(path, "/etc/passwd") == 0) {
-                    fd = IB_FD_PASSWD;
-                    BufferedLogger::globalLogger()->printBuffer();
-                    print_backtrace(uc);
                 } else if (strcmp(path, ".") == 0) {
                     fd = IB_FD_CWD;
                 } else {
-                    assert(false);
+                    fd = fs->open(path, oflags);
+                    assert(fd >= 0);
                 }
                 free(path);
                 ensure_uc_reg_write(UC_ARM64_REG_W0, &fd);
                 
-                uint64_t cspr = 0;
-                assert(uc_reg_read(uc, UC_ARM64_REG_NZCV, &cspr) == UC_ERR_OK);
-                // clear carry
-                cspr &= ~(1UL << 29);
-                ensure_uc_reg_write(UC_ARM64_REG_NZCV, &cspr);
+                machine.lock()->setErrno(0);
                 return true;
             }
             case 399: { // close_NOCANCEL
                 int fd;
                 ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
-                assert(fd == IB_FD_URANDOM || fd == IB_FD_PASSWD || fd == IB_FD_CWD);
-                printf("[Stalker][+] handle close_NOCANCEL with fd %d\n", fd);
+                
+                int code = 0;
+                if (fd == IB_FD_URANDOM || fd == IB_FD_PASSWD || fd == IB_FD_CWD) {
+                    code = 0;
+                } else {
+                    code = fs->close(fd);
+                }
+                
+                printf("[Stalker][+] handle close_NOCANCEL with fd %d, code %d\n", fd, code);
+                assert(code == 0);
+                machine.lock()->setErrno(code);
+                syscall_return_value(code);
                 return true;
             }
             case 406: { // fcntl_NOCANCEL
@@ -537,6 +587,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(audit_self);
                 return true;
             }
+            case 500: { // getentropy
+                assert(false);
+                return true;
+            }
             case 0x80000000: { // pthread_set_self
                 uint64_t x3 = 0;
                 assert(uc_reg_read(uc, UC_ARM64_REG_X3, &x3) == UC_ERR_OK);
@@ -551,6 +605,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         
                         uint64_t tsdAddr = threadAddr + __offsetof(ib_pthread, self);
                         assert(uc_reg_write(uc, UC_ARM64_REG_TPIDRRO_EL0, &tsdAddr) == UC_ERR_OK);
+                        
+                        uint64_t errnoAddr = pthread->errno_;
+                        shared_ptr<Aarch64Machine> a64Machine = this->machine.lock();
+                        assert(a64Machine != nullptr);
+                        a64Machine->setErrnoAddr(errnoAddr);
                         
                         // FIXME: set errno
                         int ret = 0;
@@ -793,21 +852,21 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             ib_mach_msg_body_t msgh_body;
                             ib_mach_msg_port_descriptor_t clock_server;
                             /* end of the kernel processed data */
-                        } Reply __attribute__((unused));
+                        } __Reply__host_get_clock_service_t __attribute__((unused));
                         #pragma pack(pop)
                         
-                        Reply *OutP = (Reply *)hdr;
-                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        __Reply__host_get_clock_service_t *OutP = (__Reply__host_get_clock_service_t *)hdr;
+                        OutP->Head.msgh_remote_port = 0;
                         OutP->Head.msgh_local_port = 0;
                         OutP->Head.msgh_id += 100;
                         OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
-                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(Reply));
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__host_get_clock_service_t));
                         
                         OutP->msgh_body.msgh_descriptor_count = 1;
                         OutP->clock_server.name = CLOCK_SERVER_PORT;
                         OutP->clock_server.pad1 = 0;
                         OutP->clock_server.pad2 = 0;
-                        OutP->clock_server.disposition = 17;
+                        OutP->clock_server.disposition = 0x11;
                         OutP->clock_server.type = IB_MACH_MSG_PORT_DESCRIPTOR;
                         assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
                         
@@ -960,26 +1019,25 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             ib_mach_msg_body_t msgh_body;
                             ib_mach_msg_port_descriptor_t semaphore;
                             /* end of the kernel processed data */
-                        } Reply __attribute__((unused));
+                        } __Reply__semaphore_create_t __attribute__((unused));
                         #pragma pack(pop)
                         
-                        Reply *OutP = (Reply *)hdr;
-                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        __Reply__semaphore_create_t *OutP = (__Reply__semaphore_create_t *)hdr;
+                        OutP->Head.msgh_remote_port = 0;
                         OutP->Head.msgh_local_port = 0;
                         OutP->Head.msgh_id += 100;
                         OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
-                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(Reply));
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__semaphore_create_t));
                         
                         OutP->msgh_body.msgh_descriptor_count = 1;
                         OutP->semaphore.name = SEMAPHORE_PORT;
                         OutP->semaphore.pad1 = 0;
                         OutP->semaphore.pad2 = 0;
-                        OutP->semaphore.disposition = 17;
+                        OutP->semaphore.disposition = 0x11;
                         OutP->semaphore.type = IB_MACH_MSG_PORT_DESCRIPTOR;
                         assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
                         
-                        int ret = 0;
-                        assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                        syscall_return_success;
                         return true;
                     }
                     default:
@@ -1005,6 +1063,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
     }
     
     BufferedLogger::globalLogger()->printBuffer();
+    print_backtrace(uc);
     assert(false);
     return false;
 }

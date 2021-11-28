@@ -18,7 +18,7 @@
 #define TraceLevelASM        1
 #define TraceLevelASMComment 2
 
-#define TraceLevel TraceLevelASMComment
+#define TraceLevel TraceLevelNone
 
 using namespace std;
 using namespace iblessing;
@@ -125,6 +125,9 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             cs_free(insn, count);
         }
         free(codes);
+        
+        BufferedLogger::globalLogger()->printBuffer();
+        print_backtrace(uc);
         assert(false);
         return;
     }
@@ -224,6 +227,10 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
     BufferedLogger::globalLogger()->printBuffer();
     assert(false);
     return false;
+}
+
+void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
+    initModule(module, defaultEnv);
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
@@ -417,7 +424,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // pthread end
     
     // apple args
-    uint64_t appleAddr = 0;
+    uint64_t appleAddr = createEnv(uc, &sp, {"malloc_entropy=0x0,0x0"});
     
     // set sp
     uc_reg_write(uc, UC_ARM64_REG_SP, &sp);
@@ -460,6 +467,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     
     // init modules
+    defaultEnv = initEnv;
     for (shared_ptr<MachOModule> module : loader->modules) {
         initModule(module, initEnv);
     }
@@ -472,4 +480,15 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     printf("[*] execute in engine result %s\n", uc_strerror(err));
     assert(err == UC_ERR_OK);
     return 0;
+}
+
+void Aarch64Machine::setErrno(int no) {
+    if (errnoAddr > 0) {
+        ensure_uc_mem_write(errnoAddr, &no, sizeof(int));
+    }
+}
+
+void Aarch64Machine::setErrnoAddr(uint64_t addr) {
+    errnoAddr = addr;
+    setErrno(0);
 }

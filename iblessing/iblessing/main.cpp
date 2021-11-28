@@ -30,13 +30,17 @@ int main(int argc, const char *argv[]) {
     string modulePath = StringUtils::path_join(productRoot, "build/Debug-iphoneos/iblessing-sample.app/iblessing-sample");
     string entry = "_test_malloc";
 //    entry = "_listClasses";
-    entry = "_testNSLog";
+    entry = "_testObjc";
+//    entry = "_testNSLog";
     
     shared_ptr<MachOLoader> loader = make_shared<MachOLoader>();
     shared_ptr<MachOModule> module = loader->loadModuleFromFile(modulePath);
     shared_ptr<Aarch64Machine> machine = make_shared<Aarch64Machine>();
+    loader->machine = machine;
     machine->loader = loader;
     machine->svcManager = loader->svcManager;
+    // FIXME: tricky dependencies
+    loader->svcManager->machine = machine;
     machine->uc = loader->uc;
     machine->callModule(module, entry);
     

@@ -33,6 +33,8 @@
 		68666DAF25288B710014BC91 /* NSString+IBS.m in Sources */ = {isa = PBXBuildFile; fileRef = 68666DAE25288B710014BC91 /* NSString+IBS.m */; };
 		6877275C271C07680081A4DA /* macho-memory-manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6877275A271C07680081A4DA /* macho-memory-manager.cpp */; };
 		6877275D271C07680081A4DA /* macho-memory-manager.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6877275B271C07680081A4DA /* macho-memory-manager.hpp */; };
+		687A745227428A1300DBEA11 /* darwin-file-system.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 687A745027428A1300DBEA11 /* darwin-file-system.cpp */; };
+		687A745327428A1300DBEA11 /* darwin-file-system.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 687A745127428A1300DBEA11 /* darwin-file-system.hpp */; };
 		68892F9A2734DF92000095A2 /* buffered_logger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68892F982734DF92000095A2 /* buffered_logger.cpp */; };
 		68892F9B2734DF92000095A2 /* buffered_logger.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68892F992734DF92000095A2 /* buffered_logger.hpp */; };
 		6895A1C2268A0C2400EE558D /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6895A1C1268A0C2400EE558D /* main.cpp */; };
@@ -331,6 +333,8 @@
 		6877B7822514913000227CFF /* ProgramState.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramState.hpp; sourceTree = "<group>"; };
 		6877B784251492C500227CFF /* ProgramStateManager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ProgramStateManager.cpp; sourceTree = "<group>"; };
 		6877B785251492C500227CFF /* ProgramStateManager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ProgramStateManager.hpp; sourceTree = "<group>"; };
+		687A745027428A1300DBEA11 /* darwin-file-system.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "darwin-file-system.cpp"; sourceTree = "<group>"; };
+		687A745127428A1300DBEA11 /* darwin-file-system.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "darwin-file-system.hpp"; sourceTree = "<group>"; };
 		68892F982734DF92000095A2 /* buffered_logger.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = buffered_logger.cpp; sourceTree = "<group>"; };
 		68892F992734DF92000095A2 /* buffered_logger.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = buffered_logger.hpp; sourceTree = "<group>"; };
 		6894E0E1263BA97C000642F5 /* mach-o.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "mach-o.cpp"; sourceTree = "<group>"; };
@@ -562,6 +566,7 @@
 			isa = PBXGroup;
 			children = (
 				682911262740B12F00D35A2A /* dyld */,
+				687A744F274289FC00DBEA11 /* fs */,
 				68892F932734DF66000095A2 /* log */,
 				68772759271C07420081A4DA /* memory */,
 				68A44D43270C472700C91CC6 /* debugger */,
@@ -995,6 +1000,15 @@
 			path = state;
 			sourceTree = "<group>";
 		};
+		687A744F274289FC00DBEA11 /* fs */ = {
+			isa = PBXGroup;
+			children = (
+				687A745027428A1300DBEA11 /* darwin-file-system.cpp */,
+				687A745127428A1300DBEA11 /* darwin-file-system.hpp */,
+			);
+			path = fs;
+			sourceTree = "<group>";
+		};
 		68892F932734DF66000095A2 /* log */ = {
 			isa = PBXGroup;
 			children = (
@@ -1365,6 +1379,7 @@
 				68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */,
 				6829112F2740B6FE00D35A2A /* MachOFile.hpp in Headers */,
 				682911352740BA0700D35A2A /* dyld2.hpp in Headers */,
+				687A745327428A1300DBEA11 /* darwin-file-system.hpp in Headers */,
 				68892F9B2734DF92000095A2 /* buffered_logger.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1643,6 +1658,7 @@
 				6844700226D7BB2600FE4D70 /* macho-module.cpp in Sources */,
 				68B2564026401F9B008FA1E2 /* dyld.cpp in Sources */,
 				68B2564526401F9F008FA1E2 /* objc.cpp in Sources */,
+				687A745227428A1300DBEA11 /* darwin-file-system.cpp in Sources */,
 				68B2564A26401FA2008FA1E2 /* memory.cpp in Sources */,
 				68B2564F26401FA8008FA1E2 /* mach-o.cpp in Sources */,
 				68B2565426401FAB008FA1E2 /* iblessing-core.cpp in Sources */,
