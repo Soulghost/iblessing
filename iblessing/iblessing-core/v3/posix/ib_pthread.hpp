@@ -54,6 +54,10 @@ typedef struct ib_pthread {
     uint64_t mig_reply;
     uint64_t machThreadSelf;
     uint64_t padding;
+    uint64_t p1;
+    uint64_t p2;
+    uint32_t munge_token;
+    uint32_t p3;
 } ib_pthread;
 
 #endif /* ib_pthread_hpp */

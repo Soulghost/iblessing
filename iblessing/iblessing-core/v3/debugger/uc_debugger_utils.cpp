@@ -74,3 +74,28 @@ void print_backtrace(uc_engine *uc, shared_ptr<MachOLoader> loader) {
         }
     }
 }
+
+void uc_debug_print_memory(uc_engine *uc, uint64_t addr, int format, int count) {
+    printf("contents of 0x%llx:\n", addr);
+    bool p64 = (format >= 8);
+    for (int i = 0; i < count; i++) {
+        if (i % 2 == 0) {
+            if (i != 0) {
+                printf("\n");
+            }
+            printf("0x%llx:", addr);
+        }
+        if (p64) {
+            uint64_t val = 0;
+            ensure_uc_mem_read(addr, &val, 8);
+            printf(" 0x%llx", val);
+            addr += 8;
+        } else {
+            uint32_t val = 0;
+            ensure_uc_mem_read(addr, &val, 4);
+            printf(" 0x%x", val);
+            addr += 4;
+        }
+    }
+    printf("\n");
+}

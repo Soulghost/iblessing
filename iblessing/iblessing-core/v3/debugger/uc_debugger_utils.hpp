@@ -17,5 +17,6 @@ extern std::shared_ptr<iblessing::MachOLoader> _defaultLoader;
 
 void print_uc_mem_regions(uc_engine *uc);
 void print_backtrace(uc_engine *uc, std::shared_ptr<iblessing::MachOLoader> loader = nullptr);
+void uc_debug_print_memory(uc_engine *uc, uint64_t addr, int format, int count);
 
 #endif /* uc_debugger_utils_hpp */

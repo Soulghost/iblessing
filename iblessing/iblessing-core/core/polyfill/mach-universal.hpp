@@ -856,7 +856,7 @@ typedef struct ib_mach_port_options {
 /**
  Common Page
  */
-#define IB_KERNEL_BASE64            0xffffff80001f0000L
+#define IB_KERNEL_BASE64            0xFFFFF0000
 #define IB_COMM_PAGE_START_ADDRESS  (IB_KERNEL_BASE64 + 0xc000) /* In TTBR0 */
 #define IB_COMM_PAGE_NCPUS          (IB_COMM_PAGE_START_ADDRESS+0x022)    /* uint8_t number of configured CPUs (hw.logicalcpu at boot time) */
 #define IB_COMM_PAGE_ACTIVE_CPUS    (IB_COMM_PAGE_START_ADDRESS+0x034)    /* uint8_t number of active CPUs (hw.activecpu) */
