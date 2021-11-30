@@ -51,15 +51,10 @@ static string resolveLibraryPath(string &name) {
             StringUtils::replace(name, versionPart, "");
         }
     }
-<<<<<<< HEAD
-    //std::string libRoot = "/Users/soulghost/Desktop/git/iblessing/iblessing/resource/Frameworks/7.1";
-    std::string libRoot = "/Users/bxl/Tools/iblessing/iblessing/resource/Frameworks/7.1";
-    if (StringUtils::has_prefix(name, "/System/Library/Frameworks/")) {
-=======
+
     std::string libRoot = "/Users/soulghost/Desktop/git/iblessing/iblessing/resource/Frameworks/7.1";
     if (StringUtils::has_prefix(name, "/System/Library/Frameworks/") ||
         StringUtils::has_prefix(name, "/System/Library/PrivateFrameworks/")) {
->>>>>>> e548b92a167e8c649371b40f09f73a1b1f396327
         path = libRoot + name;
     } else if (StringUtils::has_prefix(name, "/usr/lib/")) {
         // FIXME: check file exists
@@ -92,7 +87,7 @@ MachOLoader::MachOLoader()  {
     // mach-o mapping start from 0x100000000 (app), 0x0 (dylib)
     // heap using vm_base ~ vmbase + 12G
     // stack using vmbase + 12G ~ .
-    uint64_t unicorn_vm_size = 0x60000000;
+    uint64_t unicorn_vm_size =       0x60000000;
     uint64_t unicorn_pagezero_size = 0x100000000;
     uint64_t unicorn_vm_start = unicorn_pagezero_size;
     err = uc_mem_map(uc, 0, unicorn_pagezero_size, UC_PROT_NONE);
@@ -123,8 +118,9 @@ MachOLoader::MachOLoader()  {
     this->memoryManager = memoryManager;
     
     // svc
-    //shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCManager>(uc, 0x700000000, 8 * 0xff00, 233);
-    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCProxy>(uc, 0x700000000, 8 * 0xff00, 233);
+    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCManager>(uc, 0x700000000, 8 * 0xff00, 233);
+    // FIXME: bxl change this to svc proxy
+    //shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCProxy>(uc, 0x700000000, 8 * 0xff00, 233, memoryManager);
     this->svcManager = svcManager;
 }
 

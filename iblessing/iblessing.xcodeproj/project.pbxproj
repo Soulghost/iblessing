@@ -119,6 +119,11 @@
 		68D341A62705AD4A00810C77 /* macho-memory.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68D341A42705AD4A00810C77 /* macho-memory.hpp */; };
 		68EC52822701DBBD003D9148 /* ib_pthread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68EC52802701DBBD003D9148 /* ib_pthread.cpp */; };
 		68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68EC52812701DBBD003D9148 /* ib_pthread.hpp */; };
+		CF0B023F2753BC2C0026AD81 /* aarch64-svc-proxy.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CF0B023C2753BC2C0026AD81 /* aarch64-svc-proxy.hpp */; };
+		CF0B02402753BC2C0026AD81 /* aarch64-svc-proxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CF0B023D2753BC2C0026AD81 /* aarch64-svc-proxy.cpp */; };
+		CF0B02412753BC2C0026AD81 /* syscall_sw_x64.s in Sources */ = {isa = PBXBuildFile; fileRef = CF0B023E2753BC2C0026AD81 /* syscall_sw_x64.s */; };
+		CF0B024327547D6E0026AD81 /* syscall_helper_x64.h in Headers */ = {isa = PBXBuildFile; fileRef = CF0B024227547D6E0026AD81 /* syscall_helper_x64.h */; };
+		CF0B0246275481C30026AD81 /* mach_traps.c in Sources */ = {isa = PBXBuildFile; fileRef = CF0B0245275481C30026AD81 /* mach_traps.c */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -434,6 +439,14 @@
 		68D755DB24C8012A0057E092 /* ObjcMsgXREFServerGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMsgXREFServerGenerator.hpp; sourceTree = "<group>"; };
 		68EC52802701DBBD003D9148 /* ib_pthread.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ib_pthread.cpp; sourceTree = "<group>"; };
 		68EC52812701DBBD003D9148 /* ib_pthread.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ib_pthread.hpp; sourceTree = "<group>"; };
+		CF0B023C2753BC2C0026AD81 /* aarch64-svc-proxy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = "aarch64-svc-proxy.hpp"; sourceTree = "<group>"; };
+		CF0B023D2753BC2C0026AD81 /* aarch64-svc-proxy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = "aarch64-svc-proxy.cpp"; sourceTree = "<group>"; };
+		CF0B023E2753BC2C0026AD81 /* syscall_sw_x64.s */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.asm; path = syscall_sw_x64.s; sourceTree = "<group>"; };
+		CF0B024227547D6E0026AD81 /* syscall_helper_x64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = syscall_helper_x64.h; sourceTree = "<group>"; };
+		CF0B0245275481C30026AD81 /* mach_traps.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = mach_traps.c; sourceTree = "<group>"; };
+		CF0B024727548D9A0026AD81 /* mach_traps.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = mach_traps.h; sourceTree = "<group>"; };
+		CF0B02492754A67F0026AD81 /* syscall_sw.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = syscall_sw.h; sourceTree = "<group>"; };
+		CF0B024A2754A7470026AD81 /* syscall_helper_arm64.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = syscall_helper_arm64.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -604,6 +617,14 @@
 			children = (
 				68496FDF26E3A4C3000DEE11 /* aarch64-svc-manager.cpp */,
 				68496FE026E3A4C3000DEE11 /* aarch64-svc-manager.hpp */,
+				CF0B023D2753BC2C0026AD81 /* aarch64-svc-proxy.cpp */,
+				CF0B023C2753BC2C0026AD81 /* aarch64-svc-proxy.hpp */,
+				CF0B023E2753BC2C0026AD81 /* syscall_sw_x64.s */,
+				CF0B02492754A67F0026AD81 /* syscall_sw.h */,
+				CF0B024227547D6E0026AD81 /* syscall_helper_x64.h */,
+				CF0B024A2754A7470026AD81 /* syscall_helper_arm64.h */,
+				CF0B024727548D9A0026AD81 /* mach_traps.h */,
+				CF0B0245275481C30026AD81 /* mach_traps.c */,
 			);
 			path = syscall;
 			sourceTree = "<group>";
@@ -1372,7 +1393,9 @@
 				68A44D47270C473600C91CC6 /* uc_debugger_utils.hpp in Headers */,
 				6844700726D7C05400FE4D70 /* macho-loader.hpp in Headers */,
 				6844700326D7BB2600FE4D70 /* macho-module.hpp in Headers */,
+				CF0B023F2753BC2C0026AD81 /* aarch64-svc-proxy.hpp in Headers */,
 				6829112A2740B24B00D35A2A /* dyld-sharedcache-loader.hpp in Headers */,
+				CF0B024327547D6E0026AD81 /* syscall_helper_x64.h in Headers */,
 				6877275D271C07680081A4DA /* macho-memory-manager.hpp in Headers */,
 				6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */,
 				68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */,
@@ -1615,9 +1638,11 @@
 				68B255CF26401EDE008FA1E2 /* CoreFoundation.cpp in Sources */,
 				68B255D426401EE9008FA1E2 /* mach-universal.cpp in Sources */,
 				68B255D926401EF0008FA1E2 /* Foundation.cpp in Sources */,
+				CF0B02402753BC2C0026AD81 /* aarch64-svc-proxy.cpp in Sources */,
 				68892F9A2734DF92000095A2 /* buffered_logger.cpp in Sources */,
 				68B255DE26401EFB008FA1E2 /* Symbol.cpp in Sources */,
 				682911292740B24B00D35A2A /* dyld-sharedcache-loader.cpp in Sources */,
+				CF0B02412753BC2C0026AD81 /* syscall_sw_x64.s in Sources */,
 				68B255DF26401EFB008FA1E2 /* StringTable.cpp in Sources */,
 				68B255E026401EFB008FA1E2 /* SymbolTable.cpp in Sources */,
 				68B255E526401F05008FA1E2 /* VirtualMemory.cpp in Sources */,
@@ -1649,6 +1674,7 @@
 				68A44D46270C473600C91CC6 /* uc_debugger_utils.cpp in Sources */,
 				682911342740BA0700D35A2A /* dyld2.cpp in Sources */,
 				68B2562726401F7C008FA1E2 /* StringUtils.cpp in Sources */,
+				CF0B0246275481C30026AD81 /* mach_traps.c in Sources */,
 				68B2562C26401F81008FA1E2 /* FunctionXrefAnalyser.cpp in Sources */,
 				6844700626D7C05400FE4D70 /* macho-loader.cpp in Sources */,
 				68B2563126401F84008FA1E2 /* AntiWrapper.cpp in Sources */,
@@ -1902,7 +1928,7 @@
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 6CMYQQFFT8;
+				DEVELOPMENT_TEAM = "";
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -1931,7 +1957,7 @@
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 6CMYQQFFT8;
+				DEVELOPMENT_TEAM = "";
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (

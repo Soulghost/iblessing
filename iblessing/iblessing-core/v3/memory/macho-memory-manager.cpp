@@ -11,6 +11,7 @@
 extern "C" {
 #include <sys/types.h>
 #include <sys/mman.h>
+#include <mach/mach.h>
 }
 
 using namespace std;
@@ -27,7 +28,7 @@ MachOMemoryManager::MachOMemoryManager(uc_engine *uc) {
     stackEnd = IB_STACK_END;
     
     use_shared = true;
-    
+        
     if(use_shared){
         mmapSharedMem(stackBegin, stackEnd-stackBegin, PROT_READ|PROT_WRITE);
         mmapSharedMem(allocateBegin, allocateEnd-allocateBegin, PROT_READ|PROT_WRITE);
@@ -75,13 +76,27 @@ void MachOMemoryManager::dealloc(uint64_t addr) {
     }
 }
 
-void *MachOMemoryManager::mmapSharedMem(uint64_t guest_addr, size_t size, int prot) {
+void *MachOMemoryManager::mmapWrapper(uint64_t guest_addr, size_t size, int prot, int flags, int fd, off_t off) {
+    
+    uint64_t guest_addr_rounded = (guest_addr/0x1000)*0x1000;
+    if(guest_addr != guest_addr_rounded){
+        size += guest_addr - guest_addr_rounded;
+    }
     size_t size_rounded = ROUNDUP(size, 0x1000);
-    void *mmaped_addr = mmap((void *)guest_addr, size_rounded, prot, MAP_FIXED|MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
-    perror("mmap");
-    assert(mmaped_addr == (void *)guest_addr);
-    assert(uc_mem_map_ptr(uc, guest_addr, size_rounded, UC_PROT_READ | UC_PROT_WRITE, mmaped_addr) == UC_ERR_OK);
+    void *mmaped_addr = mmap((void *)guest_addr_rounded, size_rounded, prot, flags, fd, off);
+    assert(!guest_addr_rounded || mmaped_addr == (void *)guest_addr_rounded);
+    uc_err uc_map_err = uc_mem_map_ptr(uc, (uint64_t)mmaped_addr, size_rounded, prot, mmaped_addr);
+    assert(uc_map_err == UC_ERR_OK);
     return mmaped_addr;
+
+}
+
+void *MachOMemoryManager::mmapSharedMem(uint64_t guest_addr, size_t size, int prot) {
+    int flags = MAP_PRIVATE|MAP_ANONYMOUS;
+    if(guest_addr){
+        flags |= MAP_FIXED;
+    }
+    return mmapWrapper(guest_addr, size, prot, flags, -1, 0);
 }
 
 uint64_t MachOMemoryManager::stackNew() {

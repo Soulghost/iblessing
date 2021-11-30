@@ -35,8 +35,11 @@ public:
     uint64_t stackPush(uint64_t *stackTop, size_t size);
     uint64_t stackPop(uint64_t *stackTop, size_t size);
     
-private:
     void *mmapSharedMem(uint64_t guest_addr, size_t size, int prot);
+    void *mmapWrapper(uint64_t guest_addr, size_t size, int prot, int flags, int fd, off_t off);
+
+    
+private:
     uc_engine *uc;
     uint64_t allocatedCur;
     uint64_t allocateBegin;
