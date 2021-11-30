@@ -7,9 +7,13 @@
 //
 
 #include "uc_debugger_utils.hpp"
+#include "buffered_logger.hpp"
+#include <map>
 
 using namespace std;
 using namespace iblessing;
+
+static map<uc_engine *, set<uint64_t>> breakpointMap;
 
 void print_uc_mem_regions(uc_engine *uc) {
     uc_mem_region *regions;
@@ -75,6 +79,11 @@ void print_backtrace(uc_engine *uc, shared_ptr<MachOLoader> loader) {
     }
 }
 
+void uc_debug_print_backtrace(uc_engine *uc) {
+    BufferedLogger::globalLogger()->printBuffer();
+    print_backtrace(uc);
+}
+
 void uc_debug_print_memory(uc_engine *uc, uint64_t addr, int format, int count) {
     printf("contents of 0x%llx:\n", addr);
     bool p64 = (format >= 8);
@@ -98,4 +107,19 @@ void uc_debug_print_memory(uc_engine *uc, uint64_t addr, int format, int count) 
         }
     }
     printf("\n");
+}
+
+void uc_debug_set_breakpoint(uc_engine *uc, uint64_t address) {
+    breakpointMap[uc].insert(address);
+}
+
+bool uc_debug_check_breakpoint(uc_engine *uc, uint64_t address) {
+    auto bps = breakpointMap[uc];
+    if (bps.find(address) != bps.end()) {
+        uc_debug_print_backtrace(uc);
+        printf("[+][Stalker][Debugger] stop at breakpoint 0x%llx\n", address);
+        pause();
+        return true;
+    }
+    return false;
 }

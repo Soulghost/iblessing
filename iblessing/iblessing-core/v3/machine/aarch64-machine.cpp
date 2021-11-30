@@ -111,6 +111,8 @@ static uint64_t callFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCa
 }
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
+    uc_debug_check_breakpoint(uc, address);
+    
     void *codes = malloc(sizeof(uint32_t));
     uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
     if (err != UC_ERR_OK) {
@@ -501,6 +503,18 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     Symbol *_NSSetLogCStringFunction = foundationModule->getSymbolByName("__NSSetLogCStringFunction", false);
     uint64_t _NSSetLogCStringFunction_addr = _NSSetLogCStringFunction->info->n_value;
     callFunction(uc, _NSSetLogCStringFunction_addr, Aarch64FunctionCallArg::voidArg(), {0x0});
+    
+    // init dyld lookup
+    // _setLookupFunc
+    uc_debug_set_breakpoint(uc, 0x1800C97A4);
+    // _dyld_initializer_0
+    uc_debug_set_breakpoint(uc, 0x1800C9FF4);
+    
+//    shared_ptr<MachOModule> dyldModule = loader->findModuleByName("libdyld.dylib");
+//    assert(dyldModule != nullptr);
+//    Symbol *_setLookupFunc = dyldModule->getSymbolByName("_dyld_func_lookup", false);
+//    uint64_t lookupFuncAddr = 0x233;
+//    callFunction(uc, _setLookupFunc->info->n_value, Aarch64FunctionCallArg::voidArg(), {lookupFuncAddr});
     
     
     // init modules

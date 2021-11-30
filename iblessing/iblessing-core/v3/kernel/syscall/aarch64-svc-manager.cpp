@@ -191,7 +191,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_read(uc, UC_ARM64_REG_W0, &fd) == UC_ERR_OK);
                 assert(uc_reg_read(uc, UC_ARM64_REG_W1, &request) == UC_ERR_OK);
                 
-                if (fd == 1) {
+                if (fd == 1 || fd == 2) {
                     uint64_t argpAddr = 0;
                     assert(uc_reg_read(uc, UC_ARM64_REG_X2, &argpAddr) == UC_ERR_OK);
                     
@@ -199,6 +199,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     assert(uc_mem_write(uc, argpAddr, &arg0Val, sizeof(int)) == UC_ERR_OK);
                 } else {
                     ret = 1;
+                    uc_debug_print_backtrace(uc);
                     assert(false);
                 }
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
@@ -234,7 +235,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
                 ensure_uc_reg_read(UC_ARM64_REG_X1, &length);
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &prot);
-                uint64_t alignedAddr = addr / 0x1000 * 0x1000;
+                uint64_t alignedAddr = addr / 0x4000 * 0x4000;
                 uint64_t offset = addr - alignedAddr;
                 uint64_t alignedLength = IB_AlignSize(length + offset, 0x4000);
                 uc_err err = uc_mem_protect(uc, alignedAddr, alignedLength, prot);
