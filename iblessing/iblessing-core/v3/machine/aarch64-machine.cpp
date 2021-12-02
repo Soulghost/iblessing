@@ -185,10 +185,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
         comments += StringUtils::format("vars addr 0x%llx", x0);
         uc_debug_print_memory(uc, x0, 8, 5);
-    } else if (address == 0x1AEDBD7D8) {
-        uc_debug_print_memory(uc, 0x2ffffff10, 8, 5);
-    } else if (address == 0x1AEDBD7DC) {
-        uc_debug_print_memory(uc, 0x2ffffff10, 8, 5);
+    } else if (address == 0x18efd3890) {
+        uint64_t x2;
+        ensure_uc_reg_read(UC_ARM64_REG_X2, &x2);
+        comments += StringUtils::format("allocate size 0x%llx", x2);
     }
 #endif
     
@@ -263,7 +263,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 ////        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
 //        assert(false);
 //    }
-    BufferedLogger::globalLogger()->printBuffer();
+    uc_debug_print_backtrace(uc);
     assert(false);
     return false;
 }
@@ -273,7 +273,7 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
-    static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony"};
+    static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony", "CoreFoundation"};
 //    blackListModule.insert("Security");
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
@@ -389,6 +389,11 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     callFunctionLR = sp;
     ensure_uc_mem_write(callFunctionLR, &nopCode, sizeof(uint32_t));
     
+    // FATAL FIXME: tricky nop
+    for (uint64_t addr = 0x1AEDBD820; addr < 0x1AEDBD89C; addr += 4) {
+        ensure_uc_mem_write(addr, &nopCode, sizeof(uint32_t));
+    }
+
     /**
         setup vars
      */
@@ -521,6 +526,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     defaultEnv = initEnv;
     for (shared_ptr<MachOModule> module : loader->modules) {
         initModule(module, initEnv);
+        break;
     }
     
     // fake a stop addr

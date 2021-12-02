@@ -46,6 +46,7 @@ uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t mask, uint64_t size
     uc_err err = uc_mem_map(uc, mmapHeapPtr, aligned_size, prot);
     if (err) {
         printf("[-] cannot mmap at 0x%llx, error %s\n", mmapHeapPtr, uc_strerror(err));
+        print_uc_mem_regions(uc);
         assert(false);
     }
     
@@ -1054,8 +1055,44 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         syscall_return_success;
                         return true;
                     }
+                    case 8000: { // _Xtask_restartable_ranges_register
+                        typedef struct {
+                            ib_mach_vm_address_t location;
+                            unsigned short    length;
+                            unsigned short    recovery_offs;
+                            unsigned int      flags;
+                        } task_restartable_range_t;
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            ib_mach_msg_type_number_t rangesCnt;
+                            task_restartable_range_t ranges[64];
+                            ib_mach_msg_trailer_t trailer;
+                        } Request __attribute__((unused));
+                        #pragma pack(pop)
+                        
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            ib_kern_return_t RetCode;
+                        } __Reply__task_restartable_ranges_register_t __attribute__((unused));
+                        #pragma pack(pop)
+                        
+                        __Reply__task_restartable_ranges_register_t *OutP = (__Reply__task_restartable_ranges_register_t *)hdr;
+                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        OutP->Head.msgh_local_port = 0;
+                        OutP->Head.msgh_id += 100;
+                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__task_restartable_ranges_register_t));
+                        OutP->RetCode = 0;
+                        ensure_uc_mem_write(msg, OutP, OutP->Head.msgh_size);
+                        syscall_return_success;
+                        return true;
+                    }
                     default:
-                        BufferedLogger::globalLogger()->printBuffer();
+                        uc_debug_print_backtrace(uc);
                         assert(false);
                         break;
                 }
@@ -1070,7 +1107,23 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_success;
                 return true;
             }
+            case 89: { // _mach_timebase_info_trap
+                uint64_t bufAddr = 0;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &bufAddr);
+                assert(bufAddr != 0);
+                struct mach_timebase_info {
+                    uint32_t        numer;
+                    uint32_t        denom;
+                };
+                mach_timebase_info info;
+                info.numer = info.denom =  1;
+                ensure_uc_mem_write(bufAddr, &info, sizeof(mach_timebase_info));
+                syscall_return_success;
+                printf("[Stalker][+][Syscall] -89 _mach_timebase_info_trap\n");
+                return true;
+            }
             default:
+                uc_debug_print_backtrace(uc);
                 assert(false);
                 break;
         }

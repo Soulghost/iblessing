@@ -206,6 +206,7 @@
 		68496FE026E3A4C3000DEE11 /* aarch64-svc-manager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "aarch64-svc-manager.hpp"; sourceTree = "<group>"; };
 		6856E6E124E7C4370050DA19 /* IDASymbolicScriptGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IDASymbolicScriptGenerator.cpp; sourceTree = "<group>"; };
 		6856E6E224E7C4370050DA19 /* IDASymbolicScriptGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IDASymbolicScriptGenerator.hpp; sourceTree = "<group>"; };
+		685B890927592A450084D30A /* dyld_images.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dyld_images.h; sourceTree = "<group>"; };
 		685CE7CF24C55309002CC5E8 /* iblessing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = iblessing; sourceTree = BUILT_PRODUCTS_DIR; };
 		685CE7DA24C56E8B002CC5E8 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		685CE7DE24C56F5C002CC5E8 /* argparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argparse.h; sourceTree = "<group>"; };
@@ -493,6 +494,7 @@
 				682911332740BA0700D35A2A /* dyld2.hpp */,
 				682911362740BC4900D35A2A /* DyldSharedCache.cpp */,
 				682911372740BC4900D35A2A /* DyldSharedCache.hpp */,
+				685B890927592A450084D30A /* dyld_images.h */,
 			);
 			path = dyld;
 			sourceTree = "<group>";

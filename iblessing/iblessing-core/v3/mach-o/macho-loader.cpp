@@ -26,6 +26,7 @@
 #include "uc_debugger_utils.hpp"
 #include "dyld2.hpp"
 #include "aarch64-machine.hpp"
+#include "dyld_images.h"
 
 #ifdef IB_PLATFORM_DARWIN
 namespace fs = std::filesystem;
@@ -517,11 +518,45 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 static uint64_t __dyld_process_is_restricted_address = 0;
                 if (__dyld_process_is_restricted_address == 0) {
                     __dyld_process_is_restricted_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        uint64_t null64 = 0;
-                        ensure_uc_reg_write(UC_ARM64_REG_X0, &null64);
-                    });
+                            uint64_t null64 = 0;
+                            ensure_uc_reg_write(UC_ARM64_REG_X0, &null64);
+                        });
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &__dyld_process_is_restricted_address, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_get_all_image_infos") == 0) {
+                static uint64_t __dyld_get_all_image_infos_address = 0;
+                if (__dyld_get_all_image_infos_address == 0) {
+                    static uint64_t infoInVM = 0;
+                    if (infoInVM == 0) {
+                        size_t size = sizeof(struct dyld_all_image_infos);
+                        infoInVM = memoryManager->alloc(size);
+
+                        // init data
+                        struct dyld_all_image_infos localInfo = {
+                            17, 0, {NULL}, NULL, false, false, (const mach_header*)0x180000000, NULL,
+                            "dyld-832.7.3", NULL, 0, NULL, 0, 0, NULL, (struct dyld_all_image_infos *)infoInVM,
+                            0, 0, NULL, NULL, NULL, 0, {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,},
+                            0, {0}, "/usr/lib/dyld", {0}, {0}, 0, 0, NULL, 0
+                        };
+                        localInfo.sharedCacheBaseAddress = 0x180000000;
+                        ensure_uc_mem_write(infoInVM, &localInfo, size);
+                    }
+                    __dyld_get_all_image_infos_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                            ensure_uc_reg_write(UC_ARM64_REG_X0, &infoInVM);
+                        });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &__dyld_get_all_image_infos_address, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_register_func_for_add_image") == 0) {
+                // dyld FIXME: __dyld_register_func_for_add_image
+                static uint64_t _dyld_symbol_addr = 0;
+                if (_dyld_symbol_addr == 0) {
+                    _dyld_symbol_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                            printf("[Stalker][-][Warn] ignore __dyld_register_func_for_add_image !!!\n");
+                            uint64_t null64 = 0;
+                            ensure_uc_reg_write(UC_ARM64_REG_X0, &null64);
+                        });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_symbol_addr, 8);
             } else {
                 uc_debug_print_backtrace(uc);
                 assert(false);
