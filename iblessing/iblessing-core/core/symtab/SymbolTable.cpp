@@ -117,7 +117,7 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64
                             symbol->release();
                         }
                         exportSymbols.erase(symName);
-                        printf("[*] ignore export symbol %s in %s\n", symName.c_str(), moduleName.c_str());
+//                        printf("[*] ignore export symbol %s in %s\n", symName.c_str(), moduleName.c_str());
                     } else {
                         // filter symbol, do nothing?
                     }

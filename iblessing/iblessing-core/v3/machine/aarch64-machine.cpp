@@ -508,7 +508,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // _setLookupFunc
     uc_debug_set_breakpoint(uc, 0x1800C97A4);
     // _dyld_initializer_0
-    uc_debug_set_breakpoint(uc, 0x1800C9FF4);
+//    uc_debug_set_breakpoint(uc, 0x1800C9FF4);
     
 //    shared_ptr<MachOModule> dyldModule = loader->findModuleByName("libdyld.dylib");
 //    assert(dyldModule != nullptr);

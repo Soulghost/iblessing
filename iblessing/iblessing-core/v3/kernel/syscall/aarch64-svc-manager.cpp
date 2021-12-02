@@ -14,6 +14,7 @@
 #include "macho-memory.hpp"
 #include "uc_debugger_utils.hpp"
 #include "buffered_logger.hpp"
+#include <sys/ioctl.h>
 
 using namespace std;
 using namespace iblessing;
@@ -169,6 +170,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
     // clear errno
     machine.lock()->setErrno(0);
     
+    printf("[Stalker][+][Syscall] handle syscall num %lld\n", trap_no);
     if (trap_no > 0) {
         // posix
         switch (trap_no) {
@@ -189,9 +191,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 int ret = 0;
                 uint64_t request;
                 assert(uc_reg_read(uc, UC_ARM64_REG_W0, &fd) == UC_ERR_OK);
-                assert(uc_reg_read(uc, UC_ARM64_REG_W1, &request) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_X1, &request) == UC_ERR_OK);
                 
                 if (fd == 1 || fd == 2) {
+//                    int sysret = ioctl(fd, request);
                     uint64_t argpAddr = 0;
                     assert(uc_reg_read(uc, UC_ARM64_REG_X2, &argpAddr) == UC_ERR_OK);
                     
@@ -238,6 +241,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 uint64_t alignedAddr = addr / 0x4000 * 0x4000;
                 uint64_t offset = addr - alignedAddr;
                 uint64_t alignedLength = IB_AlignSize(length + offset, 0x4000);
+                if (prot == 0) {
+                    printf("[Stalker][Syscall][Warn] mprotect ignore prot 0 for addr 0x%llx, size 0x%llx\n", addr, length);
+                    syscall_return_success;
+                    return true;
+                }
                 uc_err err = uc_mem_protect(uc, alignedAddr, alignedLength, prot);
                 assert(err == UC_ERR_OK);
                 syscall_return_success;
@@ -353,6 +361,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             }
             case 327: { // issetugid
                 printf("[Stalker][+] handle issetugid -> 0\n");
+                uc_debug_print_backtrace(uc);
                 syscall_return_success;
                 return true;
             }

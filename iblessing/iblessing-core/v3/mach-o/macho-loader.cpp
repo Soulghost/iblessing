@@ -524,6 +524,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 ensure_uc_mem_write(dyldFuncBindToAddr, &__dyld_process_is_restricted_address, 8);
             } else {
                 uc_debug_print_backtrace(uc);
+                assert(false);
             }
             free(dyldFuncName);
         });
