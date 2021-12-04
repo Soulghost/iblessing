@@ -8,6 +8,8 @@
 
 #include "macho-memory-manager.hpp"
 #include "mach-universal.hpp"
+#include "uc_debugger_utils.hpp"
+
 extern "C" {
 #include <sys/types.h>
 #include <sys/mman.h>
@@ -42,7 +44,7 @@ MachOMemoryManager::MachOMemoryManager(uc_engine *uc) {
 uint64_t MachOMemoryManager::alloc(size_t size, string tag) {
     size = IB_AlignSize(size, 8);
     uint64_t addr = allocatedCur;
-    if(!use_shared || addr < 0x1000){
+    if(!use_shared || addr < 0x4000){
         if (allocateEnd - addr < size) {
             assert(false);
             return 0;
@@ -50,9 +52,13 @@ uint64_t MachOMemoryManager::alloc(size_t size, string tag) {
         allocatedCur += size;
         
     }else{
-        size_t size_rounded = ROUNDUP(size, 0x1000);
+        size_t size_rounded = ROUNDUP(size, 0x4000);
         addr = (uint64_t)valloc(size_rounded);
-        assert(uc_mem_map_ptr(uc, addr, size_rounded, UC_PROT_READ | UC_PROT_WRITE, (void *)addr) == UC_ERR_OK);
+        uc_err err = uc_mem_map_ptr(uc, addr, size_rounded, UC_PROT_READ | UC_PROT_WRITE, (void *)addr);
+        if (err != UC_ERR_OK) {
+            uc_debug_print_backtrace(uc);
+            assert(false);
+        }
     }
     return addr;
 }
