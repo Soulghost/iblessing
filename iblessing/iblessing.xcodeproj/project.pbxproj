@@ -211,6 +211,7 @@
 		68496FE026E3A4C3000DEE11 /* aarch64-svc-manager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "aarch64-svc-manager.hpp"; sourceTree = "<group>"; };
 		6856E6E124E7C4370050DA19 /* IDASymbolicScriptGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IDASymbolicScriptGenerator.cpp; sourceTree = "<group>"; };
 		6856E6E224E7C4370050DA19 /* IDASymbolicScriptGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IDASymbolicScriptGenerator.hpp; sourceTree = "<group>"; };
+		685B890927592A450084D30A /* dyld_images.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dyld_images.h; sourceTree = "<group>"; };
 		685CE7CF24C55309002CC5E8 /* iblessing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = iblessing; sourceTree = BUILT_PRODUCTS_DIR; };
 		685CE7DA24C56E8B002CC5E8 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		685CE7DE24C56F5C002CC5E8 /* argparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argparse.h; sourceTree = "<group>"; };
@@ -506,6 +507,7 @@
 				682911332740BA0700D35A2A /* dyld2.hpp */,
 				682911362740BC4900D35A2A /* DyldSharedCache.cpp */,
 				682911372740BC4900D35A2A /* DyldSharedCache.hpp */,
+				685B890927592A450084D30A /* dyld_images.h */,
 			);
 			path = dyld;
 			sourceTree = "<group>";
@@ -1396,6 +1398,7 @@
 				CF0B023F2753BC2C0026AD81 /* aarch64-svc-proxy.hpp in Headers */,
 				6829112A2740B24B00D35A2A /* dyld-sharedcache-loader.hpp in Headers */,
 				CF0B024327547D6E0026AD81 /* syscall_helper_x64.h in Headers */,
+				6829112A2740B24B00D35A2A /* dyld-sharedcache-loader.hpp in Headers */,
 				6877275D271C07680081A4DA /* macho-memory-manager.hpp in Headers */,
 				6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */,
 				68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */,
@@ -1643,6 +1646,9 @@
 				68B255DE26401EFB008FA1E2 /* Symbol.cpp in Sources */,
 				682911292740B24B00D35A2A /* dyld-sharedcache-loader.cpp in Sources */,
 				CF0B02412753BC2C0026AD81 /* syscall_sw_x64.s in Sources */,
+				68892F9A2734DF92000095A2 /* buffered_logger.cpp in Sources */,
+				68B255DE26401EFB008FA1E2 /* Symbol.cpp in Sources */,
+				682911292740B24B00D35A2A /* dyld-sharedcache-loader.cpp in Sources */,
 				68B255DF26401EFB008FA1E2 /* StringTable.cpp in Sources */,
 				68B255E026401EFB008FA1E2 /* SymbolTable.cpp in Sources */,
 				68B255E526401F05008FA1E2 /* VirtualMemory.cpp in Sources */,
@@ -1928,7 +1934,7 @@
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 6CMYQQFFT8;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -1957,7 +1963,7 @@
 				CODE_SIGN_ENTITLEMENTS = iblessing/iblessing.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 6CMYQQFFT8;
 				DSTROOT = "${SRCROOT}/../build";
 				ENABLE_HARDENED_RUNTIME = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = (

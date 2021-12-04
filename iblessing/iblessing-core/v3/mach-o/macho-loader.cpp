@@ -26,6 +26,7 @@
 #include "uc_debugger_utils.hpp"
 #include "dyld2.hpp"
 #include "aarch64-machine.hpp"
+#include "dyld_images.h"
 
 #ifdef IB_PLATFORM_DARWIN
 namespace fs = std::filesystem;
@@ -51,7 +52,6 @@ static string resolveLibraryPath(string &name) {
             StringUtils::replace(name, versionPart, "");
         }
     }
-
     std::string libRoot = "/Users/soulghost/Desktop/git/iblessing/iblessing/resource/Frameworks/7.1";
     if (StringUtils::has_prefix(name, "/System/Library/Frameworks/") ||
         StringUtils::has_prefix(name, "/System/Library/PrivateFrameworks/")) {
@@ -87,7 +87,7 @@ MachOLoader::MachOLoader()  {
     // mach-o mapping start from 0x100000000 (app), 0x0 (dylib)
     // heap using vm_base ~ vmbase + 12G
     // stack using vmbase + 12G ~ .
-    uint64_t unicorn_vm_size =       0x60000000;
+    uint64_t unicorn_vm_size = 0x60000000;
     uint64_t unicorn_pagezero_size = 0x100000000;
     uint64_t unicorn_vm_start = unicorn_pagezero_size;
     err = uc_mem_map(uc, 0, unicorn_pagezero_size, UC_PROT_NONE);
@@ -120,7 +120,7 @@ MachOLoader::MachOLoader()  {
     // svc
     shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCManager>(uc, 0x700000000, 8 * 0xff00, 233);
     // FIXME: bxl change this to svc proxy
-    //shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCProxy>(uc, 0x700000000, 8 * 0xff00, 233, memoryManager);
+//    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCProxy>(uc, 0x700000000, 8 * 0xff00, 233, memoryManager);
     this->svcManager = svcManager;
 }
 
@@ -154,35 +154,33 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 Dyld::bindAt(module, this->shared_from_this(), libraryOrdinal, symbolName, addr, addend, type);
             });
         }
+    }
+
+    // sharedcache FIXME: setLookupFunction
+    static uint64_t _dyld_nopAddr = 0;
+    static uint64_t _dyld_fast_stub_entryAddr = 0;
+    static uint64_t _dyld_register_thread_helpersAddr = 0;
+    static uint64_t _dyld_get_image_slide = 0;
+    static uint64_t _dyld_register_func_for_remove_image = 0;
+    static uint64_t _dyld_register_image_state_change_handler = 0;
+    static uint64_t _dyld_image_path_containing_address = 0;
+    static uint64_t _dyld_dlopen_address = 0;
+    static uint64_t _dyld_NSGetExecutablePath_address = 0;
+    static uint64_t _dyld_dlsym_address = 0;
+    if (_dyld_fast_stub_entryAddr == 0) {
+        Dyld::bindHooks["_abort"] = [&](string symbolName, uint64_t symbolAddr) {
+            static uint64_t _abortAddr = 0;
+            if (_abortAddr == 0) {
+                _abortAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                    cout << termcolor::red << "[-] Error: abort raised !!!";
+                    cout << termcolor::reset << endl;
+                    assert(false);
+                });
+            }
+            return _abortAddr;
+        };
         
-        
-        for (struct ib_section_64 *sect : module->sectionHeaders) {
-            if (strncmp(sect->segname, "__DATA", 16) == 0 &&
-                strncmp(sect->sectname, "__dyld", 16) == 0) {
-                static uint64_t _dyld_nopAddr = 0;
-                static uint64_t _dyld_fast_stub_entryAddr = 0;
-                static uint64_t _dyld_register_thread_helpersAddr = 0;
-                static uint64_t _dyld_get_image_slide = 0;
-                static uint64_t _dyld_register_func_for_remove_image = 0;
-                static uint64_t _dyld_register_image_state_change_handler = 0;
-                static uint64_t _dyld_image_path_containing_address = 0;
-                static uint64_t _dyld_dlopen_address = 0;
-                static uint64_t _dyld_NSGetExecutablePath_address = 0;
-                static uint64_t _dyld_dlsym_address = 0;
-                if (_dyld_fast_stub_entryAddr == 0) {
-                    Dyld::bindHooks["_abort"] = [&](string symbolName, uint64_t symbolAddr) {
-                        static uint64_t _abortAddr = 0;
-                        if (_abortAddr == 0) {
-                            _abortAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                                cout << termcolor::red << "[-] Error: abort raised !!!";
-                                cout << termcolor::reset << endl;
-                                assert(false);
-                            });
-                        }
-                        return _abortAddr;
-                    };
-                    
-                    // FIXME: ignore libxpc init
+        // FIXME: ignore libxpc init
 //                    Dyld::bindHooks["__libxpc_initializer"] = [&](string symbolName, uint64_t symbolAddr) {
 //                        static uint64_t symaddr = 0;
 //                        if (symaddr == 0) {
@@ -193,343 +191,385 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
 //                        }
 //                        return symaddr;
 //                    };
-                    
-                    _dyld_fast_stub_entryAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        uint64_t imageCache, offset;
-                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &imageCache) == UC_ERR_OK);
-                        assert(uc_reg_read(uc, UC_ARM64_REG_X1, &offset) == UC_ERR_OK);
-                        
-                        shared_ptr<MachOModule> targetModule = nullptr;
-                        for (shared_ptr<MachOModule> module : modules) {
-                            uint64_t begin = module->addr;
-                            uint64_t end = module->addr + module->size;
-                            if (imageCache >= begin && imageCache < end) {
-                                targetModule = module;
-                                break;
-                            }
-                        }
-                        assert(targetModule != nullptr);
-                        uint64_t targetAddr = Dyld::doFastLazyBind(targetModule, shared_from_this(), offset);
-                        
-                        // write return value to x0
-                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &targetAddr) == UC_ERR_OK);
-                    });
+        
+        _dyld_fast_stub_entryAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            uint64_t imageCache, offset;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &imageCache) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_X1, &offset) == UC_ERR_OK);
+            
+            shared_ptr<MachOModule> targetModule = nullptr;
+            for (shared_ptr<MachOModule> module : modules) {
+                uint64_t begin = module->addr;
+                uint64_t end = module->addr + module->size;
+                if (imageCache >= begin && imageCache < end) {
+                    targetModule = module;
+                    break;
                 }
-                if (_dyld_nopAddr == 0) {
-                    _dyld_nopAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        printf("[Stalker][-][Warn][dyld] dyld_nop\n");
-                        uint64_t ret = 0;
-                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
-                    });
-                }
-                if (_dyld_register_thread_helpersAddr == 0) {
-                    _dyld_register_thread_helpersAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        uint64_t ptr;
-                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &ptr) == UC_ERR_OK);
-                        printf("[Stalker][+][dyld] dyld_register_thread_helpers 0x%llx\n", ptr);
-                        uint64_t ret = 0;
-                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
-                    });
-                }
-                if (_dyld_get_image_slide == 0) {
-                    _dyld_get_image_slide = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        // FIXME: dyld image slide
-                        uint64_t machHeaderAddr;
-                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &machHeaderAddr) == UC_ERR_OK);
-                        printf("[Stalker][+][dyld] dyld_get_image_slide for machHeader 0x%llx\n", machHeaderAddr);
-                        uint64_t ret = 0;
-                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
-                    });
-                }
-                if (_dyld_register_func_for_remove_image == 0) {
-                    _dyld_register_func_for_remove_image = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        // FIXME: dyld image slide
-                        uint64_t callbackAddr;
-                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &callbackAddr) == UC_ERR_OK);
-                        printf("[Stalker][+][dyld] dyld_register_func_for_remove_image with callback 0x%llx\n", callbackAddr);
-                        uint64_t ret = 0;
-                        assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
-                    });
-                }
-                if (_dyld_register_image_state_change_handler == 0) {
-                    // code from unidbg Dyld64.java
-                    int swi = svcManager->allocateSWI();
-                    ks_engine *ks;
-                    uint32_t *code = nullptr;
-                    size_t codelen = 0;
-                    size_t codeCount = 0;
-                    string asmText =               "sub sp, sp, #0x10\n";
-                    asmText +=                     "stp x29, x30, [sp]\n";
-                    asmText += StringUtils::format("svc #0x%x\n", swi);
-                    asmText +=                     "ldr x7, [sp]\n"; // x7 = handler
-                    asmText +=                     "add sp, sp, #0x8\n"; // manipulated stack in dyld_image_state_change_handler
-                    asmText +=                     "cmp x7, #0\n";
-                    asmText +=                     "b.eq #0x40\n"; // goto (ldr x0, [sp], pop return value)
-                    asmText +=                     "adr lr, #-0xf\n"; // jump to ldr x7, [sp]
-                    asmText +=                     "bic lr, lr, #0x1\n"; // clear bit zero
-
-                    asmText +=                     "ldr x0, [sp]\n"; // x0 = state
-                    asmText +=                     "add sp, sp, #0x8\n";
-                    asmText +=                     "ldr x1, [sp]\n"; // x1 = count
-                    asmText +=                     "add sp, sp, #0x8\n";
-                    asmText +=                     "ldr x2, [sp]\n"; // x2 = imageHeader
-                    asmText +=                     "add sp, sp, #0x8\n";
-                    asmText +=                     "br x7\n"; // call (*dyld_image_state_change_handler)(enum dyld_image_states state, uint32_t infoCount, const struct dyld_image_info info[])
-
-                    asmText +=                     "ldr x0, [sp]\n"; // x0 = return value
-                    asmText +=                     "add sp, sp, #0x8\n";
-
-                    asmText +=                     "ldp x29, x30, [sp]\n";
-                    asmText +=                     "add sp, sp, #0x10\n";
-                    asmText +=                     "ret";
-                    assert(ks_open(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN, &ks) == KS_ERR_OK);
-                    assert(ks_asm(ks, asmText.c_str(), 0, (unsigned char **)&code, &codelen, &codeCount) == KS_ERR_OK);
-                    _dyld_register_image_state_change_handler = svcManager->createSVCWithCustomCode(swi, code, codelen, [&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        int state, batch;
-                        uint64_t handleAddr, sp;
-                        assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
-                        assert(uc_reg_read(uc, UC_ARM64_REG_W0, &state) == UC_ERR_OK);
-                        assert(uc_reg_read(uc, UC_ARM64_REG_W1, &batch) == UC_ERR_OK);
-                        assert(uc_reg_read(uc, UC_ARM64_REG_X2, &handleAddr) == UC_ERR_OK);
-                        typedef struct ib_dyldImageInfo64 {
-                            uint64_t imageLoadAddr;
-                            uint64_t imageFilePathAddr;
-                            uint64_t imageFileModDate;
-                        } ib_dyldImageInfo64;
-                        
-                        size_t moduleCount = modules.size();
-                        size_t listSize = moduleCount * sizeof(ib_dyldImageInfo64);
-                        uint64_t listAddr = memoryManager->alloc(listSize);
-                        assert(listAddr != 0);
-                        uint64_t listCur = listAddr;
-                        uint64_t null64 = 0;
-                        for (shared_ptr<MachOModule> module : modules) {
-                            ib_dyldImageInfo64 info;
-                            // head
-                            info.imageLoadAddr = module->machHeader;
-                            
-                            // path
-                            info.imageFilePathAddr = memoryManager->allocPath(module->path);
-                            
-                            // modDate
-                            info.imageFileModDate = 0;
-                            
-                            assert(uc_mem_write(uc, listCur, &info, sizeof(ib_dyldImageInfo64)) == UC_ERR_OK);
-                            listCur += sizeof(ib_dyldImageInfo64);
-                        }
-                        
-                        uint64_t imageListAddr = 0;
-                        if (batch == 1) {
-                            // registerImageStateBatchChangeHandler
-                            assert(state == ib_dyld_image_state_bound);
-                            if (dyldBoundHandlers.find(handleAddr) == dyldBoundHandlers.end()) {
-                                imageListAddr = listAddr;
-                                dyldBoundHandlers.insert(handleAddr);
-                            } else {
-                                imageListAddr = 0;
-                            }
-                        } else {
-                            // registerImageStateSingleChangeHandler
-                            if (state == ib_dyld_image_state_terminated) {
-                                imageListAddr = 0;
-                            } else {
-                                // FIXME: dyld image state handler
-//                                assert(state == ib_dyld_image_state_initialized);
-                                if (dyldInitHandlers.find(handleAddr) == dyldInitHandlers.end()) {
-                                    imageListAddr = listAddr;
-                                    dyldInitHandlers.insert(handleAddr);
-                                } else {
-                                    imageListAddr = 0;
-                                }
-                            }
-                        }
-                        
-                        // return value;
-                        sp -= 8;
-                        assert(uc_mem_write(uc, sp, &null64, 8) == UC_ERR_OK);
-                        
-                        // null-terminate
-                        sp -= 8;
-                        assert(uc_mem_write(uc, sp, &null64, 8) == UC_ERR_OK);
-                        
-                        if (handleAddr != 0 && imageListAddr != 0) {
-                            // list
-                            sp -= 8;
-                            assert(uc_mem_write(uc, sp, &imageListAddr, 8) == UC_ERR_OK);
-                            
-                            // list count
-                            sp -= 8;
-                            assert(uc_mem_write(uc, sp, &moduleCount, 8) == UC_ERR_OK);
-                            
-                            // state
-                            sp -= 8;
-                            assert(uc_mem_write(uc, sp, &state, 8) == UC_ERR_OK);
-                            
-                            // handler
-                            sp -= 8;
-                            assert(uc_mem_write(uc, sp, &handleAddr, 8) == UC_ERR_OK);
-                        }
-                        assert(uc_reg_write(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
-                    });
-                    free(code);
-                }
-                if (_dyld_dlopen_address == 0) {
-                    _dyld_dlopen_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        uint64_t pathAddr;
-                        int mode;
-                        ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
-                        ensure_uc_reg_read(UC_ARM64_REG_W1, &mode);
-                        char *path = pathAddr > 0 ? MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000) : NULL;
-                        
-                        uint64_t ret;
-                        if (path == NULL) {
-                            if (mode & IB_RTLD_FIRST) {
-                                ret = IB_RTLD_MAIN_ONLY;
-                            } else {
-                                ret = IB_RTLD_DEFAULT;
-                            }
-                        } else {
-                            string moduleName = StringUtils::path_basename(path);
-                            shared_ptr<MachOModule> module = findModuleByName(moduleName);
-                            if (module == nullptr) {
-                                string _path = string(path);
-                                string realPath = resolveLibraryPath(_path);
-                                module = loadModuleFromFile(realPath);
-                                
-                                shared_ptr<Aarch64Machine> a64Machine = this->machine.lock();
-                                a64Machine->initModule(module);
-                            }
-                            ret = module->machHeader;
-                        }
-                        ensure_uc_reg_write(UC_ARM64_REG_X0, &ret);
-                    });
-                }
-                if (_dyld_image_path_containing_address == 0) {
-                    _dyld_image_path_containing_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        uint64_t addr;
-                        ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
-                        shared_ptr<MachOModule> module = findModuleByAddr(addr);
-                        if (!module) {
-                            assert(false);
-                        }
-                        
-                        uint64_t pathAddr = memoryManager->allocPath(module->path);
-                        ensure_uc_reg_write(UC_ARM64_REG_X0, &pathAddr);
-                    });
-                }
-                if (_dyld_NSGetExecutablePath_address == 0) {
-                    _dyld_NSGetExecutablePath_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        uint64_t bufAddr;
-                        uint32_t size;
-                        ensure_uc_reg_read(UC_ARM64_REG_X0, &bufAddr);
-                        ensure_uc_reg_read(UC_ARM64_REG_W1, &size);
-                        shared_ptr<MachOModule> module = modules[0];
-                        string path = module->path;
-                        assert(size >= path.length() + 1);
-                        ensure_uc_mem_write(bufAddr, path.c_str(), path.length());
-                        uint64_t null64 = 0;
-                        ensure_uc_mem_write(bufAddr + path.length(), &null64, 1);
-                    });
-                }
-                if (_dyld_dlsym_address == 0) {
-                    _dyld_dlsym_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        int64_t handle;
-                        uint64_t symbolAddr;
-                        ensure_uc_reg_read(UC_ARM64_REG_X0, &handle);
-                        ensure_uc_reg_read(UC_ARM64_REG_X1, &symbolAddr);
-                        char *symbolName = MachoMemoryUtils::uc_read_string(uc, symbolAddr, 1000);
-                        if (handle == IB_RTLD_MAIN_ONLY) {
-                            if (strcmp(symbolName, "_os_trace_redirect_func") == 0) {
-                                assert(false);
-                            }
-                        }
-                        if (strcmp(symbolName, "sandbox_check") == 0) {
-                            assert(false);
-                        }
-                        if (strcmp(symbolName, "_availability_version_check") == 0) {
-                            assert(false);
-                        }
-                        if (strcmp(symbolName, "dispatch_after") == 0) {
-                            assert(false);
-                        }
-                        if (strcmp(symbolName, "dispatch_async") == 0) {
-                            assert(false);
-                        }
-                        
-                        Symbol *symbol = nullptr;
-                        string symName = StringUtils::format("_%s", symbolName);
-                        free(symbolName);
-                        symbolName = (char *)symName.c_str();
-                        if (handle > 0) {
-                            shared_ptr<MachOModule> module = findModuleByAddr(handle);
-                            symbol = module->getSymbolByName(symbolName, false);
-                        } else {
-                            for (shared_ptr<MachOModule> module : modules) {
-                                symbol = module->getSymbolByName(symbolName, false);
-                                if (symbol) {
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        uint64_t targetAddr = symbol ? symbol->info->n_value : 0;
-                        ensure_uc_reg_write(UC_ARM64_REG_X0, &targetAddr);
-                    });
-                }
-                
-                static uint64_t dyldLazyBinderAddr = 0, dyldFunctionLookupAddr = 0;
-                if (dyldLazyBinderAddr == 0) {
-                    dyldLazyBinderAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        assert(false);
-                    });
-                }
-                if (dyldFunctionLookupAddr == 0) {
-                    dyldFunctionLookupAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        uint64_t dyldFuncNameAddr = 0, dyldFuncBindToAddr;
-                        assert(uc_reg_read(uc, UC_ARM64_REG_X0, &dyldFuncNameAddr) == UC_ERR_OK);
-                        assert(uc_reg_read(uc, UC_ARM64_REG_X1, &dyldFuncBindToAddr) == UC_ERR_OK);
-                        char *dyldFuncName = MachoMemoryUtils::uc_read_string(uc, dyldFuncNameAddr, 10000);
-                        if (strcmp(dyldFuncName, "__dyld_fast_stub_entry") == 0) {
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_fast_stub_entryAddr, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_fast_stub_entryAddr, 8) == UC_ERR_OK);
-                        } else if (strcmp(dyldFuncName, "__dyld_register_thread_helpers") == 0) {
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_thread_helpersAddr, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_thread_helpersAddr, 8) == UC_ERR_OK);
-                        } else if (strcmp(dyldFuncName, "__dyld_get_image_slide") == 0) {
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_get_image_slide, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_get_image_slide, 8) == UC_ERR_OK);
-                        } else if (strcmp(dyldFuncName, "__dyld_register_func_for_remove_image") == 0) {
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_func_for_remove_image, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_func_for_remove_image, 8) == UC_ERR_OK);
-                        } else if (strcmp(dyldFuncName, "__dyld_dyld_register_image_state_change_handler") == 0) {
-                            // FIXME: objc init
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_image_state_change_handler, dyldFuncBindToAddr);
-                            // FIXME: nop objc
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_image_state_change_handler, 8) == UC_ERR_OK);
-                        } else if (strcmp(dyldFuncName, "__dyld_image_path_containing_address") == 0) {
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_image_path_containing_address, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_image_path_containing_address, 8) == UC_ERR_OK);
-                        } else if (strcmp(dyldFuncName, "__dyld_dlopen") == 0) {
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_dlopen_address, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_dlopen_address, 8) == UC_ERR_OK);
-                        } else if (strcmp(dyldFuncName, "__dyld_dlsym") == 0) {
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_dlsym_address, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_dlsym_address, 8) == UC_ERR_OK);
-                        } else if (strcmp(dyldFuncName, "__dyld__NSGetExecutablePath") == 0) {
-                            printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_NSGetExecutablePath_address, dyldFuncBindToAddr);
-                            assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_NSGetExecutablePath_address, 8) == UC_ERR_OK);
-                        } else {
-                            assert(false);
-                        }
-                        free(dyldFuncName);
-                    });
-                }
-                uint64_t addr = sect->addr;
-                assert(uc_mem_write(uc, addr, &dyldLazyBinderAddr, 8) == UC_ERR_OK);
-                assert(uc_mem_write(uc, addr + 8, &dyldFunctionLookupAddr, 8) == UC_ERR_OK);
             }
-        }
+            assert(targetModule != nullptr);
+            uint64_t targetAddr = Dyld::doFastLazyBind(targetModule, shared_from_this(), offset);
+            
+            // write return value to x0
+            assert(uc_reg_write(uc, UC_ARM64_REG_X0, &targetAddr) == UC_ERR_OK);
+        });
     }
+    if (_dyld_nopAddr == 0) {
+        _dyld_nopAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            printf("[Stalker][-][Warn][dyld] dyld_nop\n");
+            uint64_t ret = 0;
+            assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+        });
+    }
+    if (_dyld_register_thread_helpersAddr == 0) {
+        _dyld_register_thread_helpersAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            uint64_t ptr;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &ptr) == UC_ERR_OK);
+            printf("[Stalker][+][dyld] dyld_register_thread_helpers 0x%llx\n", ptr);
+            uint64_t ret = 0;
+            assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+        });
+    }
+    if (_dyld_get_image_slide == 0) {
+        _dyld_get_image_slide = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            // FIXME: dyld image slide
+            uint64_t machHeaderAddr;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &machHeaderAddr) == UC_ERR_OK);
+            printf("[Stalker][+][dyld] dyld_get_image_slide for machHeader 0x%llx\n", machHeaderAddr);
+            uint64_t ret = 0;
+            assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+        });
+    }
+    if (_dyld_register_func_for_remove_image == 0) {
+        _dyld_register_func_for_remove_image = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            // FIXME: dyld image slide
+            uint64_t callbackAddr;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &callbackAddr) == UC_ERR_OK);
+            printf("[Stalker][+][dyld] dyld_register_func_for_remove_image with callback 0x%llx\n", callbackAddr);
+            uint64_t ret = 0;
+            assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK);
+        });
+    }
+    if (_dyld_register_image_state_change_handler == 0) {
+        // code from unidbg Dyld64.java
+        int swi = svcManager->allocateSWI();
+        ks_engine *ks;
+        uint32_t *code = nullptr;
+        size_t codelen = 0;
+        size_t codeCount = 0;
+        string asmText =               "sub sp, sp, #0x10\n";
+        asmText +=                     "stp x29, x30, [sp]\n";
+        asmText += StringUtils::format("svc #0x%x\n", swi);
+        asmText +=                     "ldr x7, [sp]\n"; // x7 = handler
+        asmText +=                     "add sp, sp, #0x8\n"; // manipulated stack in dyld_image_state_change_handler
+        asmText +=                     "cmp x7, #0\n";
+        asmText +=                     "b.eq #0x40\n"; // goto (ldr x0, [sp], pop return value)
+        asmText +=                     "adr lr, #-0xf\n"; // jump to ldr x7, [sp]
+        asmText +=                     "bic lr, lr, #0x1\n"; // clear bit zero
+
+        asmText +=                     "ldr x0, [sp]\n"; // x0 = state
+        asmText +=                     "add sp, sp, #0x8\n";
+        asmText +=                     "ldr x1, [sp]\n"; // x1 = count
+        asmText +=                     "add sp, sp, #0x8\n";
+        asmText +=                     "ldr x2, [sp]\n"; // x2 = imageHeader
+        asmText +=                     "add sp, sp, #0x8\n";
+        asmText +=                     "br x7\n"; // call (*dyld_image_state_change_handler)(enum dyld_image_states state, uint32_t infoCount, const struct dyld_image_info info[])
+
+        asmText +=                     "ldr x0, [sp]\n"; // x0 = return value
+        asmText +=                     "add sp, sp, #0x8\n";
+
+        asmText +=                     "ldp x29, x30, [sp]\n";
+        asmText +=                     "add sp, sp, #0x10\n";
+        asmText +=                     "ret";
+        assert(ks_open(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN, &ks) == KS_ERR_OK);
+        assert(ks_asm(ks, asmText.c_str(), 0, (unsigned char **)&code, &codelen, &codeCount) == KS_ERR_OK);
+        _dyld_register_image_state_change_handler = svcManager->createSVCWithCustomCode(swi, code, codelen, [&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            int state, batch;
+            uint64_t handleAddr, sp;
+            assert(uc_reg_read(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_W0, &state) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_W1, &batch) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_X2, &handleAddr) == UC_ERR_OK);
+            typedef struct ib_dyldImageInfo64 {
+                uint64_t imageLoadAddr;
+                uint64_t imageFilePathAddr;
+                uint64_t imageFileModDate;
+            } ib_dyldImageInfo64;
+            
+            size_t moduleCount = modules.size();
+            size_t listSize = moduleCount * sizeof(ib_dyldImageInfo64);
+            uint64_t listAddr = memoryManager->alloc(listSize);
+            assert(listAddr != 0);
+            uint64_t listCur = listAddr;
+            uint64_t null64 = 0;
+            for (shared_ptr<MachOModule> module : modules) {
+                ib_dyldImageInfo64 info;
+                // head
+                info.imageLoadAddr = module->machHeader;
+                
+                // path
+                info.imageFilePathAddr = memoryManager->allocPath(module->path);
+                
+                // modDate
+                info.imageFileModDate = 0;
+                
+                assert(uc_mem_write(uc, listCur, &info, sizeof(ib_dyldImageInfo64)) == UC_ERR_OK);
+                listCur += sizeof(ib_dyldImageInfo64);
+            }
+            
+            uint64_t imageListAddr = 0;
+            if (batch == 1) {
+                // registerImageStateBatchChangeHandler
+                assert(state == ib_dyld_image_state_bound);
+                if (dyldBoundHandlers.find(handleAddr) == dyldBoundHandlers.end()) {
+                    imageListAddr = listAddr;
+                    dyldBoundHandlers.insert(handleAddr);
+                } else {
+                    imageListAddr = 0;
+                }
+            } else {
+                // registerImageStateSingleChangeHandler
+                if (state == ib_dyld_image_state_terminated) {
+                    imageListAddr = 0;
+                } else {
+                    // FIXME: dyld image state handler
+//                                assert(state == ib_dyld_image_state_initialized);
+                    if (dyldInitHandlers.find(handleAddr) == dyldInitHandlers.end()) {
+                        imageListAddr = listAddr;
+                        dyldInitHandlers.insert(handleAddr);
+                    } else {
+                        imageListAddr = 0;
+                    }
+                }
+            }
+            
+            // return value;
+            sp -= 8;
+            assert(uc_mem_write(uc, sp, &null64, 8) == UC_ERR_OK);
+            
+            // null-terminate
+            sp -= 8;
+            assert(uc_mem_write(uc, sp, &null64, 8) == UC_ERR_OK);
+            
+            if (handleAddr != 0 && imageListAddr != 0) {
+                // list
+                sp -= 8;
+                assert(uc_mem_write(uc, sp, &imageListAddr, 8) == UC_ERR_OK);
+                
+                // list count
+                sp -= 8;
+                assert(uc_mem_write(uc, sp, &moduleCount, 8) == UC_ERR_OK);
+                
+                // state
+                sp -= 8;
+                assert(uc_mem_write(uc, sp, &state, 8) == UC_ERR_OK);
+                
+                // handler
+                sp -= 8;
+                assert(uc_mem_write(uc, sp, &handleAddr, 8) == UC_ERR_OK);
+            }
+            assert(uc_reg_write(uc, UC_ARM64_REG_SP, &sp) == UC_ERR_OK);
+        });
+        free(code);
+    }
+    if (_dyld_dlopen_address == 0) {
+        _dyld_dlopen_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            uint64_t pathAddr;
+            int mode;
+            ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+            ensure_uc_reg_read(UC_ARM64_REG_W1, &mode);
+            char *path = pathAddr > 0 ? MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000) : NULL;
+            
+            uint64_t ret;
+            if (path == NULL) {
+                if (mode & IB_RTLD_FIRST) {
+                    ret = IB_RTLD_MAIN_ONLY;
+                } else {
+                    ret = IB_RTLD_DEFAULT;
+                }
+            } else {
+                string moduleName = StringUtils::path_basename(path);
+                shared_ptr<MachOModule> module = findModuleByName(moduleName);
+                if (module == nullptr) {
+                    string _path = string(path);
+                    string realPath = resolveLibraryPath(_path);
+                    module = loadModuleFromFile(realPath);
+                    
+                    shared_ptr<Aarch64Machine> a64Machine = this->machine.lock();
+                    a64Machine->initModule(module);
+                }
+                ret = module->machHeader;
+            }
+            ensure_uc_reg_write(UC_ARM64_REG_X0, &ret);
+        });
+    }
+    if (_dyld_image_path_containing_address == 0) {
+        _dyld_image_path_containing_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            uint64_t addr;
+            ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
+            shared_ptr<MachOModule> module = findModuleByAddr(addr);
+            if (!module) {
+                assert(false);
+            }
+            
+            uint64_t pathAddr = memoryManager->allocPath(module->path);
+            ensure_uc_reg_write(UC_ARM64_REG_X0, &pathAddr);
+        });
+    }
+    if (_dyld_NSGetExecutablePath_address == 0) {
+        _dyld_NSGetExecutablePath_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            uint64_t bufAddr;
+            uint32_t size;
+            ensure_uc_reg_read(UC_ARM64_REG_X0, &bufAddr);
+            ensure_uc_reg_read(UC_ARM64_REG_W1, &size);
+            shared_ptr<MachOModule> module = modules[0];
+            string path = module->path;
+            assert(size >= path.length() + 1);
+            ensure_uc_mem_write(bufAddr, path.c_str(), path.length());
+            uint64_t null64 = 0;
+            ensure_uc_mem_write(bufAddr + path.length(), &null64, 1);
+        });
+    }
+    if (_dyld_dlsym_address == 0) {
+        _dyld_dlsym_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            int64_t handle;
+            uint64_t symbolAddr;
+            ensure_uc_reg_read(UC_ARM64_REG_X0, &handle);
+            ensure_uc_reg_read(UC_ARM64_REG_X1, &symbolAddr);
+            char *symbolName = MachoMemoryUtils::uc_read_string(uc, symbolAddr, 1000);
+            if (handle == IB_RTLD_MAIN_ONLY) {
+                if (strcmp(symbolName, "_os_trace_redirect_func") == 0) {
+                    assert(false);
+                }
+            }
+            if (strcmp(symbolName, "sandbox_check") == 0) {
+                assert(false);
+            }
+            if (strcmp(symbolName, "_availability_version_check") == 0) {
+                assert(false);
+            }
+            if (strcmp(symbolName, "dispatch_after") == 0) {
+                assert(false);
+            }
+            if (strcmp(symbolName, "dispatch_async") == 0) {
+                assert(false);
+            }
+            
+            Symbol *symbol = nullptr;
+            string symName = StringUtils::format("_%s", symbolName);
+            free(symbolName);
+            symbolName = (char *)symName.c_str();
+            if (handle > 0) {
+                shared_ptr<MachOModule> module = findModuleByAddr(handle);
+                symbol = module->getSymbolByName(symbolName, false);
+            } else {
+                for (shared_ptr<MachOModule> module : modules) {
+                    symbol = module->getSymbolByName(symbolName, false);
+                    if (symbol) {
+                        break;
+                    }
+                }
+            }
+            
+            uint64_t targetAddr = symbol ? symbol->info->n_value : 0;
+            ensure_uc_reg_write(UC_ARM64_REG_X0, &targetAddr);
+        });
+    }
+    
+    static uint64_t dyldLazyBinderAddr = 0, dyldFunctionLookupAddr = 0;
+    if (dyldLazyBinderAddr == 0) {
+        dyldLazyBinderAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            assert(false);
+        });
+    }
+    if (dyldFunctionLookupAddr == 0) {
+        dyldFunctionLookupAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+            uint64_t dyldFuncNameAddr = 0, dyldFuncBindToAddr;
+            assert(uc_reg_read(uc, UC_ARM64_REG_X0, &dyldFuncNameAddr) == UC_ERR_OK);
+            assert(uc_reg_read(uc, UC_ARM64_REG_X1, &dyldFuncBindToAddr) == UC_ERR_OK);
+            char *dyldFuncName = MachoMemoryUtils::uc_read_string(uc, dyldFuncNameAddr, 10000);
+            if (strcmp(dyldFuncName, "__dyld_fast_stub_entry") == 0) {
+                printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_fast_stub_entryAddr, dyldFuncBindToAddr);
+                assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_fast_stub_entryAddr, 8) == UC_ERR_OK);
+            } else if (strcmp(dyldFuncName, "__dyld_register_thread_helpers") == 0) {
+                printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_thread_helpersAddr, dyldFuncBindToAddr);
+                assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_thread_helpersAddr, 8) == UC_ERR_OK);
+            } else if (strcmp(dyldFuncName, "__dyld_get_image_slide") == 0) {
+                printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_get_image_slide, dyldFuncBindToAddr);
+                assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_get_image_slide, 8) == UC_ERR_OK);
+            } else if (strcmp(dyldFuncName, "__dyld_register_func_for_remove_image") == 0) {
+                printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_func_for_remove_image, dyldFuncBindToAddr);
+                assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_func_for_remove_image, 8) == UC_ERR_OK);
+            } else if (strcmp(dyldFuncName, "__dyld_dyld_register_image_state_change_handler") == 0) {
+                // FIXME: objc init
+                printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_register_image_state_change_handler, dyldFuncBindToAddr);
+                // FIXME: nop objc
+                assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_register_image_state_change_handler, 8) == UC_ERR_OK);
+            } else if (strcmp(dyldFuncName, "__dyld_image_path_containing_address") == 0) {
+                printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_image_path_containing_address, dyldFuncBindToAddr);
+                assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_image_path_containing_address, 8) == UC_ERR_OK);
+            } else if (strcmp(dyldFuncName, "__dyld_dlopen") == 0) {
+                printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_dlopen_address, dyldFuncBindToAddr);
+                assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_dlopen_address, 8) == UC_ERR_OK);
+            } else if (strcmp(dyldFuncName, "__dyld_dlsym") == 0) {
+                printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_dlsym_address, dyldFuncBindToAddr);
+                assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_dlsym_address, 8) == UC_ERR_OK);
+            } else if (strcmp(dyldFuncName, "__dyld__NSGetExecutablePath") == 0) {
+                printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_NSGetExecutablePath_address, dyldFuncBindToAddr);
+                assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_NSGetExecutablePath_address, 8) == UC_ERR_OK);
+            } else if (strcmp(dyldFuncName, "__dyld_process_is_restricted") == 0) {
+                static uint64_t __dyld_process_is_restricted_address = 0;
+                if (__dyld_process_is_restricted_address == 0) {
+                    __dyld_process_is_restricted_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                            uint64_t null64 = 0;
+                            ensure_uc_reg_write(UC_ARM64_REG_X0, &null64);
+                        });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &__dyld_process_is_restricted_address, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_get_all_image_infos") == 0) {
+                static uint64_t __dyld_get_all_image_infos_address = 0;
+                if (__dyld_get_all_image_infos_address == 0) {
+                    static uint64_t infoInVM = 0;
+                    if (infoInVM == 0) {
+                        size_t size = sizeof(struct dyld_all_image_infos);
+                        infoInVM = memoryManager->alloc(size);
+
+                        // init data
+                        struct dyld_all_image_infos localInfo = {
+                            17, 0, {NULL}, NULL, false, false, (const mach_header*)0x180000000, NULL,
+                            "dyld-832.7.3", NULL, 0, NULL, 0, 0, NULL, (struct dyld_all_image_infos *)infoInVM,
+                            0, 0, NULL, NULL, NULL, 0, {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,},
+                            0, {0}, "/usr/lib/dyld", {0}, {0}, 0, 0, NULL, 0
+                        };
+                        localInfo.sharedCacheBaseAddress = 0x180000000;
+                        ensure_uc_mem_write(infoInVM, &localInfo, size);
+                    }
+                    __dyld_get_all_image_infos_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                            ensure_uc_reg_write(UC_ARM64_REG_X0, &infoInVM);
+                        });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &__dyld_get_all_image_infos_address, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_register_func_for_add_image") == 0) {
+                // dyld FIXME: __dyld_register_func_for_add_image
+                static uint64_t _dyld_symbol_addr = 0;
+                if (_dyld_symbol_addr == 0) {
+                    _dyld_symbol_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                            printf("[Stalker][-][Warn] ignore __dyld_register_func_for_add_image !!!\n");
+                            uint64_t null64 = 0;
+                            ensure_uc_reg_write(UC_ARM64_REG_X0, &null64);
+                        });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_symbol_addr, 8);
+            } else {
+                uc_debug_print_backtrace(uc);
+                assert(false);
+            }
+            free(dyldFuncName);
+        });
+    }
+    
+    // FATAL FIXME: hardcode _dyld_function_lookup addr
+    uint64_t _dyld_function_lookup_addr = 0x1D2896F78;
+    assert(uc_mem_write(uc, _dyld_function_lookup_addr, &dyldFunctionLookupAddr, 8) == UC_ERR_OK);
     return mainModule;
 }
 

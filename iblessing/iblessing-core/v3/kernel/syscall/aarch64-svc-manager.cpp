@@ -14,6 +14,7 @@
 #include "macho-memory.hpp"
 #include "uc_debugger_utils.hpp"
 #include "buffered_logger.hpp"
+#include <sys/ioctl.h>
 
 using namespace std;
 using namespace iblessing;
@@ -45,6 +46,7 @@ uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t mask, uint64_t size
     uc_err err = uc_mem_map(uc, mmapHeapPtr, aligned_size, prot);
     if (err) {
         printf("[-] cannot mmap at 0x%llx, error %s\n", mmapHeapPtr, uc_strerror(err));
+        print_uc_mem_regions(uc);
         assert(false);
     }
     
@@ -138,7 +140,7 @@ bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, v
     assert(uc == this->uc);
     if (svcMap.find(swi) == svcMap.end()) {
         if (swi == 0x80) {
-            return this->handleSyscall(uc, intno, swi, user_data);
+            return handleSyscall(uc, intno, swi, user_data);
         }
         
         BufferedLogger::globalLogger()->printBuffer();
@@ -169,6 +171,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
     // clear errno
     machine.lock()->setErrno(0);
     
+    printf("[Stalker][+][Syscall] handle syscall num %lld\n", trap_no);
     if (trap_no > 0) {
         // posix
         switch (trap_no) {
@@ -189,9 +192,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 int ret = 0;
                 uint64_t request;
                 assert(uc_reg_read(uc, UC_ARM64_REG_W0, &fd) == UC_ERR_OK);
-                assert(uc_reg_read(uc, UC_ARM64_REG_W1, &request) == UC_ERR_OK);
+                assert(uc_reg_read(uc, UC_ARM64_REG_X1, &request) == UC_ERR_OK);
                 
-                if (fd == 1) {
+                if (fd == 1 || fd == 2) {
+//                    int sysret = ioctl(fd, request);
                     uint64_t argpAddr = 0;
                     assert(uc_reg_read(uc, UC_ARM64_REG_X2, &argpAddr) == UC_ERR_OK);
                     
@@ -199,6 +203,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     assert(uc_mem_write(uc, argpAddr, &arg0Val, sizeof(int)) == UC_ERR_OK);
                 } else {
                     ret = 1;
+                    uc_debug_print_backtrace(uc);
                     assert(false);
                 }
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
@@ -234,9 +239,14 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
                 ensure_uc_reg_read(UC_ARM64_REG_X1, &length);
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &prot);
-                uint64_t alignedAddr = addr / 0x1000 * 0x1000;
+                uint64_t alignedAddr = addr / 0x4000 * 0x4000;
                 uint64_t offset = addr - alignedAddr;
                 uint64_t alignedLength = IB_AlignSize(length + offset, 0x4000);
+                if (prot == 0) {
+                    printf("[Stalker][Syscall][Warn] mprotect ignore prot 0 for addr 0x%llx, size 0x%llx\n", addr, length);
+                    syscall_return_success;
+                    return true;
+                }
                 uc_err err = uc_mem_protect(uc, alignedAddr, alignedLength, prot);
                 assert(err == UC_ERR_OK);
                 syscall_return_success;
@@ -352,6 +362,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             }
             case 327: { // issetugid
                 printf("[Stalker][+] handle issetugid -> 0\n");
+                uc_debug_print_backtrace(uc);
                 syscall_return_success;
                 return true;
             }
@@ -636,7 +647,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X2, &size);
                 ensure_uc_reg_read(UC_ARM64_REG_W3, &flags);
 //                int tag = flags >> 24;
-                assert(flags & IB_VM_FLAGS_ANYWHERE);
+                if (!(flags & IB_VM_FLAGS_ANYWHERE)) {
+                    print_backtrace(uc);
+                    BufferedLogger::globalLogger()->printBuffer();
+                    assert(false);
+                }
                 uint64_t addr = svc_uc_mmap(uc, 0, 0, IB_AlignSize(size, 0x4000), UC_PROT_READ | UC_PROT_WRITE, 0, -1, 0);
                 void *zeros = calloc(1, size);
                 uc_mem_write(uc, addr, zeros, size);
@@ -1040,8 +1055,44 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         syscall_return_success;
                         return true;
                     }
+                    case 8000: { // _Xtask_restartable_ranges_register
+                        typedef struct {
+                            ib_mach_vm_address_t location;
+                            unsigned short    length;
+                            unsigned short    recovery_offs;
+                            unsigned int      flags;
+                        } task_restartable_range_t;
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            ib_mach_msg_type_number_t rangesCnt;
+                            task_restartable_range_t ranges[64];
+                            ib_mach_msg_trailer_t trailer;
+                        } Request __attribute__((unused));
+                        #pragma pack(pop)
+                        
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            ib_kern_return_t RetCode;
+                        } __Reply__task_restartable_ranges_register_t __attribute__((unused));
+                        #pragma pack(pop)
+                        
+                        __Reply__task_restartable_ranges_register_t *OutP = (__Reply__task_restartable_ranges_register_t *)hdr;
+                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        OutP->Head.msgh_local_port = 0;
+                        OutP->Head.msgh_id += 100;
+                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__task_restartable_ranges_register_t));
+                        OutP->RetCode = 0;
+                        ensure_uc_mem_write(msg, OutP, OutP->Head.msgh_size);
+                        syscall_return_success;
+                        return true;
+                    }
                     default:
-                        BufferedLogger::globalLogger()->printBuffer();
+                        uc_debug_print_backtrace(uc);
                         assert(false);
                         break;
                 }
@@ -1056,7 +1107,23 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_success;
                 return true;
             }
+            case 89: { // _mach_timebase_info_trap
+                uint64_t bufAddr = 0;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &bufAddr);
+                assert(bufAddr != 0);
+                struct mach_timebase_info {
+                    uint32_t        numer;
+                    uint32_t        denom;
+                };
+                mach_timebase_info info;
+                info.numer = info.denom =  1;
+                ensure_uc_mem_write(bufAddr, &info, sizeof(mach_timebase_info));
+                syscall_return_success;
+                printf("[Stalker][+][Syscall] -89 _mach_timebase_info_trap\n");
+                return true;
+            }
             default:
+                uc_debug_print_backtrace(uc);
                 assert(false);
                 break;
         }

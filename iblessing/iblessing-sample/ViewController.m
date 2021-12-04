@@ -53,13 +53,18 @@ void testObjc() {
 }
 
 uint64_t test_malloc(void) {
-    void *tiny = malloc(0x10);
-    void *small = malloc(0x400);
-    void *large = malloc(0x10000);
-    free(tiny);
-    free(small);
-    free(large);
-    printf("my malloc chunks %p %p %p\n", tiny, small, large);
+    for (int i = 0; i < 100; i++) {
+        void *tiny = malloc(0x10);
+        memset(tiny, 0xAA, 0x10);
+        free(tiny);
+        void *small = malloc(0x400);
+        memset(small, 0xBB, 0x400);
+        free(small);
+    }
+    
+//    void *large = malloc(0x10000);
+//    free(large);
+//    printf("my malloc chunks %p %p %p\n", tiny, small, large);
     return 233;
 }
 

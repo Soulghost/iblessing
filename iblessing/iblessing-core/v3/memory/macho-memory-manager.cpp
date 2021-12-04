@@ -17,7 +17,6 @@ extern "C" {
 using namespace std;
 using namespace iblessing;
 
-
 MachOMemoryManager::MachOMemoryManager(uc_engine *uc) {
     this->uc = uc;
     allocateBegin = 0x500000000;

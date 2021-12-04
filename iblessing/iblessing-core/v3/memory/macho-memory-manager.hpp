@@ -38,6 +38,7 @@ public:
     void *mmapSharedMem(uint64_t guest_addr, size_t size, int prot);
     void *mmapWrapper(uint64_t guest_addr, size_t size, int prot, int flags, int fd, off_t off);
 
+//    void _free(uint64_t addr);
     
 private:
     uc_engine *uc;

@@ -18,7 +18,7 @@
 #define TraceLevelASM        1
 #define TraceLevelASMComment 2
 
-#define TraceLevel TraceLevelNone
+#define TraceLevel TraceLevelASMComment
 
 using namespace std;
 using namespace iblessing;
@@ -111,6 +111,8 @@ static uint64_t callFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCa
 }
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
+    uc_debug_check_breakpoint(uc, address);
+    
     void *codes = malloc(sizeof(uint32_t));
     uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
     if (err != UC_ERR_OK) {
@@ -132,6 +134,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         return;
     }
     
+    static set<string> symbolBlackList{"__platform_strlen", "__platform_bzero", "__platform_memset", "__platform_strstr", "__platform_strcmp"};
     string comments = "";
 #if TraceLevel >= TraceLevelASMComment
     uint64_t targetAddr = 0;
@@ -140,7 +143,11 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         uint64_t regValue = 0;
         assert(uc_reg_read(uc, insn->detail->arm64.operands[0].reg, &regValue) == UC_ERR_OK);
         comments = StringUtils::format("#0x%llx", regValue);
-        assert(regValue != 0);
+        if (regValue == 0) {
+            print_backtrace(uc);
+            BufferedLogger::globalLogger()->printBuffer();
+            assert(false);
+        }
         targetAddr = regValue;
     } else if (strcmp(insn->mnemonic, "b") == 0 ||
                strncmp(insn->mnemonic, "b.", 2) == 0 ||
@@ -157,6 +164,32 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             comments += StringUtils::format(" ; target = %s, ", sym->name.c_str());
         }
     }
+    
+    if (address == 0x1aedbd7f8) {
+        uint64_t x0, x1, x2, x3;
+        ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
+        ensure_uc_reg_read(UC_ARM64_REG_X1, &x1);
+        ensure_uc_reg_read(UC_ARM64_REG_X2, &x2);
+        ensure_uc_reg_read(UC_ARM64_REG_X3, &x3);
+        comments += StringUtils::format("libcfuncs = 0x%llx, envp = 0x%llx, apple = 0x%llx, vars = 0x%llx", x0, x1, x2, x3);
+    } else if (address == 0x189045868) {
+        uint64_t x8;
+        ensure_uc_reg_read(UC_ARM64_REG_X8, &x8);
+        comments += StringUtils::format("environ_pointer = 0x%llx", x8);
+    } else if (address == 0x189045880) {
+        uint64_t x8;
+        ensure_uc_reg_read(UC_ARM64_REG_X8, &x8);
+        comments += StringUtils::format("__mh_execute_header_pointer = 0x%llx", x8);
+    } else if (address == 0x189045848) {
+        uint64_t x0;
+        ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
+        comments += StringUtils::format("vars addr 0x%llx", x0);
+        uc_debug_print_memory(uc, x0, 8, 5);
+    } else if (address == 0x18efd3890) {
+        uint64_t x2;
+        ensure_uc_reg_read(UC_ARM64_REG_X2, &x2);
+        comments += StringUtils::format("allocate size 0x%llx", x2);
+    }
 #endif
     
 #if TraceLevel >= TraceLevelASMComment
@@ -165,20 +198,26 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     MachOModule *module = nullptr;
 #endif
     BufferedLogger *logger = BufferedLogger::globalLogger();
+    bool intraFunction = false;
     if (module) {
-        static set<string> moduleBlackList{"libsystem_malloc.dylib"};
+        static set<string> moduleBlackList{};
         if (moduleBlackList.find(module->name) == moduleBlackList.end()) {
             Symbol *sym = module->getSymbolByAddress(address);
             if (sym && sym->name.length() > 0) {
                 logger->append(StringUtils::format("[Stalker] ------ callee: 0x%08llx: %s:\n", address, sym->name.c_str()));
             } else {
-                Symbol *sym = module->getSymbolNearByAddress(address);
+                sym = module->getSymbolNearByAddress(address);
                 if (sym && sym->name.length() > 0) {
+                    intraFunction = true;
                     comments += StringUtils::format("(in %s)", sym->name.c_str());
                 }
             }
             if (module->name != "libdyld.dylib") {
-                logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
+                if (!intraFunction) {
+                    logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
+                } else if (symbolBlackList.find(sym->name) == symbolBlackList.end()) {
+                    logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
+                }
             }
         }
     } else {
@@ -224,7 +263,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 ////        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
 //        assert(false);
 //    }
-    BufferedLogger::globalLogger()->printBuffer();
+    uc_debug_print_backtrace(uc);
     assert(false);
     return false;
 }
@@ -234,7 +273,7 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
-    static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony"};
+    static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony", "CoreFoundation"};
 //    blackListModule.insert("Security");
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
@@ -351,6 +390,12 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     sp = uc_alloca(sp, sizeof(uint32_t));
     callFunctionLR = sp;
     ensure_uc_mem_write(callFunctionLR, &nopCode, sizeof(uint32_t));
+    
+    // FATAL FIXME: tricky nop
+    for (uint64_t addr = 0x1AEDBD820; addr < 0x1AEDBD89C; addr += 4) {
+        ensure_uc_mem_write(addr, &nopCode, sizeof(uint32_t));
+    }
+
     /**
         setup vars
      */
@@ -392,6 +437,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     assert(uc_mem_write(uc, varsAddr + 2 * sizeof(uint64_t), &_NSGetArgv, sizeof(uint64_t)) == UC_ERR_OK);
     assert(uc_mem_write(uc, varsAddr + 3 * sizeof(uint64_t), &_NSGetEnv, sizeof(uint64_t)) == UC_ERR_OK);
     assert(uc_mem_write(uc, varsAddr + 4 * sizeof(uint64_t), &programNamePtr, sizeof(uint64_t)) == UC_ERR_OK);
+    
     /**
         set sysregs
      */
@@ -436,17 +482,16 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     initEnv.appleAddr = appleAddr;
     
     // setup libSystem kerneltrace page
-    uint64_t kernel_trace_page_addr = 0xFFFFF0000;
-    uint64_t kernel_trace_page_size = 0x10000;
-    assert(uc_mem_map(uc, kernel_trace_page_addr, kernel_trace_page_size, UC_PROT_READ) == UC_ERR_OK);
+    uint64_t kernel_common_page_addr = IB_KERNEL_BASE64;
+    uint64_t kernel_common_page_size = 0x10000;
+    assert(uc_mem_map(uc, kernel_common_page_addr, kernel_common_page_size, UC_PROT_READ) == UC_ERR_OK);
     {
-        void *nullchunk = calloc(1, kernel_trace_page_size);
-        ensure_uc_mem_write(kernel_trace_page_addr, nullchunk, kernel_trace_page_size);
+        void *nullchunk = calloc(1, kernel_common_page_size);
+        ensure_uc_mem_write(kernel_common_page_addr, nullchunk, kernel_common_page_size);
     }
     
     
     // setup kern common pages
-    assert(uc_mem_map(uc, IB_KERNEL_BASE64, 0x10000, UC_PROT_READ) == UC_ERR_OK);
     uint64_t cpuCount = 1;
     assert(uc_mem_write(uc, IB_COMM_PAGE_NCPUS, &cpuCount, 1) == UC_ERR_OK);
     assert(uc_mem_write(uc, IB_COMM_PAGE_ACTIVE_CPUS, &cpuCount, 1) == UC_ERR_OK);
@@ -463,13 +508,26 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     shared_ptr<MachOModule> foundationModule = loader->findModuleByName("Foundation");
     Symbol *_NSSetLogCStringFunction = foundationModule->getSymbolByName("__NSSetLogCStringFunction", false);
     uint64_t _NSSetLogCStringFunction_addr = _NSSetLogCStringFunction->info->n_value;
-    callFunction(uc, _NSSetLogCStringFunction_addr, Aarch64FunctionCallArg::voidArg(), {0x8888});
+    callFunction(uc, _NSSetLogCStringFunction_addr, Aarch64FunctionCallArg::voidArg(), {0x0});
+    
+    // init dyld lookup
+    // _setLookupFunc
+    uc_debug_set_breakpoint(uc, 0x1800C97A4);
+    // _dyld_initializer_0
+//    uc_debug_set_breakpoint(uc, 0x1800C9FF4);
+    
+//    shared_ptr<MachOModule> dyldModule = loader->findModuleByName("libdyld.dylib");
+//    assert(dyldModule != nullptr);
+//    Symbol *_setLookupFunc = dyldModule->getSymbolByName("_dyld_func_lookup", false);
+//    uint64_t lookupFuncAddr = 0x233;
+//    callFunction(uc, _setLookupFunc->info->n_value, Aarch64FunctionCallArg::voidArg(), {lookupFuncAddr});
     
     
     // init modules
     defaultEnv = initEnv;
     for (shared_ptr<MachOModule> module : loader->modules) {
         initModule(module, initEnv);
+        break;
     }
     
     // fake a stop addr
