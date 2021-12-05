@@ -28,7 +28,7 @@ MachOMemoryManager::MachOMemoryManager(uc_engine *uc) {
     stackBegin = IB_STACK_START;
     stackEnd = IB_STACK_END;
     
-    use_shared = true;
+    use_shared = false;
         
     if(use_shared){
         mmapSharedMem(stackBegin, stackEnd-stackBegin, PROT_READ|PROT_WRITE);
@@ -83,15 +83,23 @@ void MachOMemoryManager::dealloc(uint64_t addr) {
 
 void *MachOMemoryManager::mmapWrapper(uint64_t guest_addr, size_t size, int prot, int flags, int fd, off_t off) {
     
-    uint64_t guest_addr_rounded = (guest_addr/0x1000)*0x1000;
+    uint64_t guest_addr_rounded = (guest_addr / 0x4000) * 0x4000;
     if(guest_addr != guest_addr_rounded){
         size += guest_addr - guest_addr_rounded;
     }
-    size_t size_rounded = ROUNDUP(size, 0x1000);
+    size_t size_rounded = ROUNDUP(size, 0x4000);
+    
+    if (guest_addr_rounded == 0) {
+        guest_addr_rounded = 0x400000000;
+    }
     void *mmaped_addr = mmap((void *)guest_addr_rounded, size_rounded, prot, flags, fd, off);
-    assert(!guest_addr_rounded || mmaped_addr == (void *)guest_addr_rounded);
+//    assert(!guest_addr_rounded || mmaped_addr == (void *)guest_addr_rounded);
     uc_err uc_map_err = uc_mem_map_ptr(uc, (uint64_t)mmaped_addr, size_rounded, prot, mmaped_addr);
-    assert(uc_map_err == UC_ERR_OK);
+    if (uc_map_err != UC_ERR_OK) {
+        print_uc_mem_regions(uc);
+        uc_debug_print_backtrace(uc);
+        assert(false);
+    }
     return mmaped_addr;
 
 }
@@ -102,6 +110,10 @@ void *MachOMemoryManager::mmapSharedMem(uint64_t guest_addr, size_t size, int pr
         flags |= MAP_FIXED;
     }
     return mmapWrapper(guest_addr, size, prot, flags, -1, 0);
+}
+
+void *MachOMemoryManager::consumeMmapRegion(uint64_t start_addr, uint64_t size, int prot) {
+    return mmap((void *)start_addr, size, prot, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);
 }
 
 uint64_t MachOMemoryManager::stackNew() {

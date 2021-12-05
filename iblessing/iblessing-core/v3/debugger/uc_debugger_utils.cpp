@@ -8,6 +8,8 @@
 
 #include "uc_debugger_utils.hpp"
 #include "buffered_logger.hpp"
+#include "StringUtils.h"
+#include "termcolor.h"
 #include <map>
 
 using namespace std;
@@ -113,13 +115,97 @@ void uc_debug_set_breakpoint(uc_engine *uc, uint64_t address) {
     breakpointMap[uc].insert(address);
 }
 
+static void debugLoopAssert(uc_engine *uc, bool cond, string msg = "invalid command");
+
+static uc_arm64_reg uc_debug_regname2index(string regName, size_t *size) {
+    int index = UC_ARM64_REG_INVALID;
+    char r = toupper(regName[0]);
+    int num = atoi(regName.substr(1).c_str());
+    if (r == 'X') {
+        if (num <= 28) {
+            index = UC_ARM64_REG_X0 + num;
+        } else if (num <= 30) {
+            index = UC_ARM64_REG_X29 + num - 29;
+        } else {
+            index = UC_ARM64_REG_INVALID;
+        }
+        *size = 8;
+    } else if (r == 'W') {
+        if (num >= 0 && num <= 30) {
+            index = UC_ARM64_REG_W0 + num;
+        } {
+            index = UC_ARM64_REG_INVALID;
+        }
+        *size = 4;
+    } else {
+        return UC_ARM64_REG_INVALID;
+    }
+    return (uc_arm64_reg)index;
+}
+
+static void debugLoop(uc_engine *uc) {
+    string line;
+    printf("iblessing debugger > ");
+    while (getline(std::cin, line)) {
+        // FIXME: TODO: lldb command interpreter (CommandInterpreter)
+        if (line == "c" || line == "continue") {
+            break;
+        }
+        
+        vector<string> commandParts = StringUtils::split(line, ' ');
+        debugLoopAssert(uc, commandParts.size() > 0);
+        string cmd = commandParts[0];
+        if (cmd == "reg") {
+            debugLoopAssert(uc, commandParts.size() >= 3);
+            string operation = commandParts[1];
+            string regName = commandParts[2];
+            size_t size = 0;
+            uc_arm64_reg reg = uc_debug_regname2index(regName, &size);
+            debugLoopAssert(uc, reg != UC_ARM64_REG_INVALID, StringUtils::format("unknown reg name %s\n", regName.c_str()));
+            if (operation == "read") {
+                if (size == 4) {
+                    int val;
+                    ensure_uc_reg_read(reg, &val);
+                    printf("%s: 0x%x\n", regName.c_str(), val);
+                } else if (size == 8) {
+                    uint64_t val;
+                    ensure_uc_reg_read(reg, &val);
+                    printf("%s: 0x%llx\n", regName.c_str(), val);
+                }
+            } else if (operation == "write") {
+                debugLoopAssert(uc, false, "unsupport");
+            } else {
+                debugLoopAssert(uc, false, "unknown operation, please use <read> or <write>");
+            }
+        } else if (cmd == "bt") {
+            uc_debug_print_backtrace(uc);
+        } else if (cmd == "mmap") {
+            print_uc_mem_regions(uc);
+        } else {
+            debugLoopAssert(uc, false);
+        }
+        
+        printf("iblessing debugger > ");
+    }
+}
+
+static void debugLoopAssert(uc_engine *uc, bool cond, string msg) {
+    if (cond) {
+        return;
+    }
+    printf("debugger: %s\n", msg.c_str());
+    debugLoop(uc);
+}
+
 bool uc_debug_check_breakpoint(uc_engine *uc, uint64_t address) {
     auto bps = breakpointMap[uc];
     if (bps.find(address) != bps.end()) {
         uc_debug_print_backtrace(uc);
         printf("[+][Stalker][Debugger] stop at breakpoint 0x%llx\n", address);
-        pause();
+        debugLoop(uc);
         return true;
     }
     return false;
 }
+
+

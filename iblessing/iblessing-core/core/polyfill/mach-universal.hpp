@@ -788,6 +788,7 @@ typedef int ib_kern_return_t;
 typedef unsigned int ib_mach_port_msgcount_t;
 typedef int ib_exception_behavior_t;
 typedef int ib_thread_state_flavor_t;
+typedef ib_mach_port_t             ib_semaphore_t;
 
 typedef struct{
     ib_mach_msg_bits_t       msgh_bits;

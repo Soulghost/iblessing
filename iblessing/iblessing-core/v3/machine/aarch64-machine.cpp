@@ -7,10 +7,11 @@
 //
 
 #include "aarch64-machine.hpp"
-#include "ib_pthread.hpp"
+//#include "ib_pthread.hpp"
 #include "uc_debugger_utils.hpp"
 #include "buffered_logger.hpp"
 #include "macho-memory.hpp"
+#include "pthread_types_14.h"
 #include <iblessing-core/v2/util/StringUtils.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
 
@@ -85,9 +86,9 @@ static uint64_t callFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCa
         }
     }
     BufferedLogger *logger = BufferedLogger::globalLogger();
-    logger->purgeBuffer(0);
+//    logger->purgeBuffer(0);
     uc_err err = uc_emu_start(uc, function, callFunctionLR, 0, 0);
-    logger->printBuffer();
+//    logger->printBuffer();
     assert(err == UC_ERR_OK);
     
     switch (returnValue.type) {
@@ -273,7 +274,7 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
-    static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony", "CoreFoundation"};
+    static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony"};
 //    blackListModule.insert("Security");
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
@@ -392,9 +393,9 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     ensure_uc_mem_write(callFunctionLR, &nopCode, sizeof(uint32_t));
     
     // FATAL FIXME: tricky nop
-    for (uint64_t addr = 0x1AEDBD820; addr < 0x1AEDBD89C; addr += 4) {
-        ensure_uc_mem_write(addr, &nopCode, sizeof(uint32_t));
-    }
+//    for (uint64_t addr = 0x1AEDBD820; addr < 0x1AEDBD89C; addr += 4) {
+//        ensure_uc_mem_write(addr, &nopCode, sizeof(uint32_t));
+//    }
 
     /**
         setup vars
@@ -442,17 +443,16 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
         set sysregs
      */
     // pthread begin
-    uint64_t pthreadSize = sizeof(ib_pthread);
+    uint64_t pthreadSize = sizeof(ib_pthread_s);
     // alloca
     sp = uc_alloca(sp, pthreadSize);
     uint64_t pthreadAddr = sp;
-    uint64_t pthreadTSD = pthreadAddr + __offsetof(ib_pthread, self);
+    uint64_t pthreadTSD = pthreadAddr + __offsetof(ib_pthread_s, tsd);
     
     // init
-    ib_pthread *thread = (ib_pthread *)calloc(1, pthreadSize);
-    thread->self = pthreadAddr;
-    thread->err_no = 0;
-    thread->mig_reply = 0;
+    ib_pthread_s *thread = (ib_pthread_s *)calloc(1, pthreadSize);
+    *((uint64_t *)&thread->tsd[0]) = pthreadAddr; // self
+    thread->tsd[1] = 0; // errno
     assert(uc_mem_write(uc, pthreadAddr, (void *)thread, pthreadSize) == UC_ERR_OK);
     assert(uc_reg_write(uc, UC_ARM64_REG_TPIDRRO_EL0, &pthreadTSD) == UC_ERR_OK);
     free(thread);
@@ -512,7 +512,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // init dyld lookup
     // _setLookupFunc
-    uc_debug_set_breakpoint(uc, 0x1800C97A4);
+    uc_debug_set_breakpoint(uc, 0x189035C50);
     // _dyld_initializer_0
 //    uc_debug_set_breakpoint(uc, 0x1800C9FF4);
     
@@ -527,7 +527,6 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     defaultEnv = initEnv;
     for (shared_ptr<MachOModule> module : loader->modules) {
         initModule(module, initEnv);
-        break;
     }
     
     // fake a stop addr

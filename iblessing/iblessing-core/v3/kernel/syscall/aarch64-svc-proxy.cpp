@@ -49,7 +49,7 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
     int mach_trap_idx = 0;
     uint64_t args[16] = {0};
     getTrapNoAndArgs(uc, &trap_no, args);
-    printf("normalSyscall intno: 0x%x, swi: 0x%x, trap_no: %d", intno, swi, trap_no);
+    printf("[Stalker][+][Syscall] proxy syscall num %d\n", trap_no);
     if(trap_no > 0){
         printf(" \n");
         int ret = syscall(trap_no, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
@@ -58,9 +58,13 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
     }else{
         mach_trap_idx = -trap_no;
         int ret = 0;
+        bool machMsg = false;
         if(mach_trap_idx >=0 && mach_trap_idx < MACH_TRAP_TABLE_COUNT){
             mach_trap_t trap = mach_trap_table[mach_trap_idx];
             printf(" (%s)\n", trap.mach_trap_name);
+            if (trap_no == -31) {
+                machMsg = true;
+            }
             switch (trap.mach_trap_arg_count) {
                 case 0:
                     ret = ((fptr_0)trap.mach_trap_function)(); break;
@@ -84,12 +88,14 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
                     assert(false);
                     break;
             }
+            if (machMsg && ret != 0) {
+                printf("\t trap %d call error: %s\n", trap_no, mach_error_string(ret));
+            }
             assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
             return true;
         }
          
     }
-    printf(" (##UNKNOWN##)\n");
     return false;
 }
 

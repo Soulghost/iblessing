@@ -91,6 +91,7 @@ MachOLoader::MachOLoader()  {
     uint64_t unicorn_pagezero_size = 0x100000000;
     uint64_t unicorn_vm_start = unicorn_pagezero_size;
     err = uc_mem_map(uc, 0, unicorn_pagezero_size, UC_PROT_NONE);
+    
     if (err != UC_ERR_OK) {
         cout << termcolor::red << "[-] MachOLoader - Error: unicorn error " << uc_strerror(err);
         cout << termcolor::reset << endl;

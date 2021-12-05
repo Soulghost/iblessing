@@ -37,6 +37,7 @@ public:
     
     void *mmapSharedMem(uint64_t guest_addr, size_t size, int prot);
     void *mmapWrapper(uint64_t guest_addr, size_t size, int prot, int flags, int fd, off_t off);
+    void *consumeMmapRegion(uint64_t start_addr, uint64_t size, int prot);
 
 //    void _free(uint64_t addr);
     

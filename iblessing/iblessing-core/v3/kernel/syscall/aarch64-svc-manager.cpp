@@ -647,9 +647,9 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X2, &size);
                 ensure_uc_reg_read(UC_ARM64_REG_W3, &flags);
 //                int tag = flags >> 24;
-                if (!(flags & IB_VM_FLAGS_ANYWHERE)) {
-                    print_backtrace(uc);
+                if (!(flags & IB_VM_FLAGS_ANYWHERE) && flags != 0) {
                     BufferedLogger::globalLogger()->printBuffer();
+                    print_backtrace(uc);
                     assert(false);
                 }
                 uint64_t addr = svc_uc_mmap(uc, 0, 0, IB_AlignSize(size, 0x4000), UC_PROT_READ | UC_PROT_WRITE, 0, -1, 0);
