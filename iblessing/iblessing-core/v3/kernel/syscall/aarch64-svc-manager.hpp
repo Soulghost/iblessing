@@ -14,10 +14,6 @@
 #include <iblessing-core/v3/fs/darwin-file-system.hpp>
 #include <map>
 
-#define ensure_uc_mem_read(addr, bytes, size) assert(uc_mem_read(uc, addr, bytes, size) == UC_ERR_OK)
-#define ensure_uc_mem_write(addr, bytes, size) assert(uc_mem_write(uc, addr, bytes, size) == UC_ERR_OK)
-#define ensure_uc_reg_read(reg, value) assert(uc_reg_read(uc, reg, value) == UC_ERR_OK)
-#define ensure_uc_reg_write(reg, value) assert(uc_reg_write(uc, reg, value) == UC_ERR_OK)
 #define syscall_return_success syscall_return_value64(0)
 #define syscall_return_value(value) do {\
 int ret = value;\

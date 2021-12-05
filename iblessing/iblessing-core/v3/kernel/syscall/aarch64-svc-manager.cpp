@@ -15,6 +15,7 @@
 #include "uc_debugger_utils.hpp"
 #include "buffered_logger.hpp"
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 
 using namespace std;
 using namespace iblessing;
@@ -42,11 +43,11 @@ uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t mask, uint64_t size
         mmapHeapPtr = IB_AlignSize(mmapHeapPtr, mask + 1);
     }
     
-    print_uc_mem_regions(uc);
+//    print_uc_mem_regions(uc);
     uc_err err = uc_mem_map(uc, mmapHeapPtr, aligned_size, prot);
     if (err) {
         printf("[-] cannot mmap at 0x%llx, error %s\n", mmapHeapPtr, uc_strerror(err));
-        print_uc_mem_regions(uc);
+        uc_debug_print_backtrace(uc);
         assert(false);
     }
     
@@ -55,7 +56,7 @@ uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t mask, uint64_t size
 //    uc_mem_write(uc, mmapHeapPtr, nullChunk, aligned_size);
 //    free(nullChunk);
     
-    print_uc_mem_regions(uc);
+//    print_uc_mem_regions(uc);
     uint64_t addr = mmapHeapPtr;
     mmapHeapPtr += aligned_size;
     return addr;
@@ -175,6 +176,17 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
     if (trap_no > 0) {
         // posix
         switch (trap_no) {
+            case 4: {
+                int fd;
+                uint64_t bufferAddr;
+                int count;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &bufferAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &count);
+                int ret = fs->write(fd, bufferAddr, count);
+                syscall_return_value(ret);
+                return true;
+            }
             case 20: {
                 syscall_return_value(2333);
                 return true;
@@ -252,6 +264,39 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_success;
                 return true;
             }
+            case 97: { // socket
+                int domain, type, protocol;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &domain);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &type);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &protocol);
+                
+                switch (domain) {
+                    case AF_LOCAL: {
+                        assert(type == SOCK_DGRAM);
+                        int fd = fs->openUdpSocket();
+                        syscall_return_value(fd);
+                        return true;
+                    }
+                    default: {
+                        uc_debug_print_backtrace(uc);
+                        assert(false);
+                    }
+                }
+                uc_debug_print_backtrace(uc);
+                assert(false);
+                return false;
+            }
+            case 98: { // connect
+                int socket;
+                uint64_t addrAddr;
+                int addrlen;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &socket);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &addrAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &addrlen);
+                int ret = fs->connect(socket, addrAddr, addrlen);
+                syscall_return_value(ret);
+                return true;
+            }
             case 116: { // gettimeofday
                 // FATAL FIXME: timeval struct cross platform
                 struct timeval tp;
@@ -263,8 +308,24 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_success;
                 return true;
             }
-            // getrlimit
-            case 194: {
+            case 133: { // sendto
+                int socket;
+                uint64_t bufferAddr;
+                size_t length;
+                int flags;
+                uint64_t destAddr;
+                int addrlen;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &socket);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &bufferAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &length);
+                ensure_uc_reg_read(UC_ARM64_REG_W3, &flags);
+                ensure_uc_reg_read(UC_ARM64_REG_X4, &destAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W5, &addrlen);
+                int ret = fs->sendto(socket, bufferAddr, length, flags, destAddr, addrlen);
+                syscall_return_value(ret);
+                return true;
+            }
+            case 194: { // getrlimit
                 int resource = 0;
                 int ret = 0;
                 uint64_t rlp = 0;
@@ -583,13 +644,15 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(code);
                 return true;
             }
+            case 92:
             case 406: { // fcntl_NOCANCEL
                 int fd, cmd;
                 uint64_t arg;
                 ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
                 ensure_uc_reg_read(UC_ARM64_REG_W1, &cmd);
                 ensure_uc_reg_read(UC_ARM64_REG_X2, &arg);
-                assert(false);
+                int ret = fs->fcntl(fd, cmd, arg);
+                syscall_return_value(ret);
                 return true;
             }
             case 428: { // audit_session_self
@@ -668,7 +731,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X1, &addr);
                 ensure_uc_reg_read(UC_ARM64_REG_X2, &size);
                 printf("[Stalker][+][Mach] mach_vm_deallocate for task %d at 0x%llx, size 0x%llx\n", target, addr, size);
-                assert(uc_mem_unmap(uc, addr, size) == UC_ERR_OK);
+//                assert(uc_mem_unmap(uc, addr, size) == UC_ERR_OK);
                 syscall_return_success;
                 return true;
             }
