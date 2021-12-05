@@ -1144,10 +1144,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         #pragma pack(pop)
                         
                         __Reply__task_restartable_ranges_register_t *OutP = (__Reply__task_restartable_ranges_register_t *)hdr;
-                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        OutP->Head.msgh_remote_port = 0;
                         OutP->Head.msgh_local_port = 0;
                         OutP->Head.msgh_id += 100;
-                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff);
                         OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__task_restartable_ranges_register_t));
                         OutP->RetCode = 0;
                         ensure_uc_mem_write(msg, OutP, OutP->Head.msgh_size);
