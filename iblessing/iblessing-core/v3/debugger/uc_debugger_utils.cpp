@@ -145,6 +145,16 @@ static uc_arm64_reg uc_debug_regname2index(string regName, size_t *size) {
         }
         *size = 4;
     } else {
+        if (regName == "lr") {
+            *size = 8;
+            return UC_ARM64_REG_LR;
+        } else if (regName == "fp") {
+            *size = 8;
+            return UC_ARM64_REG_FP;
+        } else if (regName == "pc") {
+            *size = 8;
+            return UC_ARM64_REG_PC;
+        }
         return UC_ARM64_REG_INVALID;
     }
     return (uc_arm64_reg)index;
@@ -188,6 +198,13 @@ static void debugLoop(uc_engine *uc) {
             uc_debug_print_backtrace(uc);
         } else if (cmd == "mmap") {
             print_uc_mem_regions(uc);
+        } else if (cmd == "frame") {
+            uint64_t fp;
+            ensure_uc_reg_read(UC_ARM64_REG_FP, &fp);
+            uint64_t x29, x30;
+            ensure_uc_mem_read(fp, &x29, sizeof(uint64_t));
+            ensure_uc_mem_read(fp + 8, &x30, sizeof(uint64_t));
+            printf("frame (0x%llx) info:\n\tbacked fp 0x%llx\n\tbacked lr 0x%llx\n", fp, x29, x30);
         } else {
             debugLoopAssert(uc, false);
         }
@@ -215,4 +232,6 @@ bool uc_debug_check_breakpoint(uc_engine *uc, uint64_t address) {
     return false;
 }
 
-
+void uc_debug_breakhere(uc_engine *uc) {
+    debugLoop(uc);
+}
