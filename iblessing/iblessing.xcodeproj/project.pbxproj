@@ -30,6 +30,8 @@
 		6844700726D7C05400FE4D70 /* macho-loader.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6844700526D7C05400FE4D70 /* macho-loader.hpp */; };
 		68496FE126E3A4C3000DEE11 /* aarch64-svc-manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68496FDF26E3A4C3000DEE11 /* aarch64-svc-manager.cpp */; };
 		68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68496FE026E3A4C3000DEE11 /* aarch64-svc-manager.hpp */; };
+		685B890F275CB0310084D30A /* aarch64-utils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 685B890D275CB0310084D30A /* aarch64-utils.cpp */; };
+		685B8910275CB0310084D30A /* aarch64-utils.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 685B890E275CB0310084D30A /* aarch64-utils.hpp */; };
 		68666DAF25288B710014BC91 /* NSString+IBS.m in Sources */ = {isa = PBXBuildFile; fileRef = 68666DAE25288B710014BC91 /* NSString+IBS.m */; };
 		6877275C271C07680081A4DA /* macho-memory-manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6877275A271C07680081A4DA /* macho-memory-manager.cpp */; };
 		6877275D271C07680081A4DA /* macho-memory-manager.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 6877275B271C07680081A4DA /* macho-memory-manager.hpp */; };
@@ -213,6 +215,8 @@
 		6856E6E224E7C4370050DA19 /* IDASymbolicScriptGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IDASymbolicScriptGenerator.hpp; sourceTree = "<group>"; };
 		685B890927592A450084D30A /* dyld_images.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dyld_images.h; sourceTree = "<group>"; };
 		685B890B275B5B270084D30A /* pthread_types_14.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = pthread_types_14.h; sourceTree = "<group>"; };
+		685B890D275CB0310084D30A /* aarch64-utils.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "aarch64-utils.cpp"; sourceTree = "<group>"; };
+		685B890E275CB0310084D30A /* aarch64-utils.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "aarch64-utils.hpp"; sourceTree = "<group>"; };
 		685CE7CF24C55309002CC5E8 /* iblessing */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = iblessing; sourceTree = BUILT_PRODUCTS_DIR; };
 		685CE7DA24C56E8B002CC5E8 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		685CE7DE24C56F5C002CC5E8 /* argparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = argparse.h; sourceTree = "<group>"; };
@@ -556,6 +560,8 @@
 			children = (
 				6838CBD026E0EF2E00315E72 /* aarch64-machine.cpp */,
 				6838CBD126E0EF2E00315E72 /* aarch64-machine.hpp */,
+				685B890D275CB0310084D30A /* aarch64-utils.cpp */,
+				685B890E275CB0310084D30A /* aarch64-utils.hpp */,
 			);
 			path = machine;
 			sourceTree = "<group>";
@@ -1412,6 +1418,7 @@
 				6877275D271C07680081A4DA /* macho-memory-manager.hpp in Headers */,
 				6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */,
 				68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */,
+				685B8910275CB0310084D30A /* aarch64-utils.hpp in Headers */,
 				68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */,
 				6829112F2740B6FE00D35A2A /* MachOFile.hpp in Headers */,
 				682911352740BA0700D35A2A /* dyld2.hpp in Headers */,
@@ -1681,6 +1688,7 @@
 				68B255FE26401F2E008FA1E2 /* ObjcCategory.cpp in Sources */,
 				68B2560426401F3C008FA1E2 /* Object.cpp in Sources */,
 				68B2560926401F58008FA1E2 /* ScannerDisassemblyDriver.cpp in Sources */,
+				685B890F275CB0310084D30A /* aarch64-utils.cpp in Sources */,
 				68B2560E26401F5C008FA1E2 /* ScannerDispatcher.cpp in Sources */,
 				68B2561326401F60008FA1E2 /* ScannerContextManager.cpp in Sources */,
 				68D341A52705AD4A00810C77 /* macho-memory.cpp in Sources */,

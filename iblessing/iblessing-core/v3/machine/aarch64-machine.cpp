@@ -12,6 +12,7 @@
 #include "buffered_logger.hpp"
 #include "macho-memory.hpp"
 #include "pthread_types_14.h"
+#include "aarch64-utils.hpp"
 #include <iblessing-core/v2/util/StringUtils.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
 
@@ -35,81 +36,6 @@ static uc_hook insn_hook;
 #endif
 
 static uc_hook intr_hook, memexp_hook;
-static uint64_t callFunctionLR = 0x1fee11337aaa;
-
-enum Aarch64FunctionCallArgType {
-    Aarch64FunctionCallArgTypeVoid = 0,
-    Aarch64FunctionCallArgTypeInt64,
-    Aarch64FunctionCallArgTypeInt32,
-    Aarch64FunctionCallArgTypeCString
-};
-
-typedef struct Aarch64FunctionCallArg {
-    Aarch64FunctionCallArgType type;
-    void *data;
-    
-    Aarch64FunctionCallArg() {
-        type = Aarch64FunctionCallArgTypeVoid;
-        data = NULL;
-    }
-    
-    Aarch64FunctionCallArg(uint64_t val) {
-        type = Aarch64FunctionCallArgTypeInt64;
-        data = &val;
-    }
-    
-    static Aarch64FunctionCallArg voidArg() {
-        Aarch64FunctionCallArg arg;
-        return arg;
-    }
-} Aarch64FunctionCallArg;
-
-static uint64_t callFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCallArg returnValue, vector<Aarch64FunctionCallArg> args) {
-    ensure_uc_reg_write(UC_ARM64_REG_LR, &callFunctionLR);
-    for (size_t i = 0; i < args.size(); i++) {
-        Aarch64FunctionCallArg &arg = args[i];
-        uc_arm64_reg reg;
-        switch (arg.type) {
-            case Aarch64FunctionCallArgTypeInt64: {
-                reg = (uc_arm64_reg)((int)UC_ARM64_REG_X0 + i);
-                ensure_uc_reg_write(reg, arg.data);
-                break;
-            }
-            case Aarch64FunctionCallArgTypeInt32: {
-                reg = (uc_arm64_reg)((int)UC_ARM64_REG_W0 + i);
-                ensure_uc_reg_write(reg, arg.data);
-                break;
-            }
-            default:
-                assert(false);
-                break;
-        }
-    }
-    BufferedLogger *logger = BufferedLogger::globalLogger();
-//    logger->purgeBuffer(0);
-    uc_err err = uc_emu_start(uc, function, callFunctionLR, 0, 0);
-//    logger->printBuffer();
-    assert(err == UC_ERR_OK);
-    
-    switch (returnValue.type) {
-        case Aarch64FunctionCallArgTypeVoid: {
-            return 0;
-        }
-        case Aarch64FunctionCallArgTypeInt64: {
-            uint64_t x0;
-            ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
-            return x0;
-        }
-        case Aarch64FunctionCallArgTypeInt32: {
-            uint32_t w0;
-            ensure_uc_reg_read(UC_ARM64_REG_W0, &w0);
-            return w0;
-        }
-        default:
-            assert(false);
-    }
-    return 0;
-}
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     uc_debug_check_breakpoint(uc, address);
@@ -290,7 +216,7 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_e
     for (MachORoutine &routine: module->routines) {
         uint64_t addr = routine.addr;
         printf("  [*] execute routine in engine, pc = 0x%llx\n", addr);
-        callFunction(uc, addr, Aarch64FunctionCallArg::voidArg(), {});
+        uc_callFunction(uc, addr, Aarch64FunctionCallArg::voidArg(), {});
     }
     printf("  [+] process mod_init_funcs\n");
     for (MachODynamicLibrary &lib : module->dynamicLibraryDependenciesUnupward) {
@@ -513,12 +439,12 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     shared_ptr<MachOModule> foundationModule = loader->findModuleByName("Foundation");
     Symbol *_NSSetLogCStringFunction = foundationModule->getSymbolByName("__NSSetLogCStringFunction", false);
     uint64_t _NSSetLogCStringFunction_addr = _NSSetLogCStringFunction->info->n_value;
-    callFunction(uc, _NSSetLogCStringFunction_addr, Aarch64FunctionCallArg::voidArg(), {0x0});
+    uc_callFunction(uc, _NSSetLogCStringFunction_addr, Aarch64FunctionCallArg::voidArg(), {0x0});
     
     // init dyld lookup
     // _setLookupFunc
 //    uc_debug_set_breakpoint(uc, 0x1aedbd824);
-    uc_debug_set_breakpoint(uc, 0x1aedbd8b4);
+//    uc_debug_set_breakpoint(uc, 0x1941F5B0C);
     // _dyld_initializer_0
 //    uc_debug_set_breakpoint(uc, 0x1800C9FF4);
     

@@ -27,6 +27,7 @@
 #include "dyld2.hpp"
 #include "aarch64-machine.hpp"
 #include "dyld_images.h"
+#include "aarch64-utils.hpp"
 
 #ifdef IB_PLATFORM_DARWIN
 namespace fs = std::filesystem;
@@ -562,12 +563,25 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_symbol_addr, 8);
             } else if (strcmp(dyldFuncName, "__dyld_objc_notify_register") == 0) {
                 // dyld FIXME: __dyld_objc_notify_register
-                uc_debug_breakhere(uc);
                 static uint64_t _dyld_symbol_addr = 0;
                 if (_dyld_symbol_addr == 0) {
                     _dyld_symbol_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                        printf("[Stalker][-][Warn] ignore __dyld_objc_notify_register !!!\n");
-                        return true;
+                        uint64_t mapped, init, unmapped;
+                        ensure_uc_reg_read(UC_ARM64_REG_X0, &mapped);
+                        ensure_uc_reg_read(UC_ARM64_REG_X1, &init);
+                        ensure_uc_reg_read(UC_ARM64_REG_X2, &unmapped);
+                        for (shared_ptr<MachOModule> module : modules) {
+                            uint64_t machHeader = module->machHeader;
+                            string path = module->path;
+                            uint64_t pathAddr = memoryManager->allocPath(path);
+                            assert(pathAddr != 0);
+//                            uc_context *context;
+//                            assert(uc_context_alloc(uc, &context) == UC_ERR_OK);
+//                            uc_context_save(uc, context);
+//                            uc_callFunction(uc, init, Aarch64FunctionCallArg::voidArg(), {pathAddr, machHeader});
+//                            uc_context_restore(uc, context);
+                            break;
+                        }
                     });
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_symbol_addr, 8);

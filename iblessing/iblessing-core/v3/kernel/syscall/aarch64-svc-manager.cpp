@@ -597,7 +597,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &count);
                 assert(fd == 1);
                 char *content = MachoMemoryUtils::uc_read_string(uc, bufferAddr, count);
-                printf("[Stalker][STDOUT] %s", content);
+                printf("[Stalker][STDOUT][Logger] %s", content);
                 free(content);
                 syscall_return_success;
                 return true;
