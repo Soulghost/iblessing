@@ -554,10 +554,21 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 static uint64_t _dyld_symbol_addr = 0;
                 if (_dyld_symbol_addr == 0) {
                     _dyld_symbol_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-                            printf("[Stalker][-][Warn] ignore __dyld_register_func_for_add_image !!!\n");
-                            uint64_t null64 = 0;
-                            ensure_uc_reg_write(UC_ARM64_REG_X0, &null64);
-                        });
+                        printf("[Stalker][-][Warn] ignore __dyld_register_func_for_add_image !!!\n");
+                        uint64_t null64 = 0;
+                        ensure_uc_reg_write(UC_ARM64_REG_X0, &null64);
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_symbol_addr, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_objc_notify_register") == 0) {
+                // dyld FIXME: __dyld_objc_notify_register
+                uc_debug_breakhere(uc);
+                static uint64_t _dyld_symbol_addr = 0;
+                if (_dyld_symbol_addr == 0) {
+                    _dyld_symbol_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        printf("[Stalker][-][Warn] ignore __dyld_objc_notify_register !!!\n");
+                        return true;
+                    });
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_symbol_addr, 8);
             } else {

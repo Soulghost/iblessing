@@ -274,7 +274,7 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
 }
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
-    static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony"};
+    static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony", "CoreFoundation"};
 //    blackListModule.insert("Security");
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
@@ -393,9 +393,14 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     ensure_uc_mem_write(callFunctionLR, &nopCode, sizeof(uint32_t));
     
     // FATAL FIXME: tricky nop
-//    for (uint64_t addr = 0x1AEDBD820; addr < 0x1AEDBD89C; addr += 4) {
+//    for (uint64_t addr = 0x1AEDBD824; addr < 0x1AEDBD8a0; addr += 4) {
 //        ensure_uc_mem_write(addr, &nopCode, sizeof(uint32_t));
 //    }
+    {
+        // kstool arm64 "b 0x1AEDBD8A4" 0x1AEDBD824
+        uint32_t patchB = 0x14000020;
+        ensure_uc_mem_write(0x1AEDBD824, &patchB, sizeof(uint32_t));
+    }
 
     /**
         setup vars
@@ -512,7 +517,8 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // init dyld lookup
     // _setLookupFunc
-//    uc_debug_set_breakpoint(uc, 0x1AC263E04);
+//    uc_debug_set_breakpoint(uc, 0x1aedbd824);
+    uc_debug_set_breakpoint(uc, 0x1aedbd8b4);
     // _dyld_initializer_0
 //    uc_debug_set_breakpoint(uc, 0x1800C9FF4);
     
