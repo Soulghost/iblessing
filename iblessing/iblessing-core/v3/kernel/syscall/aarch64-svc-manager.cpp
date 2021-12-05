@@ -423,7 +423,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             }
             case 327: { // issetugid
                 printf("[Stalker][+] handle issetugid -> 0\n");
-                uc_debug_print_backtrace(uc);
                 syscall_return_success;
                 return true;
             }
