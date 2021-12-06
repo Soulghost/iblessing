@@ -62,6 +62,7 @@ public:
     std::vector<MachODynamicLibrary> exportDynamicLibraries;
     std::vector<MachOModInitFunc> modInitFuncs;
     std::vector<MachORoutine> routines;
+    bool fNotifyObjc;
     
     std::vector<struct ib_segment_command_64 *> segmentHeaders;
     std::vector<struct ib_section_64 *> sectionHeaders;

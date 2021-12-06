@@ -73,7 +73,9 @@ void print_backtrace(uc_engine *uc, shared_ptr<MachOLoader> loader) {
         if (err != UC_ERR_OK) {
             break;
         }
-        toPrint.push_back(pc);
+        if (pc != lr) {
+            toPrint.push_back(pc);
+        }
         
         uint64_t fp = 0;
         err = uc_mem_read(uc, x29, &fp, sizeof(uint64_t));
@@ -205,6 +207,36 @@ static void debugLoop(uc_engine *uc) {
             ensure_uc_mem_read(fp, &x29, sizeof(uint64_t));
             ensure_uc_mem_read(fp + 8, &x30, sizeof(uint64_t));
             printf("frame (0x%llx) info:\n\tbacked fp 0x%llx\n\tbacked lr 0x%llx\n", fp, x29, x30);
+        } else if (cmd == "r64") {
+            debugLoopAssert(uc, commandParts.size() == 4);
+            int format = atoi(commandParts[1].c_str());
+            uint64_t addr = strtol(commandParts[2].c_str(), NULL, 16);
+            uint64_t size = atol(commandParts[3].c_str());
+            printf("debugger: read at 0x%llx, format %d, size %lld(0x%llx)\n", addr, format, size, size);
+            debugLoopAssert(uc, format == 8, "only support format = 8");
+            if (format == 8) {
+                uint64_t end = addr + size;
+                uc_err err;
+                while (addr < end) {
+                    uint64_t a = 0xdeadbeef, b = 0xdeadbeef;
+                    int errcnt = 0;
+                    err = uc_mem_read(uc, addr, &a, format);
+                    if (err != UC_ERR_OK) {
+                        errcnt++;
+                    }
+                    addr += 8;
+                    err = uc_mem_read(uc, addr, &b, format);
+                    if (err != UC_ERR_OK) {
+                        errcnt++;
+                    }
+                    addr += 8;
+                    printf("0x%llx: 0x%llx 0x%llx\n", addr - 16, a, b);
+                    if (errcnt > 0) {
+                        printf("debugger: abort at 0x%llx, read failed count %d\n", addr - 16, errcnt);
+                        break;
+                    }
+                }
+            }
         } else {
             debugLoopAssert(uc, false);
         }

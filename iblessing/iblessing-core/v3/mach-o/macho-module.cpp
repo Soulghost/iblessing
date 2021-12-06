@@ -14,6 +14,7 @@ using namespace iblessing;
 
 MachOModule::MachOModule() {
     hasInit = false;
+    fNotifyObjc = false;
 }
 
 Symbol* MachOModule::getSymbolByName(std::string name, bool checkDependencies) {
