@@ -563,6 +563,104 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_symbol_addr, 8);
             } else if (strcmp(dyldFuncName, "__dyld_objc_notify_register") == 0) {
                 // dyld FIXME: __dyld_objc_notify_register
+                static uint64_t _dyld_image_map_addr = 0;
+                if (_dyld_image_map_addr == 0) {
+                    int swi = svcManager->allocateSWI();
+                    ks_engine *ks;
+                    uint32_t *code = nullptr;
+                    size_t codelen = 0;
+                    size_t codeCount = 0;
+                    string asmText =               "sub sp, sp, #0x10\n";
+                    asmText +=                     "stp x29, x30, [sp]\n";
+                    asmText += StringUtils::format("svc #0x%x\n", swi);
+                    asmText +=                     "ldr x7, [sp]\n"; // x7 = handler
+                    asmText +=                     "add sp, sp, #0x8\n";
+                    asmText +=                     "ldr x0, [sp]\n"; // x0 = count
+                    asmText +=                     "add sp, sp, #0x8\n";
+                    asmText +=                     "ldr x1, [sp]\n"; // x1 = paths
+                    asmText +=                     "add sp, sp, #0x8\n";
+                    asmText +=                     "ldr x2, [sp]\n"; // x2 = mhs
+                    asmText +=                     "add sp, sp, #0x8\n";
+                    asmText +=                     "br x7\n"; // call (*dyld_image_state_change_handler)(enum dyld_image_states state, uint32_t infoCount, const struct dyld_image_info info[])
+
+                    asmText +=                     "ldr x0, [sp]\n"; // x0 = return value
+                    asmText +=                     "add sp, sp, #0x10\n"; // skip padding
+
+                    asmText +=                     "ldp x29, x30, [sp]\n";
+                    asmText +=                     "add sp, sp, #0x10\n";
+                    asmText +=                     "ret";
+                    assert(ks_open(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN, &ks) == KS_ERR_OK);
+                    assert(ks_asm(ks, asmText.c_str(), 0, (unsigned char **)&code, &codelen, &codeCount) == KS_ERR_OK);
+                    _dyld_image_map_addr = svcManager->createSVCWithCustomCode(swi, code, codelen, [&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t mapped, init, unmapped;
+                        ensure_uc_reg_read(UC_ARM64_REG_X0, &mapped);
+                        ensure_uc_reg_read(UC_ARM64_REG_X1, &init);
+                        ensure_uc_reg_read(UC_ARM64_REG_X2, &unmapped);
+                        
+                        // stack layout
+                        // [padding]
+                        // [return value]
+                        // [mhs]
+                        // [pahts]
+                        // [count]
+                        // [handler] <- sp
+                        uint64_t sp;
+                        ensure_uc_reg_read(UC_ARM64_REG_SP, &sp);
+                        
+                        uint64_t returnValue = 0;
+                        uint64_t nullSentry = 0;
+                        
+                        // write sentry
+                        sp -= 8;
+                        ensure_uc_mem_write(sp, &nullSentry, sizeof(uint64_t));
+                        
+                        // write return value
+                        sp -= 8;
+                        ensure_uc_mem_write(sp, &returnValue, sizeof(uint64_t));
+                        
+                        vector<shared_ptr<MachOModule>> objcModules;
+                        for (shared_ptr<MachOModule> module : modules) {
+                            if (!module->fNotifyObjc) {
+                                continue;
+                            }
+                            objcModules.push_back(module);
+                        }
+                        
+                        size_t count = objcModules.size();
+                        uint64_t pathsAddr = memoryManager->alloc(sizeof(uint64_t) * count);
+                        uint64_t mhsAddr = memoryManager->alloc(sizeof(uint64_t) * count);
+                        assert(pathsAddr != 0 && mhsAddr != 0);
+                        for (size_t i = 0; i < objcModules.size(); i++) {
+                            shared_ptr<MachOModule> module = objcModules[i];
+                            uint64_t machHeader = module->machHeader;
+                            string path = module->path;
+                            uint64_t pathAddr = memoryManager->allocPath(path);
+                            assert(pathAddr != 0);
+                            ensure_uc_mem_write(pathsAddr + sizeof(uint64_t) * i, &pathAddr, sizeof(uint64_t));
+                            ensure_uc_mem_write(mhsAddr + sizeof(uint64_t) * i, &machHeader, sizeof(uint64_t));
+                        }
+                        
+                        // write mhs
+                        sp -= 8;
+                        ensure_uc_mem_write(sp, &mhsAddr, sizeof(uint64_t));
+                        
+                        // write paths
+                        sp -= 8;
+                        ensure_uc_mem_write(sp, &pathsAddr, sizeof(uint64_t));
+                        
+                        // write count
+                        sp -= 8;
+                        ensure_uc_mem_write(sp, &count, sizeof(uint64_t));
+                        
+                        // write handler
+                        sp -= 8;
+                        ensure_uc_mem_write(sp, &mapped, sizeof(uint64_t));
+                        
+                        ensure_uc_reg_write(UC_ARM64_REG_SP, &sp);
+                    });
+                    uc_debug_set_breakpoint(uc, _dyld_image_map_addr + 0x4 * 11);
+//                    uc_debug_set_breakpoint(uc, 0x1941F5BA4);
+                }
                 static uint64_t _dyld_symbol_addr = 0;
                 if (_dyld_symbol_addr == 0) {
                     int swi = svcManager->allocateSWI();
@@ -624,9 +722,15 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         sp -= 8;
                         ensure_uc_mem_write(sp, &nullSentry, sizeof(uint64_t));
                         
-                        
+                        static set<string> moduleBlackList{"libdispatch.dylib", "CoreFoundation"};
+                        int i = 2;
                         for (shared_ptr<MachOModule> module : modules) {
                             if (!module->fNotifyObjc) {
+                                continue;
+                            }
+                            // dyld FIXME: notify blacklist
+                            if (moduleBlackList.find(module->name) != moduleBlackList.end()) {
+                                printf("[Stalker][+][Dyld][Warn] ignore dyld notify module %s\n", module->name.c_str());
                                 continue;
                             }
                             uint64_t machHeader = module->machHeader;
@@ -649,21 +753,18 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                             // write handler
                             sp -= 8;
                             ensure_uc_mem_write(sp, &init, sizeof(uint64_t));
-//                            uc_context *context;
-//                            assert(uc_context_alloc(uc, &context) == UC_ERR_OK);
-//                            uc_context_save(uc, context);
-//                            uc_callFunction(uc, init, Aarch64FunctionCallArg::voidArg(), {pathAddr, machHeader});
-//                            uc_context_restore(uc, context);
-//                            break;
+                            if (--i == 0) {
+                                break;
+                            }
                         }
                         
                         ensure_uc_reg_write(UC_ARM64_REG_SP, &sp);
                     });
 //                    uc_debug_set_breakpoint(uc, _dyld_symbol_addr + 0x4 * 3);
 //                    uc_debug_set_breakpoint(uc, _dyld_symbol_addr + 0x4 * 13);
-                    uc_debug_set_breakpoint(uc, 0x1941F5BA4);
+//                    uc_debug_set_breakpoint(uc, 0x1941F5BA4);
                 }
-                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_symbol_addr, 8);
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_image_map_addr, 8);
             } else {
                 uc_debug_print_backtrace(uc);
                 assert(false);
