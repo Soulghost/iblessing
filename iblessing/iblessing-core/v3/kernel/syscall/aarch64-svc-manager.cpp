@@ -14,6 +14,7 @@
 #include "macho-memory.hpp"
 #include "uc_debugger_utils.hpp"
 #include "buffered_logger.hpp"
+#include <mach/mach_time.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 
@@ -262,6 +263,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 uc_err err = uc_mem_protect(uc, alignedAddr, alignedLength, prot);
                 assert(err == UC_ERR_OK);
                 syscall_return_success;
+                return true;
+            }
+            case 75: { // _posix_madvise
+                syscall_return_value(0);
                 return true;
             }
             case 97: { // socket
@@ -693,6 +698,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(false);
                         break;
                 }
+            }
+            case 0xfffffffd: {
+                uint64_t abstime = mach_absolute_time();
+                syscall_return_value64(abstime);
+                return true;
             }
             default:
                 break;

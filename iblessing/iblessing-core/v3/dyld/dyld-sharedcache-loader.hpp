@@ -14,6 +14,17 @@
 #include <iblessing-core/v3/dyld/DyldSharedCache.hpp>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 
+struct CacheInfo
+{
+    ib_shared_file_mapping_slide_np         mappings[DyldSharedCache::MaxMappings];
+    uint32_t                                mappingsCount;
+    // All mappings come from the same file
+    int                                     fd               = 0;
+    uint64_t                                sharedRegionStart;
+    uint64_t                                sharedRegionSize;
+    uint64_t                                maxSlide;
+};
+
 struct SharedCacheOptions {
     const char*     cacheDirOverride;
     bool            forcePrivate;
@@ -28,6 +39,7 @@ struct SharedCacheLoadInfo {
     long                         slide;
     const char*                  errorMessage;
     char                         path[256];
+    CacheInfo                    info;
 };
 
 struct SharedCacheFindDylibResults {

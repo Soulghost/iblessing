@@ -61,7 +61,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         return;
     }
     
-    static set<string> symbolBlackList{"__platform_strlen", "__platform_bzero", "__platform_memset", "__platform_strstr", "__platform_strcmp"};
+    static set<string> symbolBlackList{"__platform_strlen", "__platform_bzero", "__platform_memset", "__platform_strstr", "__platform_strcmp", "__platform_strncmp", "_getsectiondata", ""};
     string comments = "";
 #if TraceLevel >= TraceLevelASMComment
     uint64_t targetAddr = 0;
@@ -81,8 +81,6 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                strcmp(insn->mnemonic, "bl") == 0) {
         assert(insn->detail->arm64.operands[0].type == ARM64_OP_IMM);
         targetAddr = insn->detail->arm64.operands[0].imm;
-    } else {
-
     }
     
     if (targetAddr > 0) {
@@ -90,32 +88,6 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         if (sym && sym->name.length() > 0) {
             comments += StringUtils::format(" ; target = %s, ", sym->name.c_str());
         }
-    }
-    
-    if (address == 0x1aedbd7f8) {
-        uint64_t x0, x1, x2, x3;
-        ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
-        ensure_uc_reg_read(UC_ARM64_REG_X1, &x1);
-        ensure_uc_reg_read(UC_ARM64_REG_X2, &x2);
-        ensure_uc_reg_read(UC_ARM64_REG_X3, &x3);
-        comments += StringUtils::format("libcfuncs = 0x%llx, envp = 0x%llx, apple = 0x%llx, vars = 0x%llx", x0, x1, x2, x3);
-    } else if (address == 0x189045868) {
-        uint64_t x8;
-        ensure_uc_reg_read(UC_ARM64_REG_X8, &x8);
-        comments += StringUtils::format("environ_pointer = 0x%llx", x8);
-    } else if (address == 0x189045880) {
-        uint64_t x8;
-        ensure_uc_reg_read(UC_ARM64_REG_X8, &x8);
-        comments += StringUtils::format("__mh_execute_header_pointer = 0x%llx", x8);
-    } else if (address == 0x189045848) {
-        uint64_t x0;
-        ensure_uc_reg_read(UC_ARM64_REG_X0, &x0);
-        comments += StringUtils::format("vars addr 0x%llx", x0);
-        uc_debug_print_memory(uc, x0, 8, 5);
-    } else if (address == 0x18efd3890) {
-        uint64_t x2;
-        ensure_uc_reg_read(UC_ARM64_REG_X2, &x2);
-        comments += StringUtils::format("allocate size 0x%llx", x2);
     }
 #endif
     
@@ -139,13 +111,13 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
                     comments += StringUtils::format("(in %s)", sym->name.c_str());
                 }
             }
-            if (module->name != "libdyld.dylib") {
-                if (!intraFunction) {
-                    logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
-                } else if (symbolBlackList.find(sym->name) == symbolBlackList.end()) {
-                    logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
-                }
+//            if (module->name != "libdyld.dylib") {
+            if (!intraFunction) {
+                logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
+            } else if (symbolBlackList.find(sym->name) == symbolBlackList.end()) {
+                logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s (%s 0x%llx)\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str(), module->name.c_str(), module->addr));
             }
+//            }
         }
     } else {
         logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str()));
@@ -443,6 +415,8 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // init dyld lookup
     // _setLookupFunc
+    uc_debug_set_breakpoint(uc, 0x7000000c4);
+    uc_debug_set_breakpoint(uc, 0x1800CB574);
 //    uc_debug_set_breakpoint(uc, 0x1aedbd824);
 //    uc_debug_set_breakpoint(uc, 0x1941F5B0C);
     // _dyld_initializer_0

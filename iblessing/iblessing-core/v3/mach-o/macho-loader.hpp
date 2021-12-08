@@ -33,6 +33,7 @@ public:
     std::map<std::string, std::shared_ptr<MachOModule>> name2module;
     std::map<uint64_t, std::shared_ptr<MachOModule>> addr2module;
     uint64_t loaderOffset;
+    DyldLinkContext linkContext;
     
     std::shared_ptr<MachOModule> loadModuleFromFile(std::string filePath);
     uc_engine *uc;

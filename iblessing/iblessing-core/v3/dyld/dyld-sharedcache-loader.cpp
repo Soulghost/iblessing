@@ -23,17 +23,6 @@
 using namespace std;
 using namespace iblessing;
 
-struct CacheInfo
-{
-    ib_shared_file_mapping_slide_np         mappings[DyldSharedCache::MaxMappings];
-    uint32_t                                mappingsCount;
-    // All mappings come from the same file
-    int                                     fd               = 0;
-    uint64_t                                sharedRegionStart;
-    uint64_t                                sharedRegionSize;
-    uint64_t                                maxSlide;
-};
-
 static void rebaseChainV2(uc_engine *uc, uint64_t pageAddr, uint16_t startOffset, uintptr_t slideAmount, const dyld_cache_slide_info2* slideInfo)
 {
     const uintptr_t   deltaMask    = (uintptr_t)(slideInfo->delta_mask);
@@ -410,9 +399,10 @@ static long pickCacheASLRSlide(CacheInfo& info)
 static bool mapCacheSystemWide(uc_engine *uc, const SharedCacheOptions& options, SharedCacheLoadInfo* results)
 {
     CacheInfo info;
-    if ( !preflightCacheFile(options, results, &info) )
+    if ( !preflightCacheFile(options, results, &info) ) {
         return false;
-
+    }
+    results->info = info;
     int result = 0;
     if ( info.mappingsCount != 3 ) {
         // FIXME: unimpl A12+ sharedcache mapping

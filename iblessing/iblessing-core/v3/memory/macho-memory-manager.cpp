@@ -42,6 +42,10 @@ MachOMemoryManager::MachOMemoryManager(uc_engine *uc) {
 #define ROUNDUP(a, b) (((a) + ((b) - 1)) & (~((b) - 1)))
 
 uint64_t MachOMemoryManager::alloc(size_t size, string tag) {
+    if (size == 0) {
+        size = 1;
+    }
+    
     size = IB_AlignSize(size, 8);
     uint64_t addr = allocatedCur;
     if(!use_shared || addr < 0x4000){
