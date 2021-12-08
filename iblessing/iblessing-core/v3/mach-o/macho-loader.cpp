@@ -586,9 +586,25 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     asmText +=                     "adr lr, #0\n";
                     asmText +=                     "add lr, lr, #0xc\n";
                     asmText +=                     "br x7\n"; // 0x7000000f8 call (*dyld_image_state_change_handler)(enum dyld_image_states state, uint32_t infoCount, const struct dyld_image_info info[])
+                    
+                    // call to init functions
+                    asmText +=                     "ldr x7, [sp]\n"; // x7 = handler
+                    asmText +=                     "add sp, sp, #0x8\n";
+                    asmText +=                     "cmp x7, #0\n";
+                    // Notice: the b #imm is relative from code start **since startaddr is 0**
+                    asmText +=                     "b.eq #0x64\n"; // goto (ldr x0, [sp], pop return value)
+                    asmText +=                     "adr lr, #-0xf\n"; // jump to ldr x7, [sp]
+                    asmText +=                     "bic lr, lr, #0x1\n"; // clear bit zero
+
+                    asmText +=                     "ldr x0, [sp]\n"; // x0 = path
+                    asmText +=                     "add sp, sp, #0x8\n";
+                    asmText +=                     "ldr x1, [sp]\n"; // x1 = machHeader
+                    asmText +=                     "add sp, sp, #0x10\n"; // skip padding
+                    asmText +=                     "br x7\n"; // call (*dyld_image_state_change_handler)(enum dyld_image_states state, uint32_t infoCount, const struct dyld_image_info info[])
+
 
                     asmText +=                     "ldr x0, [sp]\n"; // x0 = return value
-                    asmText +=                     "add sp, sp, #0x10\n"; // skip padding
+                    asmText +=                     "add sp, sp, #0x8\n"; // skip padding
 
                     asmText +=                     "ldp x29, x30, [sp]\n";
                     asmText +=                     "add sp, sp, #0x10\n";
@@ -603,25 +619,28 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         ensure_uc_reg_read(UC_ARM64_REG_X2, &unmapped);
                         
                         // stack layout
-                        // [padding]
+                        // -- init call end --
                         // [return value]
+                        // [null]
+                        // [pad]
+                        // [machHeader]
+                        // [path]
+                        // [handler]
+                        // [pad]
+                        // [machHeader]
+                        // [path]
+                        // [handler]
+                        // -- init call begin --
+                        // -- mapped call end --
                         // [mhs]
                         // [pahts]
                         // [count]
                         // [handler] <- sp
+                        // -- mapped call begin --
                         uint64_t sp;
                         ensure_uc_reg_read(UC_ARM64_REG_SP, &sp);
-                        
                         uint64_t returnValue = 0;
                         uint64_t nullSentry = 0;
-                        
-                        // write sentry
-                        sp -= 8;
-                        ensure_uc_mem_write(sp, &nullSentry, sizeof(uint64_t));
-                        
-                        // write return value
-                        sp -= 8;
-                        ensure_uc_mem_write(sp, &returnValue, sizeof(uint64_t));
                         
                         vector<shared_ptr<MachOModule>> objcModules;
                         for (shared_ptr<MachOModule> module : modules) {
@@ -629,6 +648,40 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                                 continue;
                             }
                             objcModules.push_back(module);
+                        }
+                        
+                        // write return value
+                        sp -= 8;
+                        ensure_uc_mem_write(sp, &returnValue, sizeof(uint64_t));
+                        // write sentry
+                        sp -= 8;
+                        ensure_uc_mem_write(sp, &nullSentry, sizeof(uint64_t));
+                        
+                        // for init functions
+                        for (shared_ptr<MachOModule> module : objcModules) {
+                            if (!module->fNotifyObjc) {
+                                continue;
+                            }
+                            uint64_t machHeader = module->machHeader;
+                            string path = module->path;
+                            uint64_t pathAddr = memoryManager->allocPath(path);
+                            assert(pathAddr != 0);
+                            
+                            // write padding
+                            sp -= 8;
+                            ensure_uc_mem_write(sp, &nullSentry, sizeof(uint64_t));
+                            
+                            // write machHeader
+                            sp -= 8;
+                            ensure_uc_mem_write(sp, &machHeader, sizeof(uint64_t));
+                            
+                            // write path
+                            sp -= 8;
+                            ensure_uc_mem_write(sp, &pathAddr, sizeof(uint64_t));
+                            
+                            // write handler
+                            sp -= 8;
+                            ensure_uc_mem_write(sp, &init, sizeof(uint64_t));
                         }
                         
                         size_t count = objcModules.size();
@@ -661,6 +714,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         sp -= 8;
                         ensure_uc_mem_write(sp, &mapped, sizeof(uint64_t));
                         
+                        // sync sp
                         ensure_uc_reg_write(UC_ARM64_REG_SP, &sp);
                     });
                 }

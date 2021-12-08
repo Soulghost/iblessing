@@ -415,8 +415,8 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // init dyld lookup
     // _setLookupFunc
-    uc_debug_set_breakpoint(uc, 0x7000000c4);
-    uc_debug_set_breakpoint(uc, 0x1800CB574);
+//    uc_debug_set_breakpoint(uc, 0x7000000c4);
+//    uc_debug_set_breakpoint(uc, 0x1800CB574);
 //    uc_debug_set_breakpoint(uc, 0x1aedbd824);
 //    uc_debug_set_breakpoint(uc, 0x1941F5B0C);
     // _dyld_initializer_0
