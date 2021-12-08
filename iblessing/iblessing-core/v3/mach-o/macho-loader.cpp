@@ -765,6 +765,15 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
 //                    uc_debug_set_breakpoint(uc, 0x1941F5BA4);
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_image_map_addr, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_get_shared_cache_range") == 0) {
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                            uint64_t null64 = 0;
+                            ensure_uc_reg_write(UC_ARM64_REG_X0, &null64);
+                        });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
             } else {
                 uc_debug_print_backtrace(uc);
                 assert(false);
