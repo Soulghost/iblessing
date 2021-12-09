@@ -420,9 +420,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 uint64_t uidAddr, gidAddr;
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &uidAddr);
                 ensure_uc_reg_read(UC_ARM64_REG_X1, &gidAddr);
-                uint64_t zero = 0;
-                ensure_uc_mem_write(uidAddr, &zero, sizeof(uint64_t));
-                ensure_uc_mem_write(gidAddr, &zero, sizeof(uint64_t));
+                uint32_t null32 = 0;
+                ensure_uc_mem_write(uidAddr, &null32, sizeof(uint32_t));
+                ensure_uc_mem_write(gidAddr, &null32, sizeof(uint32_t));
+                machine.lock()->setErrno(0);
                 syscall_return_success;
                 return true;
             }
@@ -485,6 +486,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     ret = 1;
                 }
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
+            case 336: {
+                assert(false);
                 return true;
             }
             case 338: { // stat64

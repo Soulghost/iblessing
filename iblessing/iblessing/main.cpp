@@ -29,7 +29,7 @@ int main(int argc, const char *argv[]) {
     char *productRoot = getenv("IB_SOURCE_ROOT");
     string modulePath = StringUtils::path_join(productRoot, "build/Debug-iphoneos/iblessing-sample.app/iblessing-sample");
     string entry = "_test_malloc";
-    entry = "_listClasses";
+//    entry = "_listClasses";
 //    entry = "_test_entry";
 //    entry = "_testObjc";
 //    entry = "_testNSLog";

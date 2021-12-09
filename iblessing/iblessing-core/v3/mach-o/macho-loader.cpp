@@ -583,16 +583,14 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     asmText +=                     "add sp, sp, #0x8\n";
                     asmText +=                     "ldr x2, [sp]\n"; // x2 = mhs
                     asmText +=                     "add sp, sp, #0x8\n";
-                    asmText +=                     "adr lr, #0\n";
-                    asmText +=                     "add lr, lr, #0xc\n";
-                    asmText +=                     "br x7\n"; // 0x7000000f8 call (*dyld_image_state_change_handler)(enum dyld_image_states state, uint32_t infoCount, const struct dyld_image_info info[])
+                    asmText +=                     "blr x7\n"; // 0x7000000f8 call (*dyld_image_state_change_handler)(enum dyld_image_states state, uint32_t infoCount, const struct dyld_image_info info[])
                     
                     // call to init functions
                     asmText +=                     "ldr x7, [sp]\n"; // x7 = handler
                     asmText +=                     "add sp, sp, #0x8\n";
                     asmText +=                     "cmp x7, #0\n";
                     // Notice: the b #imm is relative from code start **since startaddr is 0**
-                    asmText +=                     "b.eq #0x64\n"; // goto (ldr x0, [sp], pop return value)
+                    asmText +=                     "b.eq #0x5c\n"; // goto (ldr x0, [sp], pop return value)
                     asmText +=                     "adr lr, #-0xf\n"; // jump to ldr x7, [sp]
                     asmText +=                     "bic lr, lr, #0x1\n"; // clear bit zero
 
