@@ -14,10 +14,13 @@
 #include "macho-memory.hpp"
 #include "uc_debugger_utils.hpp"
 #include "buffered_logger.hpp"
+#include "codesign.h"
+
 #include <mach/mach_time.h>
+
 #include <sys/ioctl.h>
 #include <sys/socket.h>
-#include "codesign.h"
+#include <sys/attr.h>
 
 using namespace std;
 using namespace iblessing;
@@ -211,6 +214,23 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             case 43:   // getegid
             case 47: { // getgid
                 syscall_return_value(2333);
+                return true;
+            }
+            case 33: { // access
+                uint64_t pathAddr;
+                int mode;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &mode);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                int ret = access(path, mode);
+                if (ret != 0) {
+                    uc_debug_print_backtrace(uc);
+                    assert(false);
+                }
+                printf("[Stalker][!][Syscall][Warn] forward access(%s, 0x%x) to host\n", path, mode);
+                machine.lock()->setErrno(0);
+                free(path);
+                syscall_return_value(ret);
                 return true;
             }
             // ioctl
@@ -440,6 +460,34 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(false);
                         break;
                 }
+                return true;
+            }
+            case 220: { // getattrlist
+#if 0
+                int getattrlist(const char* path, struct attrlist * attrList, void * attrBuf, size_t attrBufSize, unsigned long options);
+#endif
+                uint64_t pathaAddr, attrListAddr, attrBufAddr, attrBufSize;
+                uint32_t options;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathaAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &attrListAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &attrBufAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &attrBufSize);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &options);
+                
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathaAddr, 1000);
+                struct attrlist attr;
+                ensure_uc_mem_read(attrListAddr, &attr, sizeof(attrlist));
+                void *attrBuf = malloc(attrBufSize);
+                printf("[Stalker][!][Syscall][Warn] forward getattrlist to host: path = %s, options = 0x%x\n", path, options);
+                int ret = getattrlist(path, &attr, attrBuf, attrBufSize, options);
+                if (ret != 0) {
+                    uc_debug_print_backtrace(uc);
+                    assert(false);
+                }
+                ensure_uc_mem_write(attrBufAddr, attrBuf, attrBufSize);
+                free(path);
+                free(attrBuf);
+                syscall_return_value(ret);
                 return true;
             }
             case 266: { // shm_open

@@ -419,7 +419,17 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // init dyld lookup
     // _setLookupFunc
-//    uc_debug_set_breakpoint(uc, 0x1C89477B4);
+    // void __fastcall _xpc_bundle_resolve(__int64 a1)
+    // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
+    uc_debug_set_breakpoint(uc, 0x1C8947C08);
+    uc_debug_set_breakpoint(uc, 0x1C8947C0C);
+    uc_debug_set_breakpoint(uc, 0x1C8947C14);
+    uc_debug_set_breakpoint(uc, 0x1C89525F0);
+    uc_debug_set_breakpoint(uc, 0x1C895284C);
+    uc_debug_set_breakpoint(uc, 0x1C89528E4);
+    uc_debug_set_breakpoint(uc, 0x1C8952E90);
+    uc_debug_set_breakpoint(uc, 0x1C894D464);
+    uc_debug_set_breakpoint(uc, 0x1C894D468);
 //    uc_debug_set_breakpoint(uc, 0x1800CB574);
 //    uc_debug_set_breakpoint(uc, 0x1aedbd824);
 //    uc_debug_set_breakpoint(uc, 0x1941F5B0C);

@@ -15,6 +15,7 @@
 #include "DyldSimulator.hpp"
 #include <mach-o/loader.h>
 #include <set>
+#include <dlfcn.h>
 
 #ifdef IB_PLATFORM_DARWIN
 #include <filesystem>
@@ -28,6 +29,7 @@
 #include "aarch64-machine.hpp"
 #include "dyld_images.h"
 #include "aarch64-utils.hpp"
+#include "dyld2.hpp"
 
 #ifdef IB_PLATFORM_DARWIN
 namespace fs = std::filesystem;
@@ -141,6 +143,10 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     this->linkContext = linkContext;
     
     shared_ptr<MachOModule> mainModule = _loadModuleFromFile(linkContext, filePath, true);
+    
+    // load
+    _loadModuleFromFileUsingSharedCache(linkContext, "/usr/lib/updaters/libSEUpdater.dylib", false);
+    
     // rebase
     printImageList();
     
@@ -420,16 +426,18 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     }
     if (_dyld_NSGetExecutablePath_address == 0) {
         _dyld_NSGetExecutablePath_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-            uint64_t bufAddr;
+            uint64_t bufAddr, sizeAddr;
             uint32_t size;
             ensure_uc_reg_read(UC_ARM64_REG_X0, &bufAddr);
-            ensure_uc_reg_read(UC_ARM64_REG_W1, &size);
+            ensure_uc_reg_read(UC_ARM64_REG_X1, &sizeAddr);
+            ensure_uc_mem_read(sizeAddr, &size, sizeof(uint32_t));
             shared_ptr<MachOModule> module = modules[0];
             string path = module->path;
             assert(size >= path.length() + 1);
             ensure_uc_mem_write(bufAddr, path.c_str(), path.length());
             uint64_t null64 = 0;
             ensure_uc_mem_write(bufAddr + path.length(), &null64, 1);
+            syscall_return_success;
         });
     }
     if (_dyld_dlsym_address == 0) {
@@ -770,7 +778,73 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     });
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
-            } else {
+            } else if (strcmp(dyldFuncName, "__dyld_dladdr") == 0) {
+                // dyld FIXME: ignore __dyld_register_for_bulk_image_loads
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t addr, infoAddr;
+                        ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
+                        ensure_uc_reg_read(UC_ARM64_REG_X1, &infoAddr);
+                        
+                        Dl_info info = {0};
+                        shared_ptr<MachOModule> module = findModuleByAddr(addr);
+                        uint32_t result = 0;
+                        if (module) {
+                            info.dli_fname = (const char *)memoryManager->allocPath(module->name);
+                            info.dli_fbase = (void *)module->addr;
+                            if (addr == module->addr) {
+                                info.dli_sname = (const char *)memoryManager->allocPath("__dso_handle");
+                                info.dli_saddr = info.dli_fbase;
+                            } else {
+                                Symbol *symbol = module->getSymbolNearByAddress(addr);
+                                if (symbol) {
+                                    info.dli_saddr = (void *)symbol->info->n_value;
+                                    // never return the mach_header symbol
+                                    if ( info.dli_saddr == info.dli_fbase ) {
+                                        info.dli_sname = nullptr;
+                                        info.dli_saddr = nullptr;
+                                    } else {
+                                        string symname = symbol->name;
+                                        if (symname[0] == '_') {
+                                            symname = symname.substr(1);
+                                        }
+                                        info.dli_sname = (const char *)memoryManager->allocPath(symname);
+                                    }
+                                } else {
+                                    info.dli_sname = nullptr;
+                                    info.dli_saddr = nullptr;
+                                }
+                            }
+                            result = 1;
+                        } else {
+                            printf("[Stalker][-][Error] dladdr error: cannot find module for address 0x%llx\n", addr);
+                            uc_debug_print_backtrace(uc);
+                            assert(false);
+                        }
+                        
+                        ensure_uc_mem_write(infoAddr, &info, sizeof(Dl_info));
+                        syscall_return_value(result);
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_dlsym_internal") == 0) {
+                // dyld FIXME: ignore __dyld_register_for_bulk_image_loads
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        int64_t handle;
+                        uint64_t symbolAddr;
+                        uint64_t callerAddr;
+                        ensure_uc_reg_read(UC_ARM64_REG_X0, &handle);
+                        ensure_uc_reg_read(UC_ARM64_REG_X1, &symbolAddr);
+                        ensure_uc_reg_read(UC_ARM64_REG_X2, &callerAddr);
+                        uint64_t symaddr = dyld::dlsym_internal(this->shared_from_this(), handle, symbolAddr, callerAddr);
+                        syscall_return_value64(symaddr);
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
+            }  else {
                 uc_debug_print_backtrace(uc);
                 assert(false);
             }

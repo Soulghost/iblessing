@@ -261,7 +261,8 @@ static void debugLoop(uc_engine *uc) {
             break;
         } else if (cmd == "skip") {
             uint64_t addr;
-            ensure_uc_reg_read(UC_ARM64_REG_LR, &addr);
+            ensure_uc_reg_read(UC_ARM64_REG_PC, &addr);
+            addr += 4;
             stopImmediateAddress = addr;
             break;
         } else if (cmd == "b") {
