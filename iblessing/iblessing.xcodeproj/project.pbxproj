@@ -211,6 +211,7 @@
 		6844700526D7C05400FE4D70 /* macho-loader.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "macho-loader.hpp"; sourceTree = "<group>"; };
 		68496FDF26E3A4C3000DEE11 /* aarch64-svc-manager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "aarch64-svc-manager.cpp"; sourceTree = "<group>"; };
 		68496FE026E3A4C3000DEE11 /* aarch64-svc-manager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "aarch64-svc-manager.hpp"; sourceTree = "<group>"; };
+		6854F1542762F4E700FF7967 /* codesign.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = codesign.h; sourceTree = "<group>"; };
 		6856E6E124E7C4370050DA19 /* IDASymbolicScriptGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = IDASymbolicScriptGenerator.cpp; sourceTree = "<group>"; };
 		6856E6E224E7C4370050DA19 /* IDASymbolicScriptGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = IDASymbolicScriptGenerator.hpp; sourceTree = "<group>"; };
 		685B890927592A450084D30A /* dyld_images.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = dyld_images.h; sourceTree = "<group>"; };
@@ -587,6 +588,7 @@
 		68446FFE26D7BAD500FE4D70 /* v3 */ = {
 			isa = PBXGroup;
 			children = (
+				6854F1512762F4C900FF7967 /* xnu */,
 				682911262740B12F00D35A2A /* dyld */,
 				687A744F274289FC00DBEA11 /* fs */,
 				68892F932734DF66000095A2 /* log */,
@@ -636,6 +638,30 @@
 				CF0B0245275481C30026AD81 /* mach_traps.c */,
 			);
 			path = syscall;
+			sourceTree = "<group>";
+		};
+		6854F1512762F4C900FF7967 /* xnu */ = {
+			isa = PBXGroup;
+			children = (
+				6854F1522762F4CE00FF7967 /* bsd */,
+			);
+			path = xnu;
+			sourceTree = "<group>";
+		};
+		6854F1522762F4CE00FF7967 /* bsd */ = {
+			isa = PBXGroup;
+			children = (
+				6854F1532762F4D600FF7967 /* sys */,
+			);
+			path = bsd;
+			sourceTree = "<group>";
+		};
+		6854F1532762F4D600FF7967 /* sys */ = {
+			isa = PBXGroup;
+			children = (
+				6854F1542762F4E700FF7967 /* codesign.h */,
+			);
+			path = sys;
 			sourceTree = "<group>";
 		};
 		685B890A275B5B150084D30A /* pthread */ = {

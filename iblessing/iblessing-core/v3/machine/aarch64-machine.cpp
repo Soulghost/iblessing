@@ -316,9 +316,13 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // ProgramName
     const char *programName = module->name.c_str();
     sp = uc_alloca(sp, strlen(programName) + 1);
+    uint64_t programNameAddr = sp;
+    assert(uc_mem_write(uc, programNameAddr, programName, strlen(programName)) == UC_ERR_OK);
+    assert(uc_mem_write(uc, programNameAddr + strlen(programName), &null64, 1) == UC_ERR_OK);
+    
+    sp = uc_alloca(sp, 8);
     uint64_t programNamePtr = sp;
-    assert(uc_mem_write(uc, programNamePtr, &programName, strlen(programName)) == UC_ERR_OK);
-    assert(uc_mem_write(uc, programNamePtr + strlen(programName), &null64, 1) == UC_ERR_OK);
+    ensure_uc_mem_write(programNamePtr, &programNameAddr, 8);
     
     // _NSGetArgc
     sp = uc_alloca(sp, sizeof(uint64_t));
@@ -415,7 +419,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // init dyld lookup
     // _setLookupFunc
-//    uc_debug_set_breakpoint(uc, 0x7000000c4);
+//    uc_debug_set_breakpoint(uc, 0x1C89477B4);
 //    uc_debug_set_breakpoint(uc, 0x1800CB574);
 //    uc_debug_set_breakpoint(uc, 0x1aedbd824);
 //    uc_debug_set_breakpoint(uc, 0x1941F5B0C);

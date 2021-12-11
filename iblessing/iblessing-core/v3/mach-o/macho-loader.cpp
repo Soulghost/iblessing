@@ -752,6 +752,24 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     });
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_has_inserted_or_interposing_libraries") == 0) {
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        syscall_return_value(0);
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_register_for_bulk_image_loads") == 0) {
+                // dyld FIXME: ignore __dyld_register_for_bulk_image_loads
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        printf("[Stalker][-][Warn] ignore __dyld_register_for_bulk_image_loads\n");
+                        syscall_return_value(0);
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
             } else {
                 uc_debug_print_backtrace(uc);
                 assert(false);

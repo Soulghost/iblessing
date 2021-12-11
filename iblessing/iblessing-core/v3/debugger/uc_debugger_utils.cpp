@@ -10,6 +10,7 @@
 #include "buffered_logger.hpp"
 #include "StringUtils.h"
 #include "termcolor.h"
+#include "macho-memory.hpp"
 #include <map>
 
 using namespace std;
@@ -244,6 +245,12 @@ static void debugLoop(uc_engine *uc) {
                     }
                 }
             }
+        } else if (cmd == "rs") {
+            debugLoopAssert(commandParts.size() == 2);
+            uint64_t addr = strtol(commandParts[1].c_str(), NULL, 16);
+            char *str = MachoMemoryUtils::uc_read_string(uc, addr, 1000);
+            printf("0x%llx: %s (%zu)\n", addr, str, strlen(str));
+            free(str);
         } else if (cmd == "si") {
             if (commandParts.size() == 2) {
                 int count = atoi(commandParts[1].c_str());
@@ -252,7 +259,7 @@ static void debugLoop(uc_engine *uc) {
                 stopImmediatelyCount = 1;
             }
             break;
-        } else if (cmd == "n") {
+        } else if (cmd == "skip") {
             uint64_t addr;
             ensure_uc_reg_read(UC_ARM64_REG_LR, &addr);
             stopImmediateAddress = addr;

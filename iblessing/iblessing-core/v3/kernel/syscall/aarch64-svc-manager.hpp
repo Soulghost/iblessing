@@ -16,13 +16,13 @@
 
 #define syscall_return_success syscall_return_value64(0)
 #define syscall_return_value(value) do {\
-int ret = value;\
-assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK); \
+int _ret = value;\
+assert(uc_reg_write(uc, UC_ARM64_REG_W0, &_ret) == UC_ERR_OK); \
 } while(0);
 
 #define syscall_return_value64(value) do {\
-uint64_t ret = value;\
-assert(uc_reg_write(uc, UC_ARM64_REG_X0, &ret) == UC_ERR_OK); \
+uint64_t _ret = value;\
+assert(uc_reg_write(uc, UC_ARM64_REG_X0, &_ret) == UC_ERR_OK); \
 } while(0);
 
 #ifdef __cplusplus

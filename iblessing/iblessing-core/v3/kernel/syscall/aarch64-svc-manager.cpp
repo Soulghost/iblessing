@@ -17,6 +17,7 @@
 #include <mach/mach_time.h>
 #include <sys/ioctl.h>
 #include <sys/socket.h>
+#include "codesign.h"
 
 using namespace std;
 using namespace iblessing;
@@ -177,7 +178,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
     if (trap_no > 0) {
         // posix
         switch (trap_no) {
-            case 4: {
+            case 4: { // write
                 int fd;
                 uint64_t bufferAddr;
                 int count;
@@ -188,7 +189,20 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(ret);
                 return true;
             }
-            case 20: {
+            case 5: { // open
+                uint64_t pathaddr;
+                int oflags, mode;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &pathaddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &oflags);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &mode);
+                
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathaddr, 1000);
+                int fd = fs->open(path, oflags);
+                free(path);
+                syscall_return_value(fd);
+                return true;
+            }
+            case 20: { // getpid
                 syscall_return_value(2333);
                 return true;
             }
@@ -196,7 +210,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             case 25:   // geteuid
             case 43:   // getegid
             case 47: { // getgid
-                syscall_return_value(0);
+                syscall_return_value(2333);
                 return true;
             }
             // ioctl
@@ -328,6 +342,32 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_W5, &addrlen);
                 int ret = fs->sendto(socket, bufferAddr, length, flags, destAddr, addrlen);
                 syscall_return_value(ret);
+                return true;
+            }
+            case 169: { // csops
+#if 0
+                static int
+                csops_internal(pid_t pid, int ops, user_addr_t uaddr, user_size_t usersize, user_addr_t uaudittoken)
+#endif
+                uint32_t pid, ops;
+                uint64_t uaddr, usersize;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &pid);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &ops);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &uaddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &usersize);
+                switch (ops) {
+                    case CS_OPS_STATUS: {
+                        uint32_t retflags = CS_ENFORCEMENT | CS_VALID | CS_HARD | CS_KILL;
+                        if (uaddr != 0) {
+                            ensure_uc_mem_write(uaddr, &retflags, sizeof(uint32_t));
+                        }
+                        break;
+                    }
+                    default:
+                        uc_debug_breakhere(uc);
+                        break;
+                }
+                syscall_return_success;
                 return true;
             }
             case 194: { // getrlimit
@@ -1033,7 +1073,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         } __Reply__task_get_special_port_t __attribute__((unused));
                         #pragma pack(pop)
                         __Reply__task_get_special_port_t *OutP = (__Reply__task_get_special_port_t *)hdr;
-                        OutP->Head.msgh_remote_port = hdr->msgh_local_port;
+                        OutP->Head.msgh_remote_port = 0;
                         OutP->Head.msgh_local_port = 0;
                         OutP->Head.msgh_id += 100;
                         OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
