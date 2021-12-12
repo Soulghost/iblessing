@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>last_known_location</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>lost_mode</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>prox_cards</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

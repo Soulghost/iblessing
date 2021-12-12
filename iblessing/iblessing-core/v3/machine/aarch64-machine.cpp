@@ -38,8 +38,6 @@ static uc_hook insn_hook;
 static uc_hook intr_hook, memexp_hook;
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
-    uc_debug_check_breakpoint(uc, address);
-    
     void *codes = malloc(sizeof(uint32_t));
     uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
     if (err != UC_ERR_OK) {
@@ -125,6 +123,8 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
     
     free(codes);
     cs_free(insn, count);
+    
+    uc_debug_check_breakpoint(uc, address);
 }
 
 static void uc_hookintr_callback(uc_engine *uc, uint32_t intno, void *user_data) {
@@ -421,15 +421,20 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // _setLookupFunc
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
-    uc_debug_set_breakpoint(uc, 0x1C8947C08);
-    uc_debug_set_breakpoint(uc, 0x1C8947C0C);
-    uc_debug_set_breakpoint(uc, 0x1C8947C14);
-    uc_debug_set_breakpoint(uc, 0x1C89525F0);
-    uc_debug_set_breakpoint(uc, 0x1C895284C);
-    uc_debug_set_breakpoint(uc, 0x1C89528E4);
-    uc_debug_set_breakpoint(uc, 0x1C8952E90);
-    uc_debug_set_breakpoint(uc, 0x1C894D464);
-    uc_debug_set_breakpoint(uc, 0x1C894D468);
+    // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
+    uc_debug_set_breakpoint(uc, 0x1C8952A80);
+//    uc_debug_set_breakpoint(uc, 0x1C89529D0); // _xpc_bundle_resolve_sync
+//    uc_debug_set_breakpoint(uc, 0x1C8952848);
+//    uc_debug_set_breakpoint(uc, 0x1C8952824);
+//    uc_debug_set_breakpoint(uc, 0x1C8952524);
+//    uc_debug_set_breakpoint(uc, 0x1C8947C14);
+    uc_debug_set_breakpoint(uc, 0x1C8947C18);
+    uc_debug_set_breakpoint(uc, 0x1C89525F4);
+//    uc_debug_set_breakpoint(uc, 0x1C895284C);
+//    uc_debug_set_breakpoint(uc, 0x1C89528E4);
+//    uc_debug_set_breakpoint(uc, 0x1C8952E90);
+//    uc_debug_set_breakpoint(uc, 0x1C894D464);
+//    uc_debug_set_breakpoint(uc, 0x1C894D468);
 //    uc_debug_set_breakpoint(uc, 0x1800CB574);
 //    uc_debug_set_breakpoint(uc, 0x1aedbd824);
 //    uc_debug_set_breakpoint(uc, 0x1941F5B0C);

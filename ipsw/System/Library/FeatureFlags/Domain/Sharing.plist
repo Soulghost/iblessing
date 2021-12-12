@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>authenticate_accounts_prx</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>combine_share_activities</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>extensions_discovery_cache</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>homepod_personal_requests_never_require_auth</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>pau_check_passcode</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>pau_relock_auto</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>phone_auto_unlock</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>pu_new_pill</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>spatial_audio_onboarding</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

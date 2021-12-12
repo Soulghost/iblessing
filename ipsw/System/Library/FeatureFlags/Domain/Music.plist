@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>add_download_qfa</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>library_made_for_you</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>live_events</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>lyrics_sharing</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>mediakit_api</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>new_menus</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>record_labels</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>report_a_concern</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

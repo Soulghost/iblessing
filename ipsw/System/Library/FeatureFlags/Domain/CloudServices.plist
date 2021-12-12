@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DoubleEnrollment</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>ReqV1FallbackToV0</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>ReqV2FallbackToV0</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>UseCKVR</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>UseReqV1</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>UseReqV2</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

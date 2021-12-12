@@ -16,6 +16,8 @@
 
 NS_IB_BEGIN
 
+class Aarch64Machine;
+
 enum DarwinFileType {
     DarwinFileTypePlain = 0,
     DarwinFileTypeUDPSocket
@@ -23,6 +25,7 @@ enum DarwinFileType {
 
 class DarwinFile {
 public:
+    std::shared_ptr<Aarch64Machine> machine;
     uc_engine *uc;
     int type;
     int op;
@@ -40,6 +43,7 @@ public:
     
     virtual int fcntl(int cmd, uint64_t arg);
     virtual int write(uint64_t bufferAddr, int count);
+    virtual off_t lseek(off_t offset, int whence);
     virtual int connect(uint64_t addrAddr, int addrlen) {
         assert(false);
     }
@@ -58,14 +62,18 @@ public:
     virtual int connect(uint64_t addrAddr, int addrlen);
     virtual int write(uint64_t bufferAddr, int count);
     virtual int sendto(uint64_t bufferAddr, size_t length, int flags, uint64_t dest_addr, int dest_len);
+    virtual off_t lseek(off_t offset, int whence);
 };
 
 class DarwinFileSystem {
 public:
+    std::shared_ptr<Aarch64Machine> machine;
+    
     DarwinFileSystem(uc_engine *uc);
     
     int open(char *path, int oflags);
     int openUdpSocket();
+    int pread(int fd, uint64_t bufferAddr, int count, off_t offset);
     int read(int fd, uint64_t bufferAddr, int count);
     int write(int fd, uint64_t bufferAddr, int count);
     int close(int fd);
@@ -73,6 +81,7 @@ public:
     int fcntl(int fd, int cmd, uint64_t arg);
     int connect(int fd, uint64_t addrAddr, int addrlen);
     int sendto(int socket, uint64_t bufferAddr, size_t length, int flags, uint64_t dest_addr, int dest_len);
+    off_t lseek(int fd, off_t offset, int whence);
     
 protected:
     uc_engine *uc;

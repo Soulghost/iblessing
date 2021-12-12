@@ -49,6 +49,7 @@ public:
     Aarch64SVCManager(uc_engine *uc, uint64_t addr, uint64_t size, int swiInitValue);
     
     std::weak_ptr<Aarch64Machine> machine;
+    std::shared_ptr<DarwinFileSystem> fs;
     
     uint64_t createSVC(int swi, Aarch64SVCCallback callback);
     uint64_t createSVC(Aarch64SVCCallback callback);
@@ -70,7 +71,6 @@ protected:
     uc_engine *uc;
     int swiGenerator;
     std::map<int, Aarch64SVC> svcMap;
-    std::shared_ptr<DarwinFileSystem> fs;
 };
 
 NS_IB_END

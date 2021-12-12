@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CKKSViewsFromPolicy</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>EnableSecureObjectSync</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>LegacyAPICounts</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>OctagonEscrowRecordFetch</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>OctagonOptimization</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>SecCodeOCSPDefault</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>SecErrorNestedErrorCapping</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>octagon</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>octagonSOSupgrade</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>octagonTrust</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>recoverykey</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

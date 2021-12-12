@@ -42,6 +42,7 @@ int main(int argc, const char *argv[]) {
     machine->svcManager = loader->svcManager;
     // FIXME: tricky dependencies
     loader->svcManager->machine = machine;
+    loader->svcManager->fs->machine = machine;
     machine->uc = loader->uc;
     machine->callModule(module, entry);
     

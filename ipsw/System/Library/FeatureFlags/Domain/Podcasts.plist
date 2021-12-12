@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IgnoreHiddenEpisodeProperty</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>ImageLibraryHEIC</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>MediaAPIFeedUpdates</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>ModernShelves</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>MultiUser</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>NewUI</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>SerpentId</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>WatchServerNotifications</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>async_frame_and_overflow_scrolling</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>incremental_pdf</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>vp9_decoder</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>webm_format_reader</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>webm_parser</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

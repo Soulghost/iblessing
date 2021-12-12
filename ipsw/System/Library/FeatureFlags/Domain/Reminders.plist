@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>assignableTasks</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>attachmentContextMenus</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>calendarDueDatePicker</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>editSmartListControls</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>listEmoji</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>newReminderDetails</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>printing</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>quickEntryUI</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>quickTypeBarSuggestedAttributes</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>remindersListSortBy</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>smartListManualSort</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+	<key>smartListShowSubtaskCount</key>
+	<dict>
+		<key>Enabled</key>
+		<true/>
+	</dict>
+</dict>
+</plist>

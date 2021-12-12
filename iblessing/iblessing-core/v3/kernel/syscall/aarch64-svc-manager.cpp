@@ -205,6 +205,13 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(fd);
                 return true;
             }
+            case 6: { // close
+                int fd;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
+                int ret = fs->close(fd);
+                syscall_return_value(ret);
+                return true;
+            }
             case 20: { // getpid
                 syscall_return_value(2333);
                 return true;
@@ -364,6 +371,21 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(ret);
                 return true;
             }
+            case 153: { // pread
+#if 0
+                ssize_t pread(int d, void *buf, size_t nbyte, off_t offset);
+#endif
+                int fd, size;
+                uint64_t bufAddr;
+                int64_t offset;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &bufAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &size);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &offset);
+                ssize_t ret = fs->pread(fd, bufAddr, size, offset);
+                syscall_return_value64(ret);
+                return true;
+            }
             case 169: { // csops
 #if 0
                 static int
@@ -460,6 +482,16 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(false);
                         break;
                 }
+                return true;
+            }
+            case 199: { // lseek
+                int fd, whence;
+                __int64_t offset;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &offset);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &whence);
+                __int64_t ret = fs->lseek(fd, offset, whence);
+                syscall_return_value64(ret);
                 return true;
             }
             case 220: { // getattrlist
