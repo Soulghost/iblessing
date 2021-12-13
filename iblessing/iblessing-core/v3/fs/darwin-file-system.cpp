@@ -40,8 +40,8 @@ int DarwinFile::fcntl(int cmd, uint64_t arg) {
         case F_ADDFILESIGS:
             return 0;
         case F_GETPATH: {
-            uint64_t pathAddr = machine->loader->memoryManager->allocPath(path);
-            ensure_uc_mem_write(arg, &pathAddr, sizeof(uint64_t));
+            assert(path.length() < 1024); // max buffer size in _xpc_realpath_fd
+            ensure_uc_mem_write(arg, path.c_str(), path.length() + 1);
             return 0;
         }
     }
@@ -115,6 +115,33 @@ int DarwinFileSystem::allocateFileDescriptor() {
     return this->fdCounter++;
 }
 
+shared_ptr<DarwinFile> DarwinFileSystem::createFileWithPath(string path, int oflags) {
+    FILE *file = fopen(path.c_str(), "r");
+    assert(file != NULL);
+    
+    fseek(file, 0, SEEK_END);
+    uint64_t fileLen = ftell(file);
+    fseek(file, 0, SEEK_SET);
+    
+    void *buffer = calloc(fileLen, sizeof(char));
+    assert(buffer != NULL);
+    
+    fread(buffer, sizeof(char), fileLen, file);
+    fclose(file);
+    
+    shared_ptr<DarwinFile> f = make_shared<DarwinFile>();
+    f->uc = uc;
+    f->machine = machine;
+    f->path = string(path);
+    f->oflags = oflags;
+    f->fd = allocateFileDescriptor();
+    f->seek = 0;
+    f->buf = (char *)buffer;
+    f->size = fileLen;
+    fd2file[f->fd] = f;
+    return f;
+}
+
 int DarwinFileSystem::open(char *path, int oflags) {
     if (strcmp(path, "/etc/master.passwd") == 0) {
         shared_ptr<DarwinFile> f = make_shared<DarwinFile>();
@@ -154,21 +181,7 @@ int DarwinFileSystem::open(char *path, int oflags) {
             printf("[Stalker][-][Syscall][File][Error] cannot open FeatureFlags file %s\n", path);
             return -1;
         }
-        
-        ifstream ifs(realpath);
-        string content((std::istreambuf_iterator<char>(ifs)),
-                       (std::istreambuf_iterator<char>()));
-        
-        shared_ptr<DarwinFile> f = make_shared<DarwinFile>();
-        f->uc = uc;
-        f->machine = machine;
-        f->path = string(path);
-        f->oflags = oflags;
-        f->fd = allocateFileDescriptor();
-        f->seek = 0;
-        f->buf = strdup(content.c_str());
-        f->size = strlen(f->buf);
-        fd2file[f->fd] = f;
+        shared_ptr<DarwinFile> f = createFileWithPath(realpath, oflags);
         return f->fd;
     }
     
@@ -177,6 +190,23 @@ int DarwinFileSystem::open(char *path, int oflags) {
         printf("[Stalker][-][Syscall][File][Warn] ignore open prefs file at %s\n", path);
         machine->setErrno(ENOENT);
         return -1;
+    }
+    
+    if (StringUtils::has_prefix(string(path), "/private/tmp/iblessing-workdir/")) {
+        static string appBundlePath = "";
+        if (appBundlePath.length() == 0) {
+            char *productRoot = getenv("IB_SOURCE_ROOT");
+            appBundlePath = StringUtils::format("%s/../app-bundle/", productRoot);
+        }
+        string realpath = string(path);
+        StringUtils::replace(realpath, "/private/tmp/iblessing-workdir/", appBundlePath);
+        if (access(realpath.c_str(), F_OK) != 0) {
+            machine->setErrno(ENOENT);
+            printf("[Stalker][-][Syscall][File][Error] cannot open app bundle file %s\n", path);
+            return -1;
+        }
+        shared_ptr<DarwinFile> f = createFileWithPath(realpath, oflags);
+        return f->fd;
     }
     
     machine->setErrno(ENOENT);

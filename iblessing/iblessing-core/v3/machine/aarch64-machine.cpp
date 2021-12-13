@@ -422,14 +422,18 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-    uc_debug_set_breakpoint(uc, 0x1C8952A80);
+//    uc_debug_set_breakpoint(uc, 0x1c89528e4); // ok
+    uc_debug_set_breakpoint(uc, 0x1C8952CA8);
+//    uc_debug_set_breakpoint(uc, 0x1C894D380);
+//    uc_debug_set_breakpoint(uc, 0x1C8952A4C); //  __xpc_bundle_resolve_root has a problem
+//    uc_debug_set_breakpoint(uc, 0x1C893464C); // fcntl strdup
 //    uc_debug_set_breakpoint(uc, 0x1C89529D0); // _xpc_bundle_resolve_sync
 //    uc_debug_set_breakpoint(uc, 0x1C8952848);
 //    uc_debug_set_breakpoint(uc, 0x1C8952824);
 //    uc_debug_set_breakpoint(uc, 0x1C8952524);
 //    uc_debug_set_breakpoint(uc, 0x1C8947C14);
-    uc_debug_set_breakpoint(uc, 0x1C8947C18);
-    uc_debug_set_breakpoint(uc, 0x1C89525F4);
+//    uc_debug_set_breakpoint(uc, 0x1C8947C18);
+//    uc_debug_set_breakpoint(uc, 0x1C89525F4);
 //    uc_debug_set_breakpoint(uc, 0x1C895284C);
 //    uc_debug_set_breakpoint(uc, 0x1C89528E4);
 //    uc_debug_set_breakpoint(uc, 0x1C8952E90);

@@ -89,6 +89,7 @@ protected:
     std::map<int, std::shared_ptr<DarwinFile>> fd2file;
     
     int allocateFileDescriptor();
+    std::shared_ptr<DarwinFile> createFileWithPath(std::string path, int oflags);
 };
 
 NS_IB_END
