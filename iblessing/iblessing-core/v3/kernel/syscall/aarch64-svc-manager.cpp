@@ -25,10 +25,14 @@
 using namespace std;
 using namespace iblessing;
 
+#define TASK_SELF_PORT 1
+#define HOST_SELF_PORT 2
 #define TASK_BOOTSTRAP_PORT 4
 #define BOOTSTRAP_PORT 11
 #define CLOCK_SERVER_PORT 13
 #define SEMAPHORE_PORT 14
+#define TASK_SPECIAL_REPLY_PORT 15
+#define HOST_SPECIAL_PORT 16
 #define CONSTRUCT_FAKE_PORT 233
 
 #define IB_FD_URANDOM 3
@@ -560,7 +564,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_read(uc, UC_ARM64_REG_W0, &fd) == UC_ERR_OK);
                 assert(uc_reg_read(uc, UC_ARM64_REG_X1, &buf) == UC_ERR_OK);
                 printf("[+] handle syscall fstat64(339) with fd %d, buf 0x%llx\n", fd, buf);
-                if ((fd >= 0 && fd <= IB_FD_BOUND) || fs->has(fd)) {
+                
+                if ((fd >= 0 && fd <= IB_FD_BOUND)) {
                     int st_mode;
                     if (fd == 1) {
                         st_mode = S_IFCHR | S_IRWXU | S_IRWXG | S_IRWXO;
@@ -602,9 +607,9 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     s.st_gid = 0;
                     assert(uc_mem_write(uc, buf, &s, sizeof(struct posix_stat)) == UC_ERR_OK);
                 } else {
-                    assert(false);
-                    ret = 1;
+                    ret = fs->fstat(fd, buf);
                 }
+                
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
@@ -685,6 +690,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_success;
                 return true;
             }
+            case 3:
             case 396: { // read_NOCANCEL
                 int fd, count;
                 uint64_t bufferAddr;
@@ -947,12 +953,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 return true;
             }
             case 28: { // task_self_trap
-                int ret = 1;
+                int ret = TASK_SELF_PORT;
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
             case 29: { // host_self_trap
-                int ret = 2;
+                int ret = HOST_SELF_PORT;
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
@@ -1096,6 +1102,48 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         
                         Request *request = (Request *)hdr;
                         assert(false);
+                        return true;
+                    }
+                    case 412: { // host_get_special_port
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            ib_NDR_record_t NDR;
+                            int node;
+                            int which_port;
+                            mach_msg_trailer_t trailer;
+                        } Request __attribute__((unused));
+                        #pragma pack(pop)
+                        Request *request = (Request *)hdr;
+                        assert(request->which_port == TASK_SELF_PORT);
+
+                        #pragma pack(push, 4)
+                        typedef struct {
+                            ib_mach_msg_header_t Head;
+                            /* start of the kernel processed data */
+                            ib_mach_msg_body_t msgh_body;
+                            ib_mach_msg_port_descriptor_t special_port;
+                            /* end of the kernel processed data */
+                        } __Reply__task_get_special_port_t __attribute__((unused));
+                        #pragma pack(pop)
+                        __Reply__task_get_special_port_t *OutP = (__Reply__task_get_special_port_t *)hdr;
+                        OutP->Head.msgh_remote_port = 0;
+                        OutP->Head.msgh_local_port = 0;
+                        OutP->Head.msgh_id += 100;
+                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__task_get_special_port_t));
+
+                        OutP->msgh_body.msgh_descriptor_count = 1;
+                        OutP->special_port.name = HOST_SEATBELT_PORT;
+                        OutP->special_port.pad1 = 0;
+                        OutP->special_port.pad2 = 0;
+                        // check libsystem_kernel.dylib task_get_special_port
+                        OutP->special_port.disposition = 0x11;
+                        OutP->special_port.type = IB_MACH_MSG_PORT_DESCRIPTOR;
+                        assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
+
+                        int ret = 0;
+                        assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                         return true;
                     }
                     case 3404: { // mach_ports_lookup
@@ -1300,8 +1348,19 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ib_mach_port_t semaphore_port = 0;
                 ensure_uc_reg_read(UC_ARM64_REG_W0, &semaphore_port);
                 assert(semaphore_port == SEMAPHORE_PORT);
-                printf("[+][Stalker][Syscall][Mach] semaphore_wait_trap for port %d\n", semaphore_port);
+                printf("[Stalker][+][Syscall][Mach] semaphore_wait_trap for port %d\n", semaphore_port);
                 syscall_return_success;
+                return true;
+            }
+            case 50: { // thread_get_special_reply_port
+                uint64_t reply_port = TASK_SPECIAL_REPLY_PORT;
+                syscall_return_value64(reply_port);
+                printf("[Stalker][+][Syscall][Mach] thread_get_special_reply_port return port %lld\n", reply_port);
+                return true;
+            }
+            case 70: { // host_create_mach_voucher_trap
+                uc_debug_print_backtrace(uc);
+                assert(false);
                 return true;
             }
             case 89: { // _mach_timebase_info_trap

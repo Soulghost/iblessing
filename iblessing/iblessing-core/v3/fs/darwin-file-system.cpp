@@ -241,8 +241,8 @@ int DarwinFileSystem::read(int fd, uint64_t bufferAddr, int count) {
         
         int rest = (int)(f->size - f->seek);
         int readCount = std::min(count, rest);
-        string content = string(f->buf).substr(f->seek, readCount);
-        assert(uc_mem_write(uc, bufferAddr, content.c_str(), readCount) == UC_ERR_OK);
+        uint64_t readStart = f->seek;
+        ensure_uc_mem_write(bufferAddr, f->buf + readStart, readCount);
         f->seek += readCount;
         return readCount;
     } else {
@@ -296,6 +296,52 @@ int DarwinFileSystem::fcntl(int fd, int cmd, uint64_t arg) {
     assert(has(fd));
     shared_ptr<DarwinFile> file = fd2file[fd];
     return file->fcntl(cmd, arg);
+}
+
+int DarwinFileSystem::fstat(int fd, uint64_t statBufAddr) {
+    assert(has(fd));
+    int st_mode;
+    if (fd == 1) {
+        st_mode = S_IFCHR | S_IRWXU | S_IRWXG | S_IRWXO;
+    } else {
+        st_mode = S_IFREG;
+    }
+    
+    shared_ptr<DarwinFile> file = fd2file[fd];
+    struct posix_timesec {
+        long tv_sec;
+        long tv_nsec;
+    };
+    struct posix_stat {
+        dev_t     st_dev;     /* ID of device containing file 32 */
+        mode_t    st_mode;    /* protection 16 */
+        nlink_t   st_nlink;   /* number of hard links 16 */
+        ino_t     st_ino;     /* inode number 64 */
+        uid_t     st_uid;     /* user ID of owner 32 */
+        gid_t     st_gid;     /* group ID of owner 32 */
+        dev_t     st_rdev;    /* device ID (if special file) 32 */
+        struct posix_timesec st_atimespec;  /* time of last access */
+        struct posix_timesec st_mtimespec;  /* time of last data modification */
+        struct posix_timesec st_ctimespec;  /* time of last status change */
+        struct posix_timesec st_birthtimespec; /* time of file creation(birth) */
+        off_t     st_size;    /* total size, in bytes */
+        blkcnt_t  st_blocks;  /* number of 512B blocks allocated */
+        blksize_t st_blksize; /* blocksize for file system I/O */
+        uint32_t    st_flags; /* user defined flags for file */
+        uint32_t    st_gen;   /* file generation number */
+    };
+    struct posix_stat s = { 0 };
+    blksize_t blockSize = 0x4000;
+    s.st_dev = 1;
+    s.st_mode = st_mode;
+    s.st_size = file->size;
+    s.st_blocks = (s.st_size + blockSize - 1) / blockSize;
+    s.st_blksize = blockSize;
+    s.st_ino = 7;
+    s.st_uid = 2333;
+    s.st_gid = 2333;
+    assert(uc_mem_write(uc, statBufAddr, &s, sizeof(struct posix_stat)) == UC_ERR_OK);
+    return 0;
 }
 
 int DarwinFileSystem::connect(int fd, uint64_t addrAddr, int addrlen) {

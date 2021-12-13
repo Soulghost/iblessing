@@ -78,6 +78,7 @@ public:
     int write(int fd, uint64_t bufferAddr, int count);
     int close(int fd);
     bool has(int fd);
+    int fstat(int fd, uint64_t statBufAddr);
     int fcntl(int fd, int cmd, uint64_t arg);
     int connect(int fd, uint64_t addrAddr, int addrlen);
     int sendto(int socket, uint64_t bufferAddr, size_t length, int flags, uint64_t dest_addr, int dest_len);
