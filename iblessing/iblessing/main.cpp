@@ -16,6 +16,7 @@
 #include <iblessing/registry/PluginRegistry.h>
 #include <iblessing-core/v3/mach-o/macho-loader.hpp>
 #include <iblessing-core/v3/machine/aarch64-machine.hpp>
+#include "mach-ipc-manager.hpp"
 
 #ifdef IB_CSR_ENABLED
 #include "csrutil.hpp"
@@ -44,6 +45,11 @@ int main(int argc, const char *argv[]) {
     loader->svcManager->machine = machine;
     loader->svcManager->fs->machine = machine;
     machine->uc = loader->uc;
+    
+    // create ipc manager
+    shared_ptr<MachIPCManager> ipcManager = make_shared<MachIPCManager>(machine);
+    machine->svcManager->ipcManager = ipcManager;
+    
     machine->callModule(module, entry);
     
     

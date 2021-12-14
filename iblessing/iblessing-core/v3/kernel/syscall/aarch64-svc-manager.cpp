@@ -15,6 +15,7 @@
 #include "uc_debugger_utils.hpp"
 #include "buffered_logger.hpp"
 #include "codesign.h"
+#include "mach-ipc-manager.hpp"
 
 #include <mach/mach_time.h>
 
@@ -1359,8 +1360,15 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 return true;
             }
             case 70: { // host_create_mach_voucher_trap
-                uc_debug_print_backtrace(uc);
-                assert(false);
+                ib_mach_port_t host_port;
+                uint64_t recipeAddr, newVoucherAddr;
+                int recipeSize;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &host_port);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &recipeAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &recipeSize);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &newVoucherAddr);
+                ib_kern_return_t ret = ipcManager->host_create_mach_voucher(host_port, recipeAddr, recipeSize, newVoucherAddr);
+                syscall_return_value(ret);
                 return true;
             }
             case 89: { // _mach_timebase_info_trap

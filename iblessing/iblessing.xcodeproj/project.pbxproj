@@ -119,6 +119,8 @@
 		68C362FA24C9C9D100441950 /* libSystem.B.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = 68C362F924C9C9D000441950 /* libSystem.B.tbd */; };
 		68D341A52705AD4A00810C77 /* macho-memory.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68D341A32705AD4A00810C77 /* macho-memory.cpp */; };
 		68D341A62705AD4A00810C77 /* macho-memory.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68D341A42705AD4A00810C77 /* macho-memory.hpp */; };
+		68DC62832768F54600B868E8 /* mach-ipc-manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68DC62812768F54600B868E8 /* mach-ipc-manager.cpp */; };
+		68DC62842768F54600B868E8 /* mach-ipc-manager.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68DC62822768F54600B868E8 /* mach-ipc-manager.hpp */; };
 		68EC52822701DBBD003D9148 /* ib_pthread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68EC52802701DBBD003D9148 /* ib_pthread.cpp */; };
 		68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68EC52812701DBBD003D9148 /* ib_pthread.hpp */; };
 		CF0B023F2753BC2C0026AD81 /* aarch64-svc-proxy.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CF0B023C2753BC2C0026AD81 /* aarch64-svc-proxy.hpp */; };
@@ -444,6 +446,8 @@
 		68D755D824C714EC0057E092 /* libcapstone.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libcapstone.a; sourceTree = "<group>"; };
 		68D755DA24C8012A0057E092 /* ObjcMsgXREFServerGenerator.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ObjcMsgXREFServerGenerator.cpp; sourceTree = "<group>"; };
 		68D755DB24C8012A0057E092 /* ObjcMsgXREFServerGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMsgXREFServerGenerator.hpp; sourceTree = "<group>"; };
+		68DC62812768F54600B868E8 /* mach-ipc-manager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "mach-ipc-manager.cpp"; sourceTree = "<group>"; };
+		68DC62822768F54600B868E8 /* mach-ipc-manager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "mach-ipc-manager.hpp"; sourceTree = "<group>"; };
 		68EC52802701DBBD003D9148 /* ib_pthread.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ib_pthread.cpp; sourceTree = "<group>"; };
 		68EC52812701DBBD003D9148 /* ib_pthread.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ib_pthread.hpp; sourceTree = "<group>"; };
 		CF0B023C2753BC2C0026AD81 /* aarch64-svc-proxy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = "aarch64-svc-proxy.hpp"; sourceTree = "<group>"; };
@@ -643,6 +647,7 @@
 		6854F1512762F4C900FF7967 /* xnu */ = {
 			isa = PBXGroup;
 			children = (
+				68DC62802768F4B600B868E8 /* mach */,
 				6854F1522762F4CE00FF7967 /* bsd */,
 			);
 			path = xnu;
@@ -1415,6 +1420,15 @@
 			path = macos;
 			sourceTree = "<group>";
 		};
+		68DC62802768F4B600B868E8 /* mach */ = {
+			isa = PBXGroup;
+			children = (
+				68DC62812768F54600B868E8 /* mach-ipc-manager.cpp */,
+				68DC62822768F54600B868E8 /* mach-ipc-manager.hpp */,
+			);
+			path = mach;
+			sourceTree = "<group>";
+		};
 		68EC527F2701DB9F003D9148 /* posix */ = {
 			isa = PBXGroup;
 			children = (
@@ -1450,6 +1464,7 @@
 				682911352740BA0700D35A2A /* dyld2.hpp in Headers */,
 				687A745327428A1300DBEA11 /* darwin-file-system.hpp in Headers */,
 				68892F9B2734DF92000095A2 /* buffered_logger.hpp in Headers */,
+				68DC62842768F54600B868E8 /* mach-ipc-manager.hpp in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1719,6 +1734,7 @@
 				68B2561326401F60008FA1E2 /* ScannerContextManager.cpp in Sources */,
 				68D341A52705AD4A00810C77 /* macho-memory.cpp in Sources */,
 				68B2561826401F63008FA1E2 /* ScannerContext.cpp in Sources */,
+				68DC62832768F54600B868E8 /* mach-ipc-manager.cpp in Sources */,
 				68B2561D26401F65008FA1E2 /* ScannerWorkDirManager.cpp in Sources */,
 				68B2562226401F73008FA1E2 /* Scanner.cpp in Sources */,
 				68A44D46270C473600C91CC6 /* uc_debugger_utils.cpp in Sources */,

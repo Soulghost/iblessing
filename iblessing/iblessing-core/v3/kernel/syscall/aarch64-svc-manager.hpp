@@ -36,6 +36,7 @@ uint64_t svc_uc_mmap(uc_engine *uc, uint64_t start, uint64_t size, int prot, int
 NS_IB_BEGIN
 
 class Aarch64Machine;
+class MachIPCManager;
 
 typedef std::function<void (uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data)> Aarch64SVCCallback;
 
@@ -50,6 +51,7 @@ public:
     
     std::weak_ptr<Aarch64Machine> machine;
     std::shared_ptr<DarwinFileSystem> fs;
+    std::shared_ptr<MachIPCManager> ipcManager;
     
     uint64_t createSVC(int swi, Aarch64SVCCallback callback);
     uint64_t createSVC(Aarch64SVCCallback callback);
