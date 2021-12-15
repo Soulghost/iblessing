@@ -412,17 +412,17 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
 //        continue;
 //    }
     // init log function
-    shared_ptr<MachOModule> foundationModule = loader->findModuleByName("Foundation");
-    Symbol *_NSSetLogCStringFunction = foundationModule->getSymbolByName("__NSSetLogCStringFunction", false);
-    uint64_t _NSSetLogCStringFunction_addr = _NSSetLogCStringFunction->info->n_value;
-    uc_callFunction(uc, _NSSetLogCStringFunction_addr, Aarch64FunctionCallArg::voidArg(), {0x0});
+//    shared_ptr<MachOModule> foundationModule = loader->findModuleByName("Foundation");
+//    Symbol *_NSSetLogCStringFunction = foundationModule->getSymbolByName("__NSSetLogCStringFunction", false);
+//    uint64_t _NSSetLogCStringFunction_addr = _NSSetLogCStringFunction->info->n_value;
+//    uc_callFunction(uc, _NSSetLogCStringFunction_addr, Aarch64FunctionCallArg::voidArg(), {0x0});
     
     // init dyld lookup
     // _setLookupFunc
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-//    uc_debug_set_breakpoint(uc, 0x1C894E6F0);
+//    uc_debug_set_breakpoint(uc, 0x1c8947d34);
 //    uc_debug_set_breakpoint(uc, 0x1C8952A9C);
     
     // _dyld_initializer_0

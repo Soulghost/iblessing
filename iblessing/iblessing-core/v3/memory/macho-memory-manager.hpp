@@ -24,6 +24,8 @@ NS_IB_BEGIN
 
 class MachOMemoryManager {
 public:
+    std::set<std::pair<uint64_t, uint64_t>> uc_mmap_safe_regions;
+    
     MachOMemoryManager(uc_engine *uc);
     
     uint64_t alloc(size_t size, std::string tag = "");

@@ -122,9 +122,9 @@ MachOLoader::MachOLoader()  {
     this->memoryManager = memoryManager;
     
     // svc
-    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCManager>(uc, 0x700000000, 8 * 0xff00, 233);
+//    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCManager>(uc, 0x700000000, 8 * 0xff00, 233);
     // FIXME: bxl change this to svc proxy
-//    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCProxy>(uc, 0x700000000, 8 * 0xff00, 233, memoryManager);
+    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCProxy>(uc, 0x700000000, 8 * 0xff00, 233, memoryManager);
     this->svcManager = svcManager;
 }
 

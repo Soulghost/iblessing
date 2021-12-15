@@ -16,8 +16,10 @@
 #include "buffered_logger.hpp"
 #include "codesign.h"
 #include "mach-ipc-manager.hpp"
+#include "mach/mach_init.h"
 
 #include <mach/mach_time.h>
+#include <mach/mach_traps.h>
 
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -26,15 +28,15 @@
 using namespace std;
 using namespace iblessing;
 
-#define TASK_SELF_PORT 1
-#define HOST_SELF_PORT 2
-#define TASK_BOOTSTRAP_PORT 4
-#define BOOTSTRAP_PORT 11
-#define CLOCK_SERVER_PORT 13
-#define SEMAPHORE_PORT 14
-#define TASK_SPECIAL_REPLY_PORT 15
-#define HOST_SPECIAL_PORT 16
-#define CONSTRUCT_FAKE_PORT 233
+#define TASK_SELF_PORT (mach_task_self_)
+#define HOST_SELF_PORT (mach_host_self())
+//#define TASK_BOOTSTRAP_PORT 4
+//#define BOOTSTRAP_PORT 11
+//#define CLOCK_SERVER_PORT 13
+//#define SEMAPHORE_PORT 14
+//#define TASK_SPECIAL_REPLY_PORT 15
+//#define HOST_SPECIAL_PORT 16
+//#define CONSTRUCT_FAKE_PORT 233
 
 #define IB_FD_URANDOM 3
 #define IB_FD_PASSWD  4
@@ -217,17 +219,17 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(ret);
                 return true;
             }
-            case 20: { // getpid
-                syscall_return_value(2333);
-                return true;
-            }
-            case 24:   // getuid
-            case 25:   // geteuid
-            case 43:   // getegid
-            case 47: { // getgid
-                syscall_return_value(2333);
-                return true;
-            }
+//            case 20: { // getpid
+//                syscall_return_value(2333);
+//                return true;
+//            }
+//            case 24:   // getuid
+//            case 25:   // geteuid
+//            case 43:   // getegid
+//            case 47: { // getgid
+//                syscall_return_value(2333);
+//                return true;
+//            }
             case 33: { // access
                 uint64_t pathAddr;
                 int mode;
@@ -654,43 +656,43 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(0);
                 return true;
             }
-            case 366: { // bsdthread_register
-                uint64_t thread_start, start_wqthread;
-                int page_size;
-                uint64_t data, offset;
-                int data_size;
-            
-                ensure_uc_reg_read(UC_ARM64_REG_X0, &thread_start);
-                ensure_uc_reg_read(UC_ARM64_REG_X1, &start_wqthread);
-                ensure_uc_reg_read(UC_ARM64_REG_W2, &page_size);
-                ensure_uc_reg_read(UC_ARM64_REG_X3, &data);
-                ensure_uc_reg_read(UC_ARM64_REG_W4, &data_size);
-                ensure_uc_reg_read(UC_ARM64_REG_X5, &offset);
-                
-                printf("[Stalker][+] handle bsdthread_register: thread_start: 0x%llx, start_wqthread 0x%llx, page_size 0x%x, data 0x%llx, data_size 0x%x, offset 0x%llx\n", thread_start, start_wqthread, page_size, data, data_size, offset);
-                
-                int ret = 0;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-                return true;
-            }
-            case 372: { // thread_selfid
-                int ret = 1;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-                return true;
-            }
-            case 381: { // sandbox_ms
-                uint64_t policyAddr, args;
-                int call;
-                ensure_uc_reg_read(UC_ARM64_REG_X0, &policyAddr);
-                ensure_uc_reg_read(UC_ARM64_REG_W1, &call);
-                ensure_uc_reg_read(UC_ARM64_REG_X2, &args);
-                char *policy = MachoMemoryUtils::uc_read_string(uc, policyAddr, 100);
-                assert(policy != NULL);
-                printf("[Stalker][+][Sandbox] apply sandbox check by sandbox_ms with policy %s, call %d, args 0x%llx\n", policy, call, args);
-                free(policy);
-                syscall_return_success;
-                return true;
-            }
+//            case 366: { // bsdthread_register
+//                uint64_t thread_start, start_wqthread;
+//                int page_size;
+//                uint64_t data, offset;
+//                int data_size;
+//
+//                ensure_uc_reg_read(UC_ARM64_REG_X0, &thread_start);
+//                ensure_uc_reg_read(UC_ARM64_REG_X1, &start_wqthread);
+//                ensure_uc_reg_read(UC_ARM64_REG_W2, &page_size);
+//                ensure_uc_reg_read(UC_ARM64_REG_X3, &data);
+//                ensure_uc_reg_read(UC_ARM64_REG_W4, &data_size);
+//                ensure_uc_reg_read(UC_ARM64_REG_X5, &offset);
+//
+//                printf("[Stalker][+] handle bsdthread_register: thread_start: 0x%llx, start_wqthread 0x%llx, page_size 0x%x, data 0x%llx, data_size 0x%x, offset 0x%llx\n", thread_start, start_wqthread, page_size, data, data_size, offset);
+//
+//                int ret = 0;
+//                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+//                return true;
+//            }
+//            case 372: { // thread_selfid
+//                int ret = 1;
+//                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+//                return true;
+//            }
+//            case 381: { // sandbox_ms
+//                uint64_t policyAddr, args;
+//                int call;
+//                ensure_uc_reg_read(UC_ARM64_REG_X0, &policyAddr);
+//                ensure_uc_reg_read(UC_ARM64_REG_W1, &call);
+//                ensure_uc_reg_read(UC_ARM64_REG_X2, &args);
+//                char *policy = MachoMemoryUtils::uc_read_string(uc, policyAddr, 100);
+//                assert(policy != NULL);
+//                printf("[Stalker][+][Sandbox] apply sandbox check by sandbox_ms with policy %s, call %d, args 0x%llx\n", policy, call, args);
+//                free(policy);
+//                syscall_return_success;
+//                return true;
+//            }
             case 3:
             case 396: { // read_NOCANCEL
                 int fd, count;
@@ -909,50 +911,45 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_success;
                 return true;
             }
-            case 18: { // _kernelrpc_mach_port_deallocate_trap
-                int task, name;
-                assert(uc_reg_read(uc, UC_ARM64_REG_W0, &task) == UC_ERR_OK);
-                assert(uc_reg_read(uc, UC_ARM64_REG_W1, &name) == UC_ERR_OK);
-                printf("[+] _kernelrpc_mach_port_deallocate_trap for port %d in task %d\n", name, task);
-                int ret = 0;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-                return true;
-            }
-            case 19: { // _kernelrpc_mach_port_mod_refs_trap
-                int task, name, right, delta;
-                ensure_uc_reg_read(UC_ARM64_REG_W0, &task);
-                ensure_uc_reg_read(UC_ARM64_REG_W1, &name);
-                ensure_uc_reg_read(UC_ARM64_REG_W2, &right);
-                ensure_uc_reg_read(UC_ARM64_REG_W3, &delta);
-                printf("[Stalker][+][Syscall][Mach] _kernelrpc_mach_port_mod_refs_trap with task %d, name %d, right %d, delta %d\n", task, name, right, delta);
-                syscall_return_success;
-                return true;
-            }
-            case 24: { // _kernelrpc_mach_port_construct_trap
-                int task;
-                uint64_t optionsAddr, contextAddr, nameAddr;
-                ensure_uc_reg_read(UC_ARM64_REG_W0, &task);
-                ensure_uc_reg_read(UC_ARM64_REG_X1, &optionsAddr);
-                ensure_uc_reg_read(UC_ARM64_REG_X2, &contextAddr);
-                ensure_uc_reg_read(UC_ARM64_REG_X3, &nameAddr);
-                ib_mach_port_t fakePort = CONSTRUCT_FAKE_PORT;
-                ensure_uc_mem_write(nameAddr, &fakePort, sizeof(ib_mach_port_t));
-                
-                printf("[Stalker][+][Syscall][Mach] _kernelrpc_mach_port_construct_trap for task %d, return fake port %d\n", task, fakePort);
-                
-                syscall_return_success;
-                return true;
-            }
-            case 26: { // mach_reply_port
-                int ret = 4;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-                return true;
-            }
-            case 27: {
-                int ret = 3;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-                return true;
-            }
+//            case 18: { // _kernelrpc_mach_port_deallocate_trap
+//                int task, name;
+//                assert(uc_reg_read(uc, UC_ARM64_REG_W0, &task) == UC_ERR_OK);
+//                assert(uc_reg_read(uc, UC_ARM64_REG_W1, &name) == UC_ERR_OK);
+//                printf("[+] _kernelrpc_mach_port_deallocate_trap for port %d in task %d\n", name, task);
+//                int ret = 0;
+//                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+//                return true;
+//            }
+//            case 19: { // _kernelrpc_mach_port_mod_refs_trap
+//                int task, name, right, delta;
+//                ensure_uc_reg_read(UC_ARM64_REG_W0, &task);
+//                ensure_uc_reg_read(UC_ARM64_REG_W1, &name);
+//                ensure_uc_reg_read(UC_ARM64_REG_W2, &right);
+//                ensure_uc_reg_read(UC_ARM64_REG_W3, &delta);
+//                printf("[Stalker][+][Syscall][Mach] _kernelrpc_mach_port_mod_refs_trap with task %d, name %d, right %d, delta %d\n", task, name, right, delta);
+//                syscall_return_success;
+//                return true;
+//            }
+//            case 24: { // _kernelrpc_mach_port_construct_trap
+//                int task;
+//                uint64_t optionsAddr, contextAddr, nameAddr;
+//                ensure_uc_reg_read(UC_ARM64_REG_W0, &task);
+//                ensure_uc_reg_read(UC_ARM64_REG_X1, &optionsAddr);
+//                ensure_uc_reg_read(UC_ARM64_REG_X2, &contextAddr);
+//                ensure_uc_reg_read(UC_ARM64_REG_X3, &nameAddr);
+//                ib_mach_port_t fakePort = CONSTRUCT_FAKE_PORT;
+//                ensure_uc_mem_write(nameAddr, &fakePort, sizeof(ib_mach_port_t));
+//
+//                printf("[Stalker][+][Syscall][Mach] _kernelrpc_mach_port_construct_trap for task %d, return fake port %d\n", task, fakePort);
+//
+//                syscall_return_success;
+//                return true;
+//            }
+//            case 27: {
+//                int ret = 3;
+//                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+//                return true;
+//            }
             case 28: { // task_self_trap
                 int ret = TASK_SELF_PORT;
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
@@ -964,6 +961,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 return true;
             }
             case 31: { // mach_msg_trap
+                printf("[Stalker][*][Syscall] fallback mach_smg to host\n");
+                return false;
 //                PAD_ARG_(user_addr_t, msg);
 //                PAD_ARG_(mach_msg_option_t, option);
 //                PAD_ARG_(mach_msg_size_t, send_size);
@@ -1051,60 +1050,47 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         }
                         break;
                     }
-                    case 206: { // host_get_clock_service
-                        #pragma pack(push, 4)
-                        typedef struct {
-                            ib_mach_msg_header_t Head;
-                            ib_NDR_record_t NDR;
-                            int clock_id;
-                            ib_mach_msg_trailer_t trailer;
-                        } Request __attribute__((unused));
-                        #pragma pack(pop)
-                        
-                        Request *request = (Request *)hdr;
-                        printf("[+][Stalker][Syscall][Mach] receive client host_get_clock_service mach_msg with clock_id %d\n", request->clock_id);
-                        
-                        #pragma pack(push, 4)
-                        typedef struct {
-                            ib_mach_msg_header_t Head;
-                            /* start of the kernel processed data */
-                            ib_mach_msg_body_t msgh_body;
-                            ib_mach_msg_port_descriptor_t clock_server;
-                            /* end of the kernel processed data */
-                        } __Reply__host_get_clock_service_t __attribute__((unused));
-                        #pragma pack(pop)
-                        
-                        __Reply__host_get_clock_service_t *OutP = (__Reply__host_get_clock_service_t *)hdr;
-                        OutP->Head.msgh_remote_port = 0;
-                        OutP->Head.msgh_local_port = 0;
-                        OutP->Head.msgh_id += 100;
-                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
-                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__host_get_clock_service_t));
-                        
-                        OutP->msgh_body.msgh_descriptor_count = 1;
-                        OutP->clock_server.name = CLOCK_SERVER_PORT;
-                        OutP->clock_server.pad1 = 0;
-                        OutP->clock_server.pad2 = 0;
-                        OutP->clock_server.disposition = 0x11;
-                        OutP->clock_server.type = IB_MACH_MSG_PORT_DESCRIPTOR;
-                        assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
-                        
-                        syscall_return_success;
-                        return true;
-                    }
-                    case 404: { // vproc_mig_look_up2
-                        #pragma pack(push, 4)
-                        typedef struct {
-                            ib_mach_msg_header_t Head;
-                            ib_NDR_record_t NDR;
-                            char serviceName[128];
-                        } Request __attribute__((unused));
-                        #pragma pack(pop)
-                        
-                        Request *request = (Request *)hdr;
-                        assert(false);
-                        return true;
-                    }
+//                    case 206: { // host_get_clock_service
+//                        #pragma pack(push, 4)
+//                        typedef struct {
+//                            ib_mach_msg_header_t Head;
+//                            ib_NDR_record_t NDR;
+//                            int clock_id;
+//                            ib_mach_msg_trailer_t trailer;
+//                        } Request __attribute__((unused));
+//                        #pragma pack(pop)
+//
+//                        Request *request = (Request *)hdr;
+//                        printf("[+][Stalker][Syscall][Mach] receive client host_get_clock_service mach_msg with clock_id %d\n", request->clock_id);
+//
+//                        #pragma pack(push, 4)
+//                        typedef struct {
+//                            ib_mach_msg_header_t Head;
+//                            /* start of the kernel processed data */
+//                            ib_mach_msg_body_t msgh_body;
+//                            ib_mach_msg_port_descriptor_t clock_server;
+//                            /* end of the kernel processed data */
+//                        } __Reply__host_get_clock_service_t __attribute__((unused));
+//                        #pragma pack(pop)
+//
+//                        __Reply__host_get_clock_service_t *OutP = (__Reply__host_get_clock_service_t *)hdr;
+//                        OutP->Head.msgh_remote_port = 0;
+//                        OutP->Head.msgh_local_port = 0;
+//                        OutP->Head.msgh_id += 100;
+//                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+//                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__host_get_clock_service_t));
+//
+//                        OutP->msgh_body.msgh_descriptor_count = 1;
+//                        OutP->clock_server.name = CLOCK_SERVER_PORT;
+//                        OutP->clock_server.pad1 = 0;
+//                        OutP->clock_server.pad2 = 0;
+//                        OutP->clock_server.disposition = 0x11;
+//                        OutP->clock_server.type = IB_MACH_MSG_PORT_DESCRIPTOR;
+//                        assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
+//
+//                        syscall_return_success;
+//                        return true;
+//                    }
                     case 412: { // host_get_special_port
                         #pragma pack(push, 4)
                         typedef struct {
@@ -1181,46 +1167,46 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         syscall_return_success;
                         return true;
                     }
-                    case 3409: { // task_get_special_port
-                        #pragma pack(push, 4)
-                        typedef struct {
-                            ib_mach_msg_header_t Head;
-                            ib_NDR_record_t NDR;
-                            int which_port;
-                        } Request __attribute__((unused));
-                        #pragma pack(pop)
-                        Request *request = (Request *)hdr;
-                        assert(request->which_port == TASK_BOOTSTRAP_PORT);
-                        
-                        #pragma pack(push, 4)
-                        typedef struct {
-                            ib_mach_msg_header_t Head;
-                            /* start of the kernel processed data */
-                            ib_mach_msg_body_t msgh_body;
-                            ib_mach_msg_port_descriptor_t special_port;
-                            /* end of the kernel processed data */
-                        } __Reply__task_get_special_port_t __attribute__((unused));
-                        #pragma pack(pop)
-                        __Reply__task_get_special_port_t *OutP = (__Reply__task_get_special_port_t *)hdr;
-                        OutP->Head.msgh_remote_port = 0;
-                        OutP->Head.msgh_local_port = 0;
-                        OutP->Head.msgh_id += 100;
-                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
-                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__task_get_special_port_t));
-                        
-                        OutP->msgh_body.msgh_descriptor_count = 1;
-                        OutP->special_port.name = BOOTSTRAP_PORT;
-                        OutP->special_port.pad1 = 0;
-                        OutP->special_port.pad2 = 0;
-                        // check libsystem_kernel.dylib task_get_special_port
-                        OutP->special_port.disposition = 17;
-                        OutP->special_port.type = IB_MACH_MSG_PORT_DESCRIPTOR;
-                        assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
-                        
-                        int ret = 0;
-                        assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-                        return true;
-                    }
+//                    case 3409: { // task_get_special_port
+//                        #pragma pack(push, 4)
+//                        typedef struct {
+//                            ib_mach_msg_header_t Head;
+//                            ib_NDR_record_t NDR;
+//                            int which_port;
+//                        } Request __attribute__((unused));
+//                        #pragma pack(pop)
+//                        Request *request = (Request *)hdr;
+//                        assert(request->which_port == TASK_BOOTSTRAP_PORT);
+//
+//                        #pragma pack(push, 4)
+//                        typedef struct {
+//                            ib_mach_msg_header_t Head;
+//                            /* start of the kernel processed data */
+//                            ib_mach_msg_body_t msgh_body;
+//                            ib_mach_msg_port_descriptor_t special_port;
+//                            /* end of the kernel processed data */
+//                        } __Reply__task_get_special_port_t __attribute__((unused));
+//                        #pragma pack(pop)
+//                        __Reply__task_get_special_port_t *OutP = (__Reply__task_get_special_port_t *)hdr;
+//                        OutP->Head.msgh_remote_port = 0;
+//                        OutP->Head.msgh_local_port = 0;
+//                        OutP->Head.msgh_id += 100;
+//                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+//                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__task_get_special_port_t));
+//
+//                        OutP->msgh_body.msgh_descriptor_count = 1;
+//                        OutP->special_port.name = BOOTSTRAP_PORT;
+//                        OutP->special_port.pad1 = 0;
+//                        OutP->special_port.pad2 = 0;
+//                        // check libsystem_kernel.dylib task_get_special_port
+//                        OutP->special_port.disposition = 17;
+//                        OutP->special_port.type = IB_MACH_MSG_PORT_DESCRIPTOR;
+//                        assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
+//
+//                        int ret = 0;
+//                        assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+//                        return true;
+//                    }
                     case 3414: { // task_get_exception_ports
                         #pragma pack(push, 4)
                         typedef struct {
@@ -1259,82 +1245,90 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         syscall_return_success;
                         return true;
                     }
-                    case 3418: { // semaphore_create
-                        #pragma pack(push, 4)
-                        typedef struct {
-                            ib_mach_msg_header_t Head;
-                            ib_NDR_record_t NDR;
-                            int policy;
-                            int value;
-                            ib_mach_msg_trailer_t trailer;
-                        } Request __attribute__((unused));
-                        #pragma pack(pop)
-                        
-                        Request *request = (Request *)hdr;
-                        printf("[+][Stalker][Syscall][Mach] receive client semaphore_create mach_msg with policy %d, value %d\n", request->policy, request->value);
-                        
-                        #pragma pack(push, 4)
-                        typedef struct {
-                            ib_mach_msg_header_t Head;
-                            /* start of the kernel processed data */
-                            ib_mach_msg_body_t msgh_body;
-                            ib_mach_msg_port_descriptor_t semaphore;
-                            /* end of the kernel processed data */
-                        } __Reply__semaphore_create_t __attribute__((unused));
-                        #pragma pack(pop)
-                        
-                        __Reply__semaphore_create_t *OutP = (__Reply__semaphore_create_t *)hdr;
-                        OutP->Head.msgh_remote_port = 0;
-                        OutP->Head.msgh_local_port = 0;
-                        OutP->Head.msgh_id += 100;
-                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
-                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__semaphore_create_t));
-                        
-                        OutP->msgh_body.msgh_descriptor_count = 1;
-                        OutP->semaphore.name = SEMAPHORE_PORT;
-                        OutP->semaphore.pad1 = 0;
-                        OutP->semaphore.pad2 = 0;
-                        OutP->semaphore.disposition = 0x11;
-                        OutP->semaphore.type = IB_MACH_MSG_PORT_DESCRIPTOR;
-                        assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
-                        
-                        syscall_return_success;
-                        return true;
-                    }
-                    case 8000: { // _Xtask_restartable_ranges_register
-                        typedef struct {
-                            ib_mach_vm_address_t location;
-                            unsigned short    length;
-                            unsigned short    recovery_offs;
-                            unsigned int      flags;
-                        } task_restartable_range_t;
-                        #pragma pack(push, 4)
-                        typedef struct {
-                            ib_mach_msg_header_t Head;
-                            ib_NDR_record_t NDR;
-                            ib_mach_msg_type_number_t rangesCnt;
-                            task_restartable_range_t ranges[64];
-                            ib_mach_msg_trailer_t trailer;
-                        } Request __attribute__((unused));
-                        #pragma pack(pop)
-                        
-                        #pragma pack(push, 4)
-                        typedef struct {
-                            ib_mach_msg_header_t Head;
-                            ib_NDR_record_t NDR;
-                            ib_kern_return_t RetCode;
-                        } __Reply__task_restartable_ranges_register_t __attribute__((unused));
-                        #pragma pack(pop)
-                        
-                        __Reply__task_restartable_ranges_register_t *OutP = (__Reply__task_restartable_ranges_register_t *)hdr;
-                        OutP->Head.msgh_remote_port = 0;
-                        OutP->Head.msgh_local_port = 0;
-                        OutP->Head.msgh_id += 100;
-                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff);
-                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__task_restartable_ranges_register_t));
-                        OutP->RetCode = 0;
-                        ensure_uc_mem_write(msg, OutP, OutP->Head.msgh_size);
-                        syscall_return_success;
+//                    case 3418: { // semaphore_create
+//                        #pragma pack(push, 4)
+//                        typedef struct {
+//                            ib_mach_msg_header_t Head;
+//                            ib_NDR_record_t NDR;
+//                            int policy;
+//                            int value;
+//                            ib_mach_msg_trailer_t trailer;
+//                        } Request __attribute__((unused));
+//                        #pragma pack(pop)
+//
+//                        Request *request = (Request *)hdr;
+//                        printf("[+][Stalker][Syscall][Mach] receive client semaphore_create mach_msg with policy %d, value %d\n", request->policy, request->value);
+//
+//                        #pragma pack(push, 4)
+//                        typedef struct {
+//                            ib_mach_msg_header_t Head;
+//                            /* start of the kernel processed data */
+//                            ib_mach_msg_body_t msgh_body;
+//                            ib_mach_msg_port_descriptor_t semaphore;
+//                            /* end of the kernel processed data */
+//                        } __Reply__semaphore_create_t __attribute__((unused));
+//                        #pragma pack(pop)
+//
+//                        __Reply__semaphore_create_t *OutP = (__Reply__semaphore_create_t *)hdr;
+//                        OutP->Head.msgh_remote_port = 0;
+//                        OutP->Head.msgh_local_port = 0;
+//                        OutP->Head.msgh_id += 100;
+//                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff) | IB_MACH_MSGH_BITS_COMPLEX;
+//                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__semaphore_create_t));
+//
+//                        OutP->msgh_body.msgh_descriptor_count = 1;
+//                        OutP->semaphore.name = SEMAPHORE_PORT;
+//                        OutP->semaphore.pad1 = 0;
+//                        OutP->semaphore.pad2 = 0;
+//                        OutP->semaphore.disposition = 0x11;
+//                        OutP->semaphore.type = IB_MACH_MSG_PORT_DESCRIPTOR;
+//                        assert(uc_mem_write(uc, msg, OutP, OutP->Head.msgh_size) == UC_ERR_OK);
+//
+//                        syscall_return_success;
+//                        return true;
+//                    }
+//                    case 8000: { // _Xtask_restartable_ranges_register
+//                        typedef struct {
+//                            ib_mach_vm_address_t location;
+//                            unsigned short    length;
+//                            unsigned short    recovery_offs;
+//                            unsigned int      flags;
+//                        } task_restartable_range_t;
+//                        #pragma pack(push, 4)
+//                        typedef struct {
+//                            ib_mach_msg_header_t Head;
+//                            ib_NDR_record_t NDR;
+//                            ib_mach_msg_type_number_t rangesCnt;
+//                            task_restartable_range_t ranges[64];
+//                            ib_mach_msg_trailer_t trailer;
+//                        } Request __attribute__((unused));
+//                        #pragma pack(pop)
+//
+//                        #pragma pack(push, 4)
+//                        typedef struct {
+//                            ib_mach_msg_header_t Head;
+//                            ib_NDR_record_t NDR;
+//                            ib_kern_return_t RetCode;
+//                        } __Reply__task_restartable_ranges_register_t __attribute__((unused));
+//                        #pragma pack(pop)
+//
+//                        __Reply__task_restartable_ranges_register_t *OutP = (__Reply__task_restartable_ranges_register_t *)hdr;
+//                        OutP->Head.msgh_remote_port = 0;
+//                        OutP->Head.msgh_local_port = 0;
+//                        OutP->Head.msgh_id += 100;
+//                        OutP->Head.msgh_bits = (hdr->msgh_bits & 0xff);
+//                        OutP->Head.msgh_size = (ib_mach_msg_size_t)(sizeof(__Reply__task_restartable_ranges_register_t));
+//                        OutP->RetCode = 0;
+//                        ensure_uc_mem_write(msg, OutP, OutP->Head.msgh_size);
+//                        syscall_return_success;
+//                        return true;
+//                    }
+                    case 0x40000000: {
+                        printf("[Stalker][-][Warn] ignore mach_msg 0x40000000\n");
+                        uc_debug_print_backtrace(uc);
+                        assert(false);
+////                        syscall_return_success;
+//                        syscall_return_value(0x10004004);
                         return true;
                     }
                     default:
@@ -1345,20 +1339,20 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 
                 free(hdr);
             }
-            case 36: { // semaphore_wait_trap
-                ib_mach_port_t semaphore_port = 0;
-                ensure_uc_reg_read(UC_ARM64_REG_W0, &semaphore_port);
-                assert(semaphore_port == SEMAPHORE_PORT);
-                printf("[Stalker][+][Syscall][Mach] semaphore_wait_trap for port %d\n", semaphore_port);
-                syscall_return_success;
-                return true;
-            }
-            case 50: { // thread_get_special_reply_port
-                uint64_t reply_port = TASK_SPECIAL_REPLY_PORT;
-                syscall_return_value64(reply_port);
-                printf("[Stalker][+][Syscall][Mach] thread_get_special_reply_port return port %lld\n", reply_port);
-                return true;
-            }
+//            case 36: { // semaphore_wait_trap
+//                ib_mach_port_t semaphore_port = 0;
+//                ensure_uc_reg_read(UC_ARM64_REG_W0, &semaphore_port);
+//                assert(semaphore_port == SEMAPHORE_PORT);
+//                printf("[Stalker][+][Syscall][Mach] semaphore_wait_trap for port %d\n", semaphore_port);
+//                syscall_return_success;
+//                return true;
+//            }
+//            case 50: { // thread_get_special_reply_port
+//                uint64_t reply_port = TASK_SPECIAL_REPLY_PORT;
+//                syscall_return_value64(reply_port);
+//                printf("[Stalker][+][Syscall][Mach] thread_get_special_reply_port return port %lld\n", reply_port);
+//                return true;
+//            }
             case 70: { // host_create_mach_voucher_trap
                 ib_mach_port_t host_port;
                 uint64_t recipeAddr, newVoucherAddr;
@@ -1387,14 +1381,13 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 return true;
             }
             default:
-                uc_debug_print_backtrace(uc);
-                assert(false);
+                printf("[Stalker][*][Syscall] fallback trap_no %lld to host\n", trap_no);
                 break;
         }
     }
     
-    BufferedLogger::globalLogger()->printBuffer();
-    print_backtrace(uc);
-    assert(false);
+//    BufferedLogger::globalLogger()->printBuffer();
+//    print_backtrace(uc);
+//    assert(false);
     return false;
 }

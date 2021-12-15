@@ -11,6 +11,7 @@
 #include <mach/mach_traps.h>
 #include "mach_traps.h"
 #include "mach-universal.hpp"
+#include "uc_debugger_utils.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -49,11 +50,12 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
     int mach_trap_idx = 0;
     uint64_t args[16] = {0};
     getTrapNoAndArgs(uc, &trap_no, args);
-    printf("[Stalker][+][Syscall] proxy syscall num %d\n", trap_no);
+    printf("[Stalker][+][Syscall] fallback to proxy syscall num %d: ", trap_no);
     if(trap_no > 0){
         printf(" \n");
         int ret = syscall(trap_no, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
         assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+        printf("\n");
         return true;
     }else{
         mach_trap_idx = -trap_no;
@@ -90,6 +92,8 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
             }
             if (machMsg && ret != 0) {
                 printf("\t trap %d call error: %s\n", trap_no, mach_error_string(ret));
+                uc_debug_print_backtrace(uc);
+                assert(false);
             }
             assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
             return true;
@@ -247,13 +251,10 @@ bool Aarch64SVCProxy::handleSpecialSyscall(uc_engine *uc, uint32_t intno, uint32
 }
 
 bool Aarch64SVCProxy::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-    bool ret = false;
-    ret = handleSpecialSyscall(uc, intno, swi, user_data);
-    if(!ret){
+    bool ret = Aarch64SVCManager::handleSyscall(uc, intno, swi, user_data);
+    if (!ret) {
         ret = handleNormalSyscall(uc, intno, swi, user_data);
     }
-    if(!ret){
-        ret = Aarch64SVCManager::handleSyscall(uc, intno, swi, user_data);
-    }
+    assert(ret == true);
     return ret;
 }
