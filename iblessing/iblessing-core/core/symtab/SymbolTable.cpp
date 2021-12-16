@@ -95,8 +95,8 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64
             // NOTICE: ignore export symbol
             if (li->n_value != 0) {
                 // FIXME: symbol base in sharedcache
-                if (li->n_value < moduleBase) {
-                    li->n_value += moduleBase;
+                if (moduleBase > 0) {
+                    li->n_value += DYLD_FIXED_SLIDE;
                 }
                 if (exportSymbols.size() == 0) {
                     // add symbol directly

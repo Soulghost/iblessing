@@ -45,13 +45,14 @@ struct Aarch64SVC {
     Aarch64SVCCallback callback;
 };
 
-class Aarch64SVCManager {
+class Aarch64SVCManager : public std::enable_shared_from_this<Aarch64SVCManager> {
 public:
     Aarch64SVCManager(uc_engine *uc, uint64_t addr, uint64_t size, int swiInitValue);
     
     std::weak_ptr<Aarch64Machine> machine;
     std::shared_ptr<DarwinFileSystem> fs;
     std::shared_ptr<MachIPCManager> ipcManager;
+    uc_engine *uc;
     
     uint64_t createSVC(int swi, Aarch64SVCCallback callback);
     uint64_t createSVC(Aarch64SVCCallback callback);
@@ -70,7 +71,6 @@ protected:
     uint64_t addr;
     uint64_t curAddr;
     uint64_t size;
-    uc_engine *uc;
     int swiGenerator;
     std::map<int, Aarch64SVC> svcMap;
 };

@@ -63,9 +63,16 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
         bool machMsg = false;
         if(mach_trap_idx >=0 && mach_trap_idx < MACH_TRAP_TABLE_COUNT){
             mach_trap_t trap = mach_trap_table[mach_trap_idx];
-            printf(" (%s)\n", trap.mach_trap_name);
+            printf(" %s", trap.mach_trap_name);
             if (trap_no == -31) {
                 machMsg = true;
+                ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)args[0];
+                printf("(msgh_id = %d(0x%x))\n", hdr->msgh_id, hdr->msgh_id);
+            } else {
+                printf("\n");
+            }
+            if (trap_no == -70) {
+                printf("");
             }
             switch (trap.mach_trap_arg_count) {
                 case 0:
@@ -91,9 +98,17 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
                     break;
             }
             if (machMsg && ret != 0) {
-                printf("\t trap %d call error: %s\n", trap_no, mach_error_string(ret));
+                ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)args[0];
+                printf("[Stalker][!][Syscall][Error] mach_msg for id %d(0x%x) error: %s\n", hdr->msgh_id, hdr->msgh_id, mach_error_string(ret));
                 uc_debug_print_backtrace(uc);
                 assert(false);
+            } else if (ret != 0) {
+                // syscall / mach call
+                if (trap_no == -70) {
+                    uint64_t localargs[2];
+                    ensure_uc_mem_read(args[1], localargs, 0x10);
+                    printf("[Stalker][!][Syscall][Error] trap %d syscall/mach call error %s\n", trap_no, mach_error_string(ret));
+                }
             }
             assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
             return true;

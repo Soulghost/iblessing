@@ -109,6 +109,7 @@ int __shared_region_map_and_slide_np(uc_engine *uc, int fd, uint32_t count, cons
     
     for (int i = 0; i < count; i++) {
         ib_shared_file_mapping_np mapping = mappings[i];
+//        void *mmaddr = mmap((void *)0x500000000, mapping.sfm_size, mapping.sfm_init_prot & (0x7), MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, 0, 0);
         uc_err err = uc_mem_map(uc, mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot & (0x7));
         if (err != UC_ERR_OK) {
             printf("[-] failed to map sharedcache region 0x%llx, size 0x%llx, prot 0x%x\n", mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot);
@@ -417,13 +418,13 @@ static bool mapCacheSystemWide(uc_engine *uc, const SharedCacheOptions& options,
         result = __shared_region_map_and_slide_2_np(1, &file, info.mappingsCount, info.mappings);
     } else {
         // With the old syscall, dyld has to choose the slide
-        results->slide = options.disableASLR ? 0 : pickCacheASLRSlide(info);
+        results->slide = options.disableASLR ? DYLD_FIXED_SLIDE : pickCacheASLRSlide(info);
 
         // update mappings based on the slide we choose
         for (uint32_t i=0; i < info.mappingsCount; ++i) {
             info.mappings[i].sms_address += results->slide;
             if ( info.mappings[i].sms_slide_size != 0 )
-                info.mappings[i].sms_slide_start += (uint32_t)results->slide;
+                info.mappings[i].sms_slide_start += results->slide;
         }
 
         // If we get here then we don't have the new kernel function, so use the old one
@@ -449,8 +450,9 @@ static bool mapCacheSystemWide(uc_engine *uc, const SharedCacheOptions& options,
                 // update mappings based on the slide the kernel chose
                 for (uint32_t i=0; i < info.mappingsCount; ++i) {
                     info.mappings[i].sms_address += results->slide;
-                    if ( info.mappings[i].sms_slide_size != 0 )
-                        info.mappings[i].sms_slide_start += (uint32_t)results->slide;
+                    if ( info.mappings[i].sms_slide_size != 0 ) {
+                        info.mappings[i].sms_slide_start += results->slide;
+                    }
                 }
 
                 if ( options.verbose )

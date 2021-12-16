@@ -853,7 +853,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     }
     
     // FATAL FIXME: hardcode _dyld_function_lookup addr
-    uint64_t _dyld_function_lookup_addr = 0x1D2896F78;
+    uint64_t _dyld_function_lookup_addr = 0x1D2896F78 + sharedCacheLoadInfo.slide;
     assert(uc_mem_write(uc, _dyld_function_lookup_addr, &dyldFunctionLookupAddr, 8) == UC_ERR_OK);
     return mainModule;
 }
@@ -1349,6 +1349,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
             case IB_LC_SEGMENT_64: {
                 struct ib_segment_command_64 *seg64 = (struct ib_segment_command_64 *)malloc(sizeof(struct ib_segment_command_64));
                 ensure_uc_mem_read(cmdsAddr, seg64, sizeof(struct ib_segment_command_64));
+                seg64->vmaddr += findResult.slideInCache;
                 segmentHeaders.push_back(seg64);
                 
                 uint64_t size = std::min(seg64->vmsize, seg64->filesize);
@@ -1371,7 +1372,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
                     for (uint32_t i = 0; i < seg64->nsects; i++) {
                         struct ib_section_64 *sect = (struct ib_section_64 *)malloc(sizeof(struct ib_section_64));
                         ensure_uc_mem_read(sectAddr, sect, sizeof(struct ib_section_64));
-                        
+                        sect->addr += findResult.slideInCache;
                         char *sectname = (char *)malloc(17);
                         memcpy(sectname, sect->sectname, 16);
                         sectname[16] = 0;
@@ -1664,6 +1665,7 @@ shared_ptr<MachOModule> MachOLoader::findModuleByAddr(uint64_t addr) {
         return module;
     }
     
+    uc_debug_print_backtrace(uc);
     assert(false);
     return nullptr;
 }
