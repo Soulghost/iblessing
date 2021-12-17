@@ -109,8 +109,10 @@ int __shared_region_map_and_slide_np(uc_engine *uc, int fd, uint32_t count, cons
     
     for (int i = 0; i < count; i++) {
         ib_shared_file_mapping_np mapping = mappings[i];
-//        void *mmaddr = mmap((void *)0x500000000, mapping.sfm_size, mapping.sfm_init_prot & (0x7), MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, 0, 0);
-        uc_err err = uc_mem_map(uc, mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot & (0x7));
+//        int prot = mapping.sfm_init_prot & (0x7);
+        void *hostmem = mmap((void *)mapping.sfm_address, mapping.sfm_size, VM_PROT_ALL, MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, 0, 0);
+        assert(hostmem != MAP_FAILED);
+        uc_err err = uc_mem_map_ptr(uc, mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot & (0x7), hostmem);
         if (err != UC_ERR_OK) {
             printf("[-] failed to map sharedcache region 0x%llx, size 0x%llx, prot 0x%x\n", mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot);
             assert(false);
@@ -118,7 +120,9 @@ int __shared_region_map_and_slide_np(uc_engine *uc, int fd, uint32_t count, cons
             printf("[+] mapping 0x%llx - 0x%llx, with fileoff 0x%llx\n", mapping.sfm_address, mapping.sfm_address + mapping.sfm_size, mapping.sfm_file_offset);
         }
         
+//        assert(mprotect(hostmem, mapping.sfm_size, VM_PROT_ALL) == 0);
         err = uc_mem_write(uc, mapping.sfm_address, mappedFile + mapping.sfm_file_offset, mapping.sfm_size);
+//        assert(mprotect(hostmem, mapping.sfm_size, prot) == 0);
         if (err != UC_ERR_OK) {
             printf("[-] failed to write sharedcache data from fileoff 0x%llx to address 0x%llx, size 0x%llx\n", mapping.sfm_file_offset, mapping.sfm_address, mapping.sfm_size);
             assert(false);

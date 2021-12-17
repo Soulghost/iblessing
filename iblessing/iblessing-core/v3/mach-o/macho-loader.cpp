@@ -107,15 +107,15 @@ MachOLoader::MachOLoader()  {
         assert(false);
     }
     
-    uint64_t stack_top = UnicornStackTopAddr;
-    uint64_t stack_size = 0x10000;
-    uint64_t stack_addr = stack_top - stack_size;
-    err = uc_mem_map(uc, stack_addr, stack_size, UC_PROT_ALL);
-    if (err != UC_ERR_OK) {
-        cout << termcolor::red << "[-] MachOLoader - Error: unicorn error " << uc_strerror(err);
-        cout << termcolor::reset << endl;
-        assert(false);
-    }
+//    uint64_t stack_top = UnicornStackTopAddr;
+//    uint64_t stack_size = 0x10000;
+//    uint64_t stack_addr = stack_top - stack_size;
+//    err = uc_mem_map(uc, stack_addr, stack_size, UC_PROT_ALL);
+//    if (err != UC_ERR_OK) {
+//        cout << termcolor::red << "[-] MachOLoader - Error: unicorn error " << uc_strerror(err);
+//        cout << termcolor::reset << endl;
+//        assert(false);
+//    }
     
     // memory
     shared_ptr<MachOMemoryManager> memoryManager = make_shared<MachOMemoryManager>(uc);
@@ -493,7 +493,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
         });
     }
     if (dyldFunctionLookupAddr == 0) {
-        dyldFunctionLookupAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+        dyldFunctionLookupAddr = svcManager->createSVC([&, sharedCacheLoadInfo](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
             uint64_t dyldFuncNameAddr = 0, dyldFuncBindToAddr;
             assert(uc_reg_read(uc, UC_ARM64_REG_X0, &dyldFuncNameAddr) == UC_ERR_OK);
             assert(uc_reg_read(uc, UC_ARM64_REG_X1, &dyldFuncBindToAddr) == UC_ERR_OK);
@@ -546,13 +546,14 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         infoInVM = memoryManager->alloc(size);
 
                         // init data
+                        uint64_t sharedCacheBaseAddress = sharedCacheLoadInfo.loadAddress;
                         struct dyld_all_image_infos localInfo = {
-                            17, 0, {NULL}, NULL, false, false, (const mach_header*)0x180000000, NULL,
+                            17, 0, {NULL}, NULL, false, false, (const mach_header*)sharedCacheBaseAddress, NULL,
                             "dyld-832.7.3", NULL, 0, NULL, 0, 0, NULL, (struct dyld_all_image_infos *)infoInVM,
                             0, 0, NULL, NULL, NULL, 0, {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,},
                             0, {0}, "/usr/lib/dyld", {0}, {0}, 0, 0, NULL, 0
                         };
-                        localInfo.sharedCacheBaseAddress = 0x180000000;
+                        localInfo.sharedCacheBaseAddress = sharedCacheBaseAddress;
                         ensure_uc_mem_write(infoInVM, &localInfo, size);
                     }
                     __dyld_get_all_image_infos_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
@@ -853,6 +854,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     }
     
     // FATAL FIXME: hardcode _dyld_function_lookup addr
+    // 0x00000009d2896f78
     uint64_t _dyld_function_lookup_addr = 0x1D2896F78 + sharedCacheLoadInfo.slide;
     assert(uc_mem_write(uc, _dyld_function_lookup_addr, &dyldFunctionLookupAddr, 8) == UC_ERR_OK);
     return mainModule;
@@ -1419,7 +1421,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
                             uint64_t *modInitFuncsHead = modInitFuncs;
                             ensure_uc_mem_read(sect->addr, modInitFuncs, size);
                             for (uint64_t i = 0; i < count; i++) {
-                                uint64_t funcAddr = *modInitFuncs & 0xfffffffffULL;
+                                uint64_t funcAddr = *modInitFuncs;
                                 modInitFuncList.push_back({ .addr = funcAddr });
                                 modInitFuncs += 1;
                             }
@@ -1441,7 +1443,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
             case IB_LC_ROUTINES_64: {
                 struct ib_routines_command_64 routine_cmd;
                 ensure_uc_mem_read(cmdsAddr, &routine_cmd, sizeof(ib_routines_command_64));
-                uint64_t addr = routine_cmd.init_address + imageBase;
+                uint64_t addr = routine_cmd.init_address + findResult.slideInCache;
                 routineList.push_back({ .addr = addr });
                 break;
             }
@@ -1665,8 +1667,8 @@ shared_ptr<MachOModule> MachOLoader::findModuleByAddr(uint64_t addr) {
         return module;
     }
     
-    uc_debug_print_backtrace(uc);
-    assert(false);
+//    uc_debug_print_backtrace(uc);
+//    assert(false);
     return nullptr;
 }
 

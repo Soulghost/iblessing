@@ -104,7 +104,6 @@ void print_backtrace(uc_engine *uc, shared_ptr<MachOLoader> loader) {
 
 void uc_debug_print_backtrace(uc_engine *uc) {
     BufferedLogger::globalLogger()->printBuffer();
-    uc_debug_breakhere(uc);
     print_backtrace(uc);
 }
 

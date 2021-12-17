@@ -813,6 +813,32 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(false);
                 return true;
             }
+            case 521: {
+#if 0
+                static int abort_with_payload_internal(uint32_t reason_namespace, uint64_t reason_code,
+                    user_addr_t payload, uint32_t payload_size,
+                    user_addr_t reason_string, uint64_t reason_flags,
+                    uint32_t internal_flags)
+#endif
+                uint32_t reason_namespace;
+                uint64_t reason_code;
+                uint64_t payload;
+                uint32_t payload_size;
+                const char *reason_string;
+                uint64_t reason_flags;
+                uint32_t internal_flags;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &reason_namespace);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &reason_code);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &payload);
+                ensure_uc_reg_read(UC_ARM64_REG_W3, &payload_size);
+                ensure_uc_reg_read(UC_ARM64_REG_X4, &reason_string);
+                ensure_uc_reg_read(UC_ARM64_REG_X5, &reason_flags);
+                ensure_uc_reg_read(UC_ARM64_REG_W6, &internal_flags);
+                uc_debug_print_backtrace(uc);
+                printf("[Stalker][!][Syscall][Logger][Error] abort occurred %d.%lld: %s\n", reason_namespace, reason_code, reason_string);
+                assert(false);
+                return true;
+            }
             case 0x80000000: { // pthread_set_self
                 uint64_t x3 = 0;
                 assert(uc_reg_read(uc, UC_ARM64_REG_X3, &x3) == UC_ERR_OK);
