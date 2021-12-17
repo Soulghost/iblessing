@@ -1,0 +1,10 @@
+# IPv4/v6 addresses
+# 10.160.94.3	asecretkeygoeshere
+# 172.16.1.133	asecretkeygoeshere
+# 3ffe:501:410:ffff:200:86ff:fe05:80fa	asecretkeygoeshere
+# 3ffe:501:410:ffff:210:4bff:fea2:8baa	asecretkeygoeshere
+
+# USER_FQDN
+# macuser@localhost	somethingsecret
+# FQDN
+# kame		hoge

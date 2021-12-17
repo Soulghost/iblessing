@@ -1,0 +1,8 @@
+
+
+
+
+
+
+? [A= Facility com.apple.clouddocs] [> Level error] claim
+? [A= Facility com.apple.clouddocs] directory /var/log/com.apple.clouddocs.asl format=asl rotate=local file_max=10M all_max=100M compress uid=501 gid=501

@@ -202,7 +202,23 @@ int DarwinFileSystem::open(char *path, int oflags) {
         StringUtils::replace(realpath, "/private/tmp/iblessing-workdir/", appBundlePath);
         if (access(realpath.c_str(), F_OK) != 0) {
             machine->setErrno(ENOENT);
-            printf("[Stalker][-][Syscall][File][Error] cannot open app bundle file %s\n", path);
+            printf("[Stalker][-][Syscall][Logger][File][Error] cannot open app bundle file %s\n", path);
+            return -1;
+        }
+        shared_ptr<DarwinFile> f = createFileWithPath(realpath, oflags);
+        return f->fd;
+    }
+    if (StringUtils::has_prefix(string(path), "/etc/")) {
+        static string folderPath = "";
+        if (folderPath.length() == 0) {
+            char *productRoot = getenv("IB_SOURCE_ROOT");
+            folderPath = StringUtils::format("%s/../rootfs/etc/", productRoot);
+        }
+        string realpath = string(path);
+        StringUtils::replace(realpath, "/etc/", folderPath);
+        if (access(realpath.c_str(), F_OK) != 0) {
+            machine->setErrno(ENOENT);
+            printf("[Stalker][-][Syscall][Logger][File][Error] cannot open file %s\n", path);
             return -1;
         }
         shared_ptr<DarwinFile> f = createFileWithPath(realpath, oflags);
@@ -210,7 +226,11 @@ int DarwinFileSystem::open(char *path, int oflags) {
     }
     
     machine->setErrno(ENOENT);
-    printf("[Stalker][-][Syscall][File][Error] cannot open file %s\n", path);
+    printf("[Stalker][-][Syscall][Logger][File][Error] cannot open file %s\n", path);
+    if (strcmp(path, "/etc/.mdns_debug") == 0) {
+        // allowed
+        return -1;
+    }
     uc_debug_print_backtrace(uc);
     assert(false);
     return -1;

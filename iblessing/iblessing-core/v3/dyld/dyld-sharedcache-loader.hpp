@@ -14,8 +14,8 @@
 #include <iblessing-core/v3/dyld/DyldSharedCache.hpp>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 
-#define DYLD_FIXED_SLIDE (0x800000000)
-//#define DYLD_FIXED_SLIDE 0
+//#define DYLD_FIXED_SLIDE (0x800000000)
+#define DYLD_FIXED_SLIDE 0
 
 struct CacheInfo
 {

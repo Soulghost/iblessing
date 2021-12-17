@@ -845,7 +845,17 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     });
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
-            }  else {
+            } else if (strcmp(dyldFuncName, "__dyld_get_prog_image_header") == 0) {
+                // dyld FIXME: ignore __dyld_register_for_bulk_image_loads
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t execMachHeader = modules[0]->machHeader;
+                        syscall_return_value64(execMachHeader);
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
+            } else {
                 uc_debug_print_backtrace(uc);
                 assert(false);
             }

@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #import <objc/runtime.h>
+#include <sys/sysctl.h>
 
 void test_entry(void) {
     int a = 100;
@@ -49,7 +50,7 @@ void testObjc() {
     [md enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         printf("dict key %s, value %s\n", [key UTF8String], [[obj description] UTF8String]);
     }];
-//    NSLog(@"dict contents %s\n", md);
+    NSLog(@"dict contents %@\n", md);
 }
 
 uint64_t test_malloc(void) {
@@ -76,6 +77,12 @@ uint64_t test_malloc(void) {
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    const char *name = strdup("kern.osvariant_status");
+    uint64_t oldp;
+    uint64_t oldlenp = 0x8;
+    int ret = sysctlbyname(name, &oldp, (size_t *)&oldlenp, NULL, NULL);
+    
     test_entry();
 }
 

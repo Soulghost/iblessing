@@ -85,7 +85,7 @@ void *MachOMemoryManager::mmapWrapper(uint64_t guest_addr, size_t size, int prot
         guest_addr_rounded = 0x400000000;
     }
     void *mmaped_addr = mmap((void *)guest_addr_rounded, size_rounded, prot, flags, fd, off);
-//    assert(!guest_addr_rounded || mmaped_addr == (void *)guest_addr_rounded);
+    assert(!guest_addr_rounded || mmaped_addr == (void *)guest_addr_rounded);
     uc_err uc_map_err = uc_mem_map_ptr(uc, (uint64_t)mmaped_addr, size_rounded, prot, mmaped_addr);
     if (uc_map_err != UC_ERR_OK) {
         print_uc_mem_regions(uc);

@@ -1,0 +1,1 @@
+? [= Facility com.apple.NanoFindMy-UserStudy] file /var/mobile/Library/Logs/com.apple.NanoFindMy-UserStudy.log rotate=local-basic file_max=1000M compress uid=501 gid=501

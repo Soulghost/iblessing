@@ -1,0 +1,11 @@
+> /var/mobile/Library/Logs/CrashReporter/DiagnosticLogs/com.apple.contacts.ContactsAutocomplete uid=501 gid=501 mode=0750
+
+? [= Facility com.apple.contacts.ContactsAutocomplete] claim only
+
+? [= Facility com.apple.contacts.ContactsAutocomplete] [= Category Debug] file /var/mobile/Library/Logs/CrashReporter/DiagnosticLogs/com.apple.contacts.ContactsAutocomplete/Debug.log rotate=Debug.local.log ttl=7 file_max=10M all_max=200M compress fmt='$(Time) $(Host) $(Sender)[$(PID):$(ThreadID)] <$((Level)(str))>: $(Function):$(Line) | $(Message)' uid=501 gid=501
+
+? [= Facility com.apple.contacts.ContactsAutocomplete] [= Category Performance] file /var/mobile/Library/Logs/CrashReporter/DiagnosticLogs/com.apple.contacts.ContactsAutocomplete/Performance.log rotate=Performance.local.log ttl=7 file_max=10M all_max=200M compress fmt='$(Time) $(Host) $(Sender)[$(PID):$(ThreadID)] <$((Level)(str))>: $(Function):$(Line) | $(Message)' uid=501 gid=501
+
+? [= Facility com.apple.contacts.ContactsAutocomplete] [= Category Sorting] file /var/mobile/Library/Logs/CrashReporter/DiagnosticLogs/com.apple.contacts.ContactsAutocomplete/Sorting.log rotate=Sorting.local.log ttl=7 file_max=10M all_max=200M compress fmt='$(Time) $(Host) $(Sender)[$(PID):$(ThreadID)] <$((Level)(str))>: $(Function):$(Line) | $(Message)' uid=501 gid=501
+
+? [= Facility com.apple.contacts.ContactsAutocomplete] [= Category Probes] file /var/mobile/Library/Logs/CrashReporter/DiagnosticLogs/com.apple.contacts.ContactsAutocomplete/Probes.log rotate=Probes.local.log ttl=7 file_max=10M all_max=200M compress fmt='$(Time) $(Host) $(Sender)[$(PID):$(ThreadID)] <$((Level)(str))>: $(Function):$(Line) | $(Message)' uid=501 gid=501

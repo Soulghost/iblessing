@@ -111,7 +111,7 @@ int __shared_region_map_and_slide_np(uc_engine *uc, int fd, uint32_t count, cons
         ib_shared_file_mapping_np mapping = mappings[i];
 //        int prot = mapping.sfm_init_prot & (0x7);
         void *hostmem = mmap((void *)mapping.sfm_address, mapping.sfm_size, VM_PROT_ALL, MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, 0, 0);
-        assert(hostmem != MAP_FAILED);
+        assert(hostmem != MAP_FAILED && (uint64_t)hostmem == mapping.sfm_address);
         uc_err err = uc_mem_map_ptr(uc, mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot & (0x7), hostmem);
         if (err != UC_ERR_OK) {
             printf("[-] failed to map sharedcache region 0x%llx, size 0x%llx, prot 0x%x\n", mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot);

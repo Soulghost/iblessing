@@ -25,6 +25,7 @@
 #include <sys/socket.h>
 #include <sys/attr.h>
 #include <sys/mman.h>
+#include <sys/sysctl.h>
 
 using namespace std;
 using namespace iblessing;
@@ -552,22 +553,50 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(-1);
                 return true;
             }
-            case 286: { // pthread_getugid_np
-                uint64_t uidAddr, gidAddr;
-                ensure_uc_reg_read(UC_ARM64_REG_X0, &uidAddr);
-                ensure_uc_reg_read(UC_ARM64_REG_X1, &gidAddr);
-                uint32_t null32 = 0;
-                ensure_uc_mem_write(uidAddr, &null32, sizeof(uint32_t));
-                ensure_uc_mem_write(gidAddr, &null32, sizeof(uint32_t));
-                machine.lock()->setErrno(0);
-                syscall_return_success;
-                return true;
+            case 274: { // sysctlbyname
+#if 0
+                int  __sysctlbyname(const char *name, size_t namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
+#endif
+                const char *name;
+                size_t namelen;
+                void *oldp;
+                void *oldlenp;
+                void *newp;
+                size_t newlen;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &name);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &namelen);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &oldp);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &oldlenp);
+                ensure_uc_reg_read(UC_ARM64_REG_X4, &newp);
+                ensure_uc_reg_read(UC_ARM64_REG_X5, &newlen);
+                if (strcmp(name, "kern.osvariant_status") == 0) {
+                    // 0x70000000fb22a828 from iOS 15
+//                    int ret = sysctlbyname(name, oldp, (size_t *)oldlenp, newp, newlen);
+                    assert(*(uint64_t *)oldlenp == 8);
+                    *(uint64_t *)oldp = 0x70000000fb22a828;
+                    syscall_return_success;
+                    printf("[Stalker][!][Syscall][Warn] fake sysctlbyname kern.osvariant_status with value 0x%llx from iOS 15, return to %p\n", *(uint64_t *)oldp, oldp);
+                    return true;
+                }
+                return false;
             }
-            case 327: { // issetugid
-                printf("[Stalker][+] handle issetugid -> 0\n");
-                syscall_return_success;
-                return true;
-            }
+//            case 286: { // pthread_getugid_np
+//                uint64_t uidAddr, gidAddr;
+//                ensure_uc_reg_read(UC_ARM64_REG_X0, &uidAddr);
+//                ensure_uc_reg_read(UC_ARM64_REG_X1, &gidAddr);
+//                uid_t uid = getuid();
+//                gid_t gid = getgid();
+//                ensure_uc_mem_write(uidAddr, &uid, sizeof(uid_t));
+//                ensure_uc_mem_write(gidAddr, &gid, sizeof(gid_t));
+//                machine.lock()->setErrno(0);
+//                syscall_return_success;
+//                return true;
+//            }
+//            case 327: { // issetugid
+//                printf("[Stalker][+] handle issetugid -> 0\n");
+//                syscall_return_success;
+//                return true;
+//            }
             // fstat64
             case 339: {
                 int fd = 0;
@@ -767,7 +796,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     fd = IB_FD_CWD;
                 } else {
                     fd = fs->open(path, oflags);
-                    assert(fd >= 0);
                 }
                 free(path);
                 ensure_uc_reg_write(UC_ARM64_REG_W0, &fd);
