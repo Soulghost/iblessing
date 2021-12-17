@@ -172,7 +172,7 @@ uint64_t Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> lo
                 symbolAddr = bindHooks[symbolName](symbolName, symbolAddr);
             }
             assert(uc_mem_write(uc, bindToPtrAddr, &symbolAddr, 8) == UC_ERR_OK);
-//            printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, bindToPtrAddr, module->name.c_str());
+            printf("[+] bind %s(%s) at 0x%llx to 0x%llx(%s)\n", symbolName, targetModule->name.c_str(), symbolAddr, bindToPtrAddr, module->name.c_str());
             return symbolAddr;
         }
         case IB_BIND_TYPE_TEXT_ABSOLUTE32: {
