@@ -227,7 +227,9 @@ int DarwinFileSystem::open(char *path, int oflags) {
     
     machine->setErrno(ENOENT);
     printf("[Stalker][-][Syscall][Logger][File][Error] cannot open file %s\n", path);
-    if (strcmp(path, "/etc/.mdns_debug") == 0) {
+    if (strcmp(path, "/etc/.mdns_debug") == 0 ||
+        strcmp(path, "/dev/autofs_nowait") == 0 ||
+        strcmp(path, "/var/mobile/.CFUserTextEncoding") == 0) {
         // allowed
         return -1;
     }
