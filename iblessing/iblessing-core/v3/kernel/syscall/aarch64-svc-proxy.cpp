@@ -99,9 +99,19 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
             }
             if (machMsg && ret != 0) {
                 ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)args[0];
+                mach_msg_header_t hh;
+                ensure_uc_mem_read(args[0], &hh, sizeof(mach_msg_header_t));
                 printf("[Stalker][!][Syscall][Error] mach_msg for id %d(0x%x) error: %s\n", hdr->msgh_id, hdr->msgh_id, mach_error_string(ret));
                 uc_debug_print_backtrace(uc);
-                assert(false);
+                int options = (int)args[1];
+                if ((options & MACH_RCV_TIMEOUT) &&
+                    (options & MACH_RCV_MSG) &&
+                    (args[3] == 0x6C || args[3] == 0x7C) &&
+                    ret == 0x10004003) {
+                    printf("[Stalker][!][Syscall][Warn] allow timeout for this mach_msg\n");
+                } else {
+                    assert(false);
+                }
             } else if (ret != 0) {
                 // syscall / mach call
                 if (trap_no == -70) {

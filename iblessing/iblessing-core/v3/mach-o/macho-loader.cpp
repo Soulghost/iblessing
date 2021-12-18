@@ -855,6 +855,32 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     });
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_get_shared_cache_uuid") == 0) {
+                // dyld FIXME: ignore __dyld_register_for_bulk_image_loads
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+//                        static uint8_t uuid[] = {0xB7, 0x4B, 0x51, 0xDA, 0x12, 0xA0, 0x3F, 8, 0x99, 0x1A, 0xE6, 0xEE, 0xB1, 0xC2, 0x59, 0x3C};
+                        syscall_return_value(1);
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_get_image_header_containing_address") == 0) {
+                // dyld FIXME: ignore __dyld_register_for_bulk_image_loads
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t address;
+                        ensure_uc_reg_read(UC_ARM64_REG_X0, &address);
+                        shared_ptr<MachOModule> module = findModuleByAddr(address);
+                        if (module) {
+                            syscall_return_value64(module->machHeader);
+                        } else {
+                            syscall_return_value64(0);
+                        }
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
             } else {
                 uc_debug_print_backtrace(uc);
                 assert(false);

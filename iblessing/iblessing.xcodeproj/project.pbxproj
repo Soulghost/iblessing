@@ -527,8 +527,8 @@
 			children = (
 				68AE3B0F24EB9CDD003E25EF /* insecureUnserialization */,
 				6829629C24CBEEED00EF9251 /* methodChain */,
-				6829628524CBEEA300EF9251 /* AppDelegate.h */,
 				6829628624CBEEA300EF9251 /* AppDelegate.m */,
+				6829628524CBEEA300EF9251 /* AppDelegate.h */,
 				6829628B24CBEEA300EF9251 /* ViewController.h */,
 				6829628C24CBEEA300EF9251 /* ViewController.m */,
 				6829628E24CBEEA300EF9251 /* Main.storyboard */,

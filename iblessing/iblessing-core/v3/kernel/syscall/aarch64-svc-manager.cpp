@@ -530,8 +530,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 printf("[Stalker][!][Syscall][Warn] forward getattrlist to host: path = %s, options = 0x%x\n", path, options);
                 int ret = getattrlist(path, &attr, attrBuf, attrBufSize, options);
                 if (ret != 0) {
-                    uc_debug_print_backtrace(uc);
-                    assert(false);
+                    machine.lock()->setErrno(errno);
+                    printf("[Stalker][!][Syscall][Error] getattrlist failed with ret %d, err %d\n", ret, errno);
                 }
                 ensure_uc_mem_write(attrBufAddr, attrBuf, attrBufSize);
                 free(path);
@@ -654,11 +654,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
-            case 336: {
-                uc_debug_print_backtrace(uc);
-                assert(false);
-                return true;
-            }
+//            case 336: {
+//                uc_debug_print_backtrace(uc);
+//                assert(false);
+//                return true;
+//            }
             case 338: { // stat64
                 uint64_t pathAddr, bufAddr;
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
@@ -763,8 +763,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     assert(count >= 0);
                 }
                 
-                int readLen = count;
-                ensure_uc_reg_write(UC_ARM64_REG_W0, &readLen);
+                uint64_t readLen = count;
+                ensure_uc_reg_write(UC_ARM64_REG_X0, &readLen);
                 return true;
             }
             case 397: { // write_NOCANCEL
@@ -837,10 +837,23 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(audit_self);
                 return true;
             }
-            case 500: { // getentropy
-                assert(false);
+            case 463: { // openat
+                int fd;
+                char *path;
+                int oflags;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &fd);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &path);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &oflags);
+                assert(fd == -2);
+                int ret = fs->open(path, oflags);
+                syscall_return_value(ret);
                 return true;
             }
+//            case 500: { // getentropy
+//                uc_debug_print_backtrace(uc);
+//                assert(false);
+//                return true;
+//            }
             case 521: {
 #if 0
                 static int abort_with_payload_internal(uint32_t reason_namespace, uint64_t reason_code,

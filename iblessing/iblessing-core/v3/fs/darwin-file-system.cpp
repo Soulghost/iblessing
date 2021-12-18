@@ -233,6 +233,12 @@ int DarwinFileSystem::open(char *path, int oflags) {
         // allowed
         return -1;
     }
+    
+    if (strcmp(path, "/System/Library/Preferences/Logging/Processes/com.soulghost.iblessing.iblessing-sample.plist") == 0) {
+        // allowed
+        return -1;
+    }
+    
     uc_debug_print_backtrace(uc);
     assert(false);
     return -1;
@@ -379,7 +385,11 @@ int DarwinFileSystem::sendto(int socket, uint64_t bufferAddr, size_t length, int
 }
 
 off_t DarwinFileSystem::lseek(int fd, off_t offset, int whence) {
-    assert(has(fd));
+//    assert(has(fd));
+    if (!has(fd)) {
+        uc_debug_print_backtrace(uc);
+        assert(false);
+    }
     shared_ptr<DarwinFile> file = fd2file[fd];
     printf("[Stalker][*][Syscall][File] lseek for file %s, offset %lld, whence %d\n", file->path.c_str(), offset, whence);
     return file->lseek(offset, whence);

@@ -175,7 +175,6 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
     static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony"};
-//    blackListModule.insert("Security");
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
         return;
@@ -423,8 +422,13 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-    uc_debug_set_breakpoint(uc, 0x1C894D464);
-//    uc_debug_set_breakpoint(uc, 0x9941EFC60);
+    uc_debug_set_breakpoint(uc, 0x195E2EB4C);
+//    uc_debug_set_breakpoint(uc, 0x1C8952F3C);
+//    uc_debug_set_breakpoint(uc, 0x1C8952E90);
+//    uc_debug_set_breakpoint(uc, 0x1C8952CE4);
+//    uc_debug_set_breakpoint(uc, 0x1C8952A9C); // fstat(plist_path)
+//    uc_debug_set_breakpoint(uc, 0x1C8952C80);
+//    uc_debug_set_breakpoint(uc, 0x1C8952CD8);
 //    uc_debug_set_breakpoint(uc, 0x1941EFC60);
     
     // _dyld_initializer_0

@@ -61,6 +61,7 @@ uint64_t test_malloc(void) {
         void *small = malloc(0x400);
         memset(small, 0xBB, 0x400);
         free(small);
+        printf("alloc and free chunks tiny %p, small %p\n", tiny, small);
     }
     
 //    void *large = malloc(0x10000);
