@@ -17,7 +17,7 @@ void test_entry(void) {
 }
 
 void testNSLog(void) {
-    NSLog(@"ok");
+    NSLog(@"=============================<<<<>");
 }
 
 void listClasses(void) {
@@ -50,7 +50,7 @@ void testObjc() {
     [md enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         printf("dict key %s, value %s\n", [key UTF8String], [[obj description] UTF8String]);
     }];
-    NSLog(@"dict contents %@\n", md);
+//    NSLog(@"dict contents %@\n", md);
 }
 
 uint64_t test_malloc(void) {
