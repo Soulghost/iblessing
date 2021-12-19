@@ -121,6 +121,7 @@
 		68D341A62705AD4A00810C77 /* macho-memory.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68D341A42705AD4A00810C77 /* macho-memory.hpp */; };
 		68DC62832768F54600B868E8 /* mach-ipc-manager.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68DC62812768F54600B868E8 /* mach-ipc-manager.cpp */; };
 		68DC62842768F54600B868E8 /* mach-ipc-manager.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68DC62822768F54600B868E8 /* mach-ipc-manager.hpp */; };
+		68EB4998276F26E300E58858 /* xpc.h in Headers */ = {isa = PBXBuildFile; fileRef = 68EB4997276F26E300E58858 /* xpc.h */; };
 		68EC52822701DBBD003D9148 /* ib_pthread.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68EC52802701DBBD003D9148 /* ib_pthread.cpp */; };
 		68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68EC52812701DBBD003D9148 /* ib_pthread.hpp */; };
 		CF0B023F2753BC2C0026AD81 /* aarch64-svc-proxy.hpp in Headers */ = {isa = PBXBuildFile; fileRef = CF0B023C2753BC2C0026AD81 /* aarch64-svc-proxy.hpp */; };
@@ -448,6 +449,7 @@
 		68D755DB24C8012A0057E092 /* ObjcMsgXREFServerGenerator.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ObjcMsgXREFServerGenerator.hpp; sourceTree = "<group>"; };
 		68DC62812768F54600B868E8 /* mach-ipc-manager.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "mach-ipc-manager.cpp"; sourceTree = "<group>"; };
 		68DC62822768F54600B868E8 /* mach-ipc-manager.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "mach-ipc-manager.hpp"; sourceTree = "<group>"; };
+		68EB4997276F26E300E58858 /* xpc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = xpc.h; sourceTree = "<group>"; };
 		68EC52802701DBBD003D9148 /* ib_pthread.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = ib_pthread.cpp; sourceTree = "<group>"; };
 		68EC52812701DBBD003D9148 /* ib_pthread.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = ib_pthread.hpp; sourceTree = "<group>"; };
 		CF0B023C2753BC2C0026AD81 /* aarch64-svc-proxy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = "aarch64-svc-proxy.hpp"; sourceTree = "<group>"; };
@@ -525,6 +527,7 @@
 		6829628424CBEEA300EF9251 /* iblessing-sample */ = {
 			isa = PBXGroup;
 			children = (
+				68EB4997276F26E300E58858 /* xpc.h */,
 				68AE3B0F24EB9CDD003E25EF /* insecureUnserialization */,
 				6829629C24CBEEED00EF9251 /* methodChain */,
 				6829628624CBEEA300EF9251 /* AppDelegate.m */,
@@ -1460,6 +1463,7 @@
 				68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */,
 				685B8910275CB0310084D30A /* aarch64-utils.hpp in Headers */,
 				68EC52832701DBBD003D9148 /* ib_pthread.hpp in Headers */,
+				68EB4998276F26E300E58858 /* xpc.h in Headers */,
 				6829112F2740B6FE00D35A2A /* MachOFile.hpp in Headers */,
 				682911352740BA0700D35A2A /* dyld2.hpp in Headers */,
 				687A745327428A1300DBEA11 /* darwin-file-system.hpp in Headers */,

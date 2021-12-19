@@ -30,10 +30,12 @@ int main(int argc, const char *argv[]) {
     char *productRoot = getenv("IB_SOURCE_ROOT");
     string modulePath = StringUtils::path_join(productRoot, "build/Debug-iphoneos/iblessing-sample.app/iblessing-sample");
     string entry = "_test_malloc";
-    entry = "_listClasses";
+//    entry = "_listClasses";
 //    entry = "_test_entry";
-//    entry = "_testObjc";
+    entry = "_testObjc";
+//    entry = "_testNetwork";
 //    entry = "_testNSLog";
+//    entry = "_testXPC";
     
     shared_ptr<MachOLoader> loader = make_shared<MachOLoader>();
     shared_ptr<MachOModule> module = loader->loadModuleFromFile(modulePath);

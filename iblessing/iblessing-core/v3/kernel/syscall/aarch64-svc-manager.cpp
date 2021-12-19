@@ -695,25 +695,25 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(0);
                 return true;
             }
-//            case 366: { // bsdthread_register
-//                uint64_t thread_start, start_wqthread;
-//                int page_size;
-//                uint64_t data, offset;
-//                int data_size;
-//
-//                ensure_uc_reg_read(UC_ARM64_REG_X0, &thread_start);
-//                ensure_uc_reg_read(UC_ARM64_REG_X1, &start_wqthread);
-//                ensure_uc_reg_read(UC_ARM64_REG_W2, &page_size);
-//                ensure_uc_reg_read(UC_ARM64_REG_X3, &data);
-//                ensure_uc_reg_read(UC_ARM64_REG_W4, &data_size);
-//                ensure_uc_reg_read(UC_ARM64_REG_X5, &offset);
-//
-//                printf("[Stalker][+] handle bsdthread_register: thread_start: 0x%llx, start_wqthread 0x%llx, page_size 0x%x, data 0x%llx, data_size 0x%x, offset 0x%llx\n", thread_start, start_wqthread, page_size, data, data_size, offset);
-//
-//                int ret = 0;
-//                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-//                return true;
-//            }
+            case 366: { // bsdthread_register
+                uint64_t thread_start, start_wqthread;
+                int page_size;
+                uint64_t data, offset;
+                int data_size;
+
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &thread_start);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &start_wqthread);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &page_size);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &data);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &data_size);
+                ensure_uc_reg_read(UC_ARM64_REG_X5, &offset);
+
+                printf("[Stalker][+] handle bsdthread_register: thread_start: 0x%llx, start_wqthread 0x%llx, page_size 0x%x, data 0x%llx, data_size 0x%x, offset 0x%llx\n", thread_start, start_wqthread, page_size, data, data_size, offset);
+
+                int ret = 0;
+                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
 //            case 372: { // thread_selfid
 //                int ret = 1;
 //                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
