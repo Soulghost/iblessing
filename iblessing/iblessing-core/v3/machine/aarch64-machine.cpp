@@ -287,8 +287,10 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // setup common text
     uint32_t nopCode = 0xd503201f;
-    sp = uc_alloca(sp, sizeof(uint32_t));
-    callFunctionLR = sp;
+    
+    // nop lr page
+    uint64_t nopPageAddr = (uint64_t)loader->memoryManager->mmapSharedMem(0x600000000, 0x4000, UC_PROT_ALL);
+    callFunctionLR = nopPageAddr;
     ensure_uc_mem_write(callFunctionLR, &nopCode, sizeof(uint32_t));
     
     // FATAL FIXME: tricky nop
@@ -422,7 +424,9 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-    uc_debug_set_breakpoint(uc, 0x195E2EB4C);
+//    uc_debug_set_breakpoint(uc, 0x1000079A0);
+//    uc_debug_set_breakpoint(uc, 0x1000079b0);
+//    uc_debug_set_breakpoint(uc, 0x1000079b4);
 //    uc_debug_set_breakpoint(uc, 0x1C8952F3C);
 //    uc_debug_set_breakpoint(uc, 0x1C8952E90);
 //    uc_debug_set_breakpoint(uc, 0x1C8952CE4);
