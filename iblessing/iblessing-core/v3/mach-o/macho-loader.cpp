@@ -613,7 +613,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     asmText +=                     "ldr x0, [sp]\n"; // x0 = return value
                     asmText +=                     "add sp, sp, #0x8\n"; // skip padding
 
-                    asmText +=                     "ldp x29, x30, [sp]\n";
+                    asmText +=                     "ldp x29, x30, [sp]\n"; // 0x0000000700000130
                     asmText +=                     "add sp, sp, #0x10\n";
                     asmText +=                     "ret";
                     assert(ks_open(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN, &ks) == KS_ERR_OK);
@@ -723,6 +723,11 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         
                         // sync sp
                         ensure_uc_reg_write(UC_ARM64_REG_SP, &sp);
+                        
+                        // dyld FIXME: fake a didCallDyldNotifyRegister state
+                        uint64_t didCallDyldNotifyRegister_addr = 0x1D2897DD0 + sharedCacheLoadInfo.slide;
+                        uint8_t trueValue = 1;
+                        ensure_uc_mem_write(didCallDyldNotifyRegister_addr, &trueValue, 1);
                     });
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_image_map_addr, 8);
