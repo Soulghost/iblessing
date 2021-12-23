@@ -8,6 +8,7 @@
 
 #include "syscall_sw.h"
 
+/*
 #define def_mach_trap_wrapper(n) \
 .global _mach_trap_wrapper_##n; \
 _mach_trap_wrapper_##n: \
@@ -33,4 +34,5 @@ _mach_trap_wrapper_task_self_trap:
     syscall
     ret
 
+*/
 
