@@ -1,0 +1,1 @@
+? [= Facility com.apple.nano-fmld] file /var/mobile/Library/Logs/CrashReporter/DiagnosticLogs/com.apple.nano-fmld.log rotate=local-basic file_max=1000M compress uid=501 gid=501

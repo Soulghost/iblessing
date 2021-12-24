@@ -28,12 +28,11 @@ MachOMemoryManager::MachOMemoryManager(uc_engine *uc) {
     stackBegin = IB_STACK_START;
     stackEnd = IB_STACK_END;
     
-    use_shared = false;
+    use_shared = true;
         
     if(use_shared){
         mmapSharedMem(stackBegin, stackEnd-stackBegin, PROT_READ|PROT_WRITE);
         mmapSharedMem(allocateBegin, allocateEnd-allocateBegin, PROT_READ|PROT_WRITE);
-        
     }else{
         assert(uc_mem_map(uc, allocateBegin, allocateEnd - allocateBegin, UC_PROT_READ | UC_PROT_WRITE) == UC_ERR_OK);
     }
@@ -48,22 +47,11 @@ uint64_t MachOMemoryManager::alloc(size_t size, string tag) {
     
     size = IB_AlignSize(size, 8);
     uint64_t addr = allocatedCur;
-    if(!use_shared || addr < 0x4000){
-        if (allocateEnd - addr < size) {
-            assert(false);
-            return 0;
-        }
-        allocatedCur += size;
-        
-    }else{
-        size_t size_rounded = ROUNDUP(size, 0x4000);
-        addr = (uint64_t)valloc(size_rounded);
-        uc_err err = uc_mem_map_ptr(uc, addr, size_rounded, UC_PROT_READ | UC_PROT_WRITE, (void *)addr);
-        if (err != UC_ERR_OK) {
-            uc_debug_print_backtrace(uc);
-            assert(false);
-        }
+    if (allocateEnd - addr < size) {
+        assert(false);
+        return 0;
     }
+    allocatedCur += size;
     return addr;
 }
 
@@ -97,7 +85,7 @@ void *MachOMemoryManager::mmapWrapper(uint64_t guest_addr, size_t size, int prot
         guest_addr_rounded = 0x400000000;
     }
     void *mmaped_addr = mmap((void *)guest_addr_rounded, size_rounded, prot, flags, fd, off);
-//    assert(!guest_addr_rounded || mmaped_addr == (void *)guest_addr_rounded);
+    assert(!guest_addr_rounded || mmaped_addr == (void *)guest_addr_rounded);
     uc_err uc_map_err = uc_mem_map_ptr(uc, (uint64_t)mmaped_addr, size_rounded, prot, mmaped_addr);
     if (uc_map_err != UC_ERR_OK) {
         print_uc_mem_regions(uc);
@@ -121,21 +109,24 @@ void *MachOMemoryManager::consumeMmapRegion(uint64_t start_addr, uint64_t size, 
 }
 
 uint64_t MachOMemoryManager::stackNew() {
-    uint64_t newStackAddr = stackBegin;
-    bool found = false;
-    while(newStackAddr < stackEnd){
-        if(usedStackStarts.find(newStackAddr) == usedStackStarts.end()){
-            found = true;
-            usedStackStarts.insert(newStackAddr);
-            break;
-        }
-        newStackAddr += IB_STACK_SIZE;
-    }
-    if(found){
-        return newStackAddr;
-    }else{
-        return NULL;
-    }
+    // stack FIXME: single stack
+    return stackEnd;
+    
+//    uint64_t newStackAddr = stackEnd;
+//    bool found = false;
+//    while(newStackAddr < stackEnd){
+//        if(usedStackStarts.find(newStackAddr) == usedStackStarts.end()){
+//            found = true;
+//            usedStackStarts.insert(newStackAddr);
+//            break;
+//        }
+//        newStackAddr += IB_STACK_SIZE;
+//    }
+//    if(found){
+//        return newStackAddr;
+//    }else{
+//        return NULL;
+//    }
 }
 
 void MachOMemoryManager::stackDelete(uint64_t addrInStack){

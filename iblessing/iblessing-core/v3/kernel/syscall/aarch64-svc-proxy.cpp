@@ -11,6 +11,7 @@
 #include <mach/mach_traps.h>
 #include "mach_traps.h"
 #include "mach-universal.hpp"
+#include "uc_debugger_utils.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -49,11 +50,12 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
     int mach_trap_idx = 0;
     uint64_t args[16] = {0};
     getTrapNoAndArgs(uc, &trap_no, args);
-    printf("[Stalker][+][Syscall] proxy syscall num %d\n", trap_no);
+    printf("[Stalker][+][Syscall] fallback to proxy syscall num %d: ", trap_no);
     if(trap_no > 0){
         printf(" \n");
         int ret = syscall(trap_no, args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
         assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+        printf("\n");
         return true;
     }else{
         mach_trap_idx = -trap_no;
@@ -61,9 +63,16 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
         bool machMsg = false;
         if(mach_trap_idx >=0 && mach_trap_idx < MACH_TRAP_TABLE_COUNT){
             mach_trap_t trap = mach_trap_table[mach_trap_idx];
-            printf(" (%s)\n", trap.mach_trap_name);
+            printf(" %s", trap.mach_trap_name);
             if (trap_no == -31) {
                 machMsg = true;
+                ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)args[0];
+                printf("(msgh_id = %d(0x%x))\n", hdr->msgh_id, hdr->msgh_id);
+            } else {
+                printf("\n");
+            }
+            if (trap_no == -70) {
+                printf("");
             }
             switch (trap.mach_trap_arg_count) {
                 case 0:
@@ -89,7 +98,27 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
                     break;
             }
             if (machMsg && ret != 0) {
-                printf("\t trap %d call error: %s\n", trap_no, mach_error_string(ret));
+                ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)args[0];
+                mach_msg_header_t hh;
+                ensure_uc_mem_read(args[0], &hh, sizeof(mach_msg_header_t));
+                printf("[Stalker][!][Syscall][Error] mach_msg for id %d(0x%x) error: %s\n", hdr->msgh_id, hdr->msgh_id, mach_error_string(ret));
+                uc_debug_print_backtrace(uc);
+                int options = (int)args[1];
+                if ((options & MACH_RCV_TIMEOUT) &&
+                    (options & MACH_RCV_MSG) &&
+                    (args[3] == 0x6C || args[3] == 0x7C) &&
+                    ret == 0x10004003) {
+                    printf("[Stalker][!][Syscall][Warn] allow timeout for this mach_msg\n");
+                } else {
+                    assert(false);
+                }
+            } else if (ret != 0) {
+                // syscall / mach call
+                if (trap_no == -70) {
+                    uint64_t localargs[2];
+                    ensure_uc_mem_read(args[1], localargs, 0x10);
+                    printf("[Stalker][!][Syscall][Error] trap %d syscall/mach call error %s\n", trap_no, mach_error_string(ret));
+                }
             }
             assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
             return true;
@@ -247,13 +276,10 @@ bool Aarch64SVCProxy::handleSpecialSyscall(uc_engine *uc, uint32_t intno, uint32
 }
 
 bool Aarch64SVCProxy::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
-    bool ret = false;
-    ret = handleSpecialSyscall(uc, intno, swi, user_data);
-    if(!ret){
+    bool ret = Aarch64SVCManager::handleSyscall(uc, intno, swi, user_data);
+    if (!ret) {
         ret = handleNormalSyscall(uc, intno, swi, user_data);
     }
-    if(!ret){
-        ret = Aarch64SVCManager::handleSyscall(uc, intno, swi, user_data);
-    }
+    assert(ret == true);
     return ret;
 }

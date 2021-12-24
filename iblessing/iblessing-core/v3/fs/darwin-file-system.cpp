@@ -89,6 +89,10 @@ int DarwinUdpSocket::sendto(uint64_t bufferAddr, size_t length, int flags, uint6
     char *buf = (char *)calloc(1, length + 1);
     ensure_uc_mem_read(bufferAddr, buf, length);
     printf("[Stalker][*][Syscall][File][Logger] log to %s: %s", path.c_str(), buf);
+//    if (path == "/var/run/syslog" && string(buf).find("notify_register_check failed with")) {
+//        uc_debug_breakhere(uc);
+//        assert(false);
+//    }
     free(buf);
     return 0;
 }
@@ -202,7 +206,23 @@ int DarwinFileSystem::open(char *path, int oflags) {
         StringUtils::replace(realpath, "/private/tmp/iblessing-workdir/", appBundlePath);
         if (access(realpath.c_str(), F_OK) != 0) {
             machine->setErrno(ENOENT);
-            printf("[Stalker][-][Syscall][File][Error] cannot open app bundle file %s\n", path);
+            printf("[Stalker][-][Syscall][Logger][File][Error] cannot open app bundle file %s\n", path);
+            return -1;
+        }
+        shared_ptr<DarwinFile> f = createFileWithPath(realpath, oflags);
+        return f->fd;
+    }
+    if (StringUtils::has_prefix(string(path), "/etc/")) {
+        static string folderPath = "";
+        if (folderPath.length() == 0) {
+            char *productRoot = getenv("IB_SOURCE_ROOT");
+            folderPath = StringUtils::format("%s/../rootfs/etc/", productRoot);
+        }
+        string realpath = string(path);
+        StringUtils::replace(realpath, "/etc/", folderPath);
+        if (access(realpath.c_str(), F_OK) != 0) {
+            machine->setErrno(ENOENT);
+            printf("[Stalker][-][Syscall][Logger][File][Error] cannot open file %s\n", path);
             return -1;
         }
         shared_ptr<DarwinFile> f = createFileWithPath(realpath, oflags);
@@ -210,7 +230,19 @@ int DarwinFileSystem::open(char *path, int oflags) {
     }
     
     machine->setErrno(ENOENT);
-    printf("[Stalker][-][Syscall][File][Error] cannot open file %s\n", path);
+    printf("[Stalker][-][Syscall][Logger][File][Error] cannot open file %s\n", path);
+    if (strcmp(path, "/etc/.mdns_debug") == 0 ||
+        strcmp(path, "/dev/autofs_nowait") == 0 ||
+        strcmp(path, "/var/mobile/.CFUserTextEncoding") == 0) {
+        // allowed
+        return -1;
+    }
+    
+    if (strcmp(path, "/System/Library/Preferences/Logging/Processes/com.soulghost.iblessing.iblessing-sample.plist") == 0) {
+        // allowed
+        return -1;
+    }
+    
     uc_debug_print_backtrace(uc);
     assert(false);
     return -1;
@@ -357,7 +389,11 @@ int DarwinFileSystem::sendto(int socket, uint64_t bufferAddr, size_t length, int
 }
 
 off_t DarwinFileSystem::lseek(int fd, off_t offset, int whence) {
-    assert(has(fd));
+//    assert(has(fd));
+    if (!has(fd)) {
+        uc_debug_print_backtrace(uc);
+        assert(false);
+    }
     shared_ptr<DarwinFile> file = fd2file[fd];
     printf("[Stalker][*][Syscall][File] lseek for file %s, offset %lld, whence %d\n", file->path.c_str(), offset, whence);
     return file->lseek(offset, whence);

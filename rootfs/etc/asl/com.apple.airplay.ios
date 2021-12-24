@@ -1,0 +1,1 @@
+? [= Facility com.apple.airplay] file /var/mobile/Library/Logs/CrashReporter/com.apple.airplay.log rotate file_max=1M compress all_max=10M

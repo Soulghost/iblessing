@@ -107,24 +107,24 @@ MachOLoader::MachOLoader()  {
         assert(false);
     }
     
-    uint64_t stack_top = UnicornStackTopAddr;
-    uint64_t stack_size = 0x10000;
-    uint64_t stack_addr = stack_top - stack_size;
-    err = uc_mem_map(uc, stack_addr, stack_size, UC_PROT_ALL);
-    if (err != UC_ERR_OK) {
-        cout << termcolor::red << "[-] MachOLoader - Error: unicorn error " << uc_strerror(err);
-        cout << termcolor::reset << endl;
-        assert(false);
-    }
+//    uint64_t stack_top = UnicornStackTopAddr;
+//    uint64_t stack_size = 0x10000;
+//    uint64_t stack_addr = stack_top - stack_size;
+//    err = uc_mem_map(uc, stack_addr, stack_size, UC_PROT_ALL);
+//    if (err != UC_ERR_OK) {
+//        cout << termcolor::red << "[-] MachOLoader - Error: unicorn error " << uc_strerror(err);
+//        cout << termcolor::reset << endl;
+//        assert(false);
+//    }
     
     // memory
     shared_ptr<MachOMemoryManager> memoryManager = make_shared<MachOMemoryManager>(uc);
     this->memoryManager = memoryManager;
     
     // svc
-    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCManager>(uc, 0x700000000, 8 * 0xff00, 233);
+//    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCManager>(uc, 0x700000000, 8 * 0xff00, 233);
     // FIXME: bxl change this to svc proxy
-//    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCProxy>(uc, 0x700000000, 8 * 0xff00, 233, memoryManager);
+    shared_ptr<Aarch64SVCManager> svcManager = make_shared<Aarch64SVCProxy>(uc, 0x700000000, 8 * 0xff00, 233, memoryManager);
     this->svcManager = svcManager;
 }
 
@@ -493,7 +493,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
         });
     }
     if (dyldFunctionLookupAddr == 0) {
-        dyldFunctionLookupAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+        dyldFunctionLookupAddr = svcManager->createSVC([&, sharedCacheLoadInfo](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
             uint64_t dyldFuncNameAddr = 0, dyldFuncBindToAddr;
             assert(uc_reg_read(uc, UC_ARM64_REG_X0, &dyldFuncNameAddr) == UC_ERR_OK);
             assert(uc_reg_read(uc, UC_ARM64_REG_X1, &dyldFuncBindToAddr) == UC_ERR_OK);
@@ -546,13 +546,14 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         infoInVM = memoryManager->alloc(size);
 
                         // init data
+                        uint64_t sharedCacheBaseAddress = sharedCacheLoadInfo.loadAddress;
                         struct dyld_all_image_infos localInfo = {
-                            17, 0, {NULL}, NULL, false, false, (const mach_header*)0x180000000, NULL,
+                            17, 0, {NULL}, NULL, false, false, (const mach_header*)sharedCacheBaseAddress, NULL,
                             "dyld-832.7.3", NULL, 0, NULL, 0, 0, NULL, (struct dyld_all_image_infos *)infoInVM,
                             0, 0, NULL, NULL, NULL, 0, {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,},
                             0, {0}, "/usr/lib/dyld", {0}, {0}, 0, 0, NULL, 0
                         };
-                        localInfo.sharedCacheBaseAddress = 0x180000000;
+                        localInfo.sharedCacheBaseAddress = sharedCacheBaseAddress;
                         ensure_uc_mem_write(infoInVM, &localInfo, size);
                     }
                     __dyld_get_all_image_infos_address = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
@@ -612,7 +613,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     asmText +=                     "ldr x0, [sp]\n"; // x0 = return value
                     asmText +=                     "add sp, sp, #0x8\n"; // skip padding
 
-                    asmText +=                     "ldp x29, x30, [sp]\n";
+                    asmText +=                     "ldp x29, x30, [sp]\n"; // 0x0000000700000130
                     asmText +=                     "add sp, sp, #0x10\n";
                     asmText +=                     "ret";
                     assert(ks_open(KS_ARCH_ARM64, KS_MODE_LITTLE_ENDIAN, &ks) == KS_ERR_OK);
@@ -722,6 +723,11 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         
                         // sync sp
                         ensure_uc_reg_write(UC_ARM64_REG_SP, &sp);
+                        
+                        // dyld FIXME: fake a didCallDyldNotifyRegister state
+                        uint64_t didCallDyldNotifyRegister_addr = 0x1D2897DD0 + sharedCacheLoadInfo.slide;
+                        uint8_t trueValue = 1;
+                        ensure_uc_mem_write(didCallDyldNotifyRegister_addr, &trueValue, 1);
                     });
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_image_map_addr, 8);
@@ -844,7 +850,43 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                     });
                 }
                 ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
-            }  else {
+            } else if (strcmp(dyldFuncName, "__dyld_get_prog_image_header") == 0) {
+                // dyld FIXME: ignore __dyld_register_for_bulk_image_loads
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t execMachHeader = modules[0]->machHeader;
+                        syscall_return_value64(execMachHeader);
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_get_shared_cache_uuid") == 0) {
+                // dyld FIXME: ignore __dyld_register_for_bulk_image_loads
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+//                        static uint8_t uuid[] = {0xB7, 0x4B, 0x51, 0xDA, 0x12, 0xA0, 0x3F, 8, 0x99, 0x1A, 0xE6, 0xEE, 0xB1, 0xC2, 0x59, 0x3C};
+                        syscall_return_value(1);
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
+            } else if (strcmp(dyldFuncName, "__dyld_get_image_header_containing_address") == 0) {
+                // dyld FIXME: ignore __dyld_register_for_bulk_image_loads
+                static uint64_t _dyld_sym_addr = 0;
+                if (_dyld_sym_addr == 0) {
+                    _dyld_sym_addr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+                        uint64_t address;
+                        ensure_uc_reg_read(UC_ARM64_REG_X0, &address);
+                        shared_ptr<MachOModule> module = findModuleByAddr(address);
+                        if (module) {
+                            syscall_return_value64(module->machHeader);
+                        } else {
+                            syscall_return_value64(0);
+                        }
+                    });
+                }
+                ensure_uc_mem_write(dyldFuncBindToAddr, &_dyld_sym_addr, 8);
+            } else {
                 uc_debug_print_backtrace(uc);
                 assert(false);
             }
@@ -853,7 +895,8 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     }
     
     // FATAL FIXME: hardcode _dyld_function_lookup addr
-    uint64_t _dyld_function_lookup_addr = 0x1D2896F78;
+    // 0x00000009d2896f78
+    uint64_t _dyld_function_lookup_addr = 0x1D2896F78 + sharedCacheLoadInfo.slide;
     assert(uc_mem_write(uc, _dyld_function_lookup_addr, &dyldFunctionLookupAddr, 8) == UC_ERR_OK);
     return mainModule;
 }
@@ -1349,6 +1392,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
             case IB_LC_SEGMENT_64: {
                 struct ib_segment_command_64 *seg64 = (struct ib_segment_command_64 *)malloc(sizeof(struct ib_segment_command_64));
                 ensure_uc_mem_read(cmdsAddr, seg64, sizeof(struct ib_segment_command_64));
+                seg64->vmaddr += findResult.slideInCache;
                 segmentHeaders.push_back(seg64);
                 
                 uint64_t size = std::min(seg64->vmsize, seg64->filesize);
@@ -1371,7 +1415,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
                     for (uint32_t i = 0; i < seg64->nsects; i++) {
                         struct ib_section_64 *sect = (struct ib_section_64 *)malloc(sizeof(struct ib_section_64));
                         ensure_uc_mem_read(sectAddr, sect, sizeof(struct ib_section_64));
-                        
+                        sect->addr += findResult.slideInCache;
                         char *sectname = (char *)malloc(17);
                         memcpy(sectname, sect->sectname, 16);
                         sectname[16] = 0;
@@ -1418,7 +1462,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
                             uint64_t *modInitFuncsHead = modInitFuncs;
                             ensure_uc_mem_read(sect->addr, modInitFuncs, size);
                             for (uint64_t i = 0; i < count; i++) {
-                                uint64_t funcAddr = *modInitFuncs & 0xfffffffffULL;
+                                uint64_t funcAddr = *modInitFuncs;
                                 modInitFuncList.push_back({ .addr = funcAddr });
                                 modInitFuncs += 1;
                             }
@@ -1440,7 +1484,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
             case IB_LC_ROUTINES_64: {
                 struct ib_routines_command_64 routine_cmd;
                 ensure_uc_mem_read(cmdsAddr, &routine_cmd, sizeof(ib_routines_command_64));
-                uint64_t addr = routine_cmd.init_address + imageBase;
+                uint64_t addr = routine_cmd.init_address + findResult.slideInCache;
                 routineList.push_back({ .addr = addr });
                 break;
             }
@@ -1664,7 +1708,8 @@ shared_ptr<MachOModule> MachOLoader::findModuleByAddr(uint64_t addr) {
         return module;
     }
     
-    assert(false);
+//    uc_debug_print_backtrace(uc);
+//    assert(false);
     return nullptr;
 }
 

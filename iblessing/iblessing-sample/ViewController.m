@@ -8,6 +8,8 @@
 
 #import "ViewController.h"
 #import <objc/runtime.h>
+#include "xpc.h"
+#include <sys/sysctl.h>
 
 void test_entry(void) {
     int a = 100;
@@ -16,8 +18,50 @@ void test_entry(void) {
 }
 
 void testNSLog(void) {
-    NSLog(@"ok");
+    NSLog(@"=============================<<<<>");
 }
+
+void testNetwork(void) {
+    NSURLSession *sess = [NSURLSession sharedSession];
+    printf("[~] the session is %p, %s\n", sess, sess.description.UTF8String);
+}
+
+void testXPC(void) {
+    printf("[+] prepare for connect to com.apple.audio.AudioFileServer\n");
+    static xpc_connection_t conn;
+    conn = xpc_connection_create_mach_service("com.apple.audio.AudioFileServer", NULL, XPC_CONNECTION_MACH_SERVICE_PRIVILEGED);
+    xpc_connection_set_event_handler(conn, ^(xpc_object_t object) {
+        printf("[*] connect result %p %s\n", object, xpc_copy_description(object));
+    });
+    xpc_connection_resume(conn);
+    
+    xpc_object_t req = xpc_dictionary_create(NULL, NULL, 0);
+    xpc_dictionary_set_uint64(req, "type", 'read');
+    xpc_dictionary_set_uint64(req, "numbytes", 1);
+    xpc_dictionary_set_uint64(req, "numpackets", 1);
+    xpc_dictionary_set_int64(req, "startingPacket", 1);
+    xpc_object_t reply = xpc_connection_send_message_with_reply_sync(conn, req);
+    
+    printf("[+] reply desc %s\n", xpc_copy_description(reply));
+    NSLog(@"[+] reply desc %s\n", xpc_copy_description(reply));
+    
+    xpc_dictionary_apply(reply, ^bool(const char *key, xpc_object_t value) {
+        if (strcmp(key, "status") == 0) {
+            int64_t val = xpc_int64_get_value(value);
+            val = CFSwapInt64(val) >> 32;
+            char *str = (char *)malloc(sizeof(int64_t) + 1);
+            memcpy(str, &val, sizeof(int64_t));
+            str[sizeof(int64_t)] = '\0';
+            printf("[+] status: %s\n", str);
+            free(str);
+        } else {
+            printf("\t[+] %s -> %s\n", key, xpc_copy_description(value));
+        }
+        
+        return true;
+    });
+}
+
 
 void listClasses(void) {
     int count = objc_getClassList(NULL, 0);
@@ -49,7 +93,7 @@ void testObjc() {
     [md enumerateKeysAndObjectsUsingBlock:^(id  _Nonnull key, id  _Nonnull obj, BOOL * _Nonnull stop) {
         printf("dict key %s, value %s\n", [key UTF8String], [[obj description] UTF8String]);
     }];
-//    NSLog(@"dict contents %s\n", md);
+    NSLog(@"dict contents %@\n", md);
 }
 
 uint64_t test_malloc(void) {
@@ -60,6 +104,7 @@ uint64_t test_malloc(void) {
         void *small = malloc(0x400);
         memset(small, 0xBB, 0x400);
         free(small);
+        printf("alloc and free chunks tiny %p, small %p\n", tiny, small);
     }
     
 //    void *large = malloc(0x10000);
@@ -76,6 +121,12 @@ uint64_t test_malloc(void) {
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    
+    const char *name = strdup("kern.osvariant_status");
+    uint64_t oldp;
+    uint64_t oldlenp = 0x8;
+    int ret = sysctlbyname(name, &oldp, (size_t *)&oldlenp, NULL, NULL);
+    
     test_entry();
 }
 

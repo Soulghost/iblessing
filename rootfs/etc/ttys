@@ -1,0 +1,37 @@
+#
+#	@(#)ttys	5.2 (Berkeley) 6/10/93
+#
+# name	getty				type	status		comments
+#
+console 	"/usr/libexec/getty std.57600"	vt100	off secure
+#tahoe's only
+#remote	"/usr/libexec/getty std.1200"	pt	on		# diagnostics
+
+# The tty.serial entry initializes the serial port (if any) for use as a 
+# terminal (enabling logons over serial). If marked secure, the serial
+# port will allow root logons. 
+# To make the serial port available for outbound 
+# communications, the tty.serial entry should be turned off
+# (set the 4th field to off).
+tty.serial      "/usr/libexec/getty serial.57600"        vt100   off secure
+
+# Fax reception is off by default, use the 
+# System Preferences panel to enable it.
+fax	"/usr/bin/fax answer"	unknown	off
+
+# Hardwired lines are marked off, by default, so getty(8)
+# is quiet when they don't exist.
+tty[00-07]	"/usr/libexec/getty std.9600"	unknown	off secure
+
+# pseudo-ttys
+ttyp[0x0-0xf]	none			network slot=36 secure
+ttyq[0x0-0xf]	none			network secure
+ttyr[0x0-0xf]	none			network secure
+ttys[0x0-0xf]	none			network secure
+ttyt[0x0-0xf]	none			network secure
+ttyu[0x0-0xf]	none			network secure
+ttyv[0x0-0xf]	none			network secure
+ttyw[0x0-0xf]	none			network secure
+
+# cloning ptys
+ttys[000-999]	none			network secure

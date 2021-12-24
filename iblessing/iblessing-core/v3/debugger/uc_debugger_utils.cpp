@@ -55,7 +55,11 @@ void print_backtrace(uc_engine *uc, shared_ptr<MachOLoader> loader) {
     int num = 1;
     
     vector<uint64_t> toPrint{pc};
+    int depth = 0;
     while (true) {
+        if (depth++ > 20) {
+            break;
+        }
         for (size_t i = 0; i < toPrint.size(); i++) {
             uint64_t pc = toPrint[i];
             string symbolName = "?";

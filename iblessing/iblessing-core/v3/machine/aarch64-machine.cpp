@@ -59,7 +59,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         return;
     }
     
-    static set<string> symbolBlackList{"__platform_strlen", "__platform_bzero", "__platform_memset", "__platform_strstr", "__platform_strcmp", "__platform_strncmp", "_getsectiondata", ""};
+    static set<string> symbolBlackList{"__platform_strlen", "__platform_bzero", "__platform_memset", "__platform_strstr", "__platform_strcmp", "__platform_strncmp", "__platform_memmove", "_getsectiondata", "_tiny_print_region_free_list", "_malloc_zone_malloc", "_mach_vm_allocate"};
     string comments = "";
 #if TraceLevel >= TraceLevelASMComment
     uint64_t targetAddr = 0;
@@ -162,6 +162,8 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
 ////        printf("Warn: [-] unmapped instruction at 0x%llx\n", address);
 //        assert(false);
 //    }
+    uint64_t pc;
+    ensure_uc_reg_read(UC_ARM64_REG_PC, &pc);
     uc_debug_print_backtrace(uc);
     assert(false);
     return false;
@@ -173,7 +175,6 @@ void Aarch64Machine::initModule(shared_ptr<MachOModule> module) {
 
 void Aarch64Machine::initModule(shared_ptr<MachOModule> module, ib_module_init_env &env) {
     static set<string> blackListModule{"UIKit", "CoreGraphics", "AdSupport", "CoreTelephony"};
-//    blackListModule.insert("Security");
     if (blackListModule.find(module->name) != blackListModule.end()) {
         module->hasInit = true;
         return;
@@ -286,14 +287,15 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     
     // setup common text
     uint32_t nopCode = 0xd503201f;
-    sp = uc_alloca(sp, sizeof(uint32_t));
-    callFunctionLR = sp;
+    
+    // nop lr page
+    uint64_t nopPageAddr = (uint64_t)loader->memoryManager->mmapSharedMem(0x600000000, 0x4000, UC_PROT_ALL);
+    callFunctionLR = nopPageAddr;
     ensure_uc_mem_write(callFunctionLR, &nopCode, sizeof(uint32_t));
     
     // FATAL FIXME: tricky nop
-//    for (uint64_t addr = 0x1AEDBD824; addr < 0x1AEDBD8a0; addr += 4) {
-//        ensure_uc_mem_write(addr, &nopCode, sizeof(uint32_t));
-//    }
+    uint64_t nop_xpc_release_in_libxpc_initializer_addr = 0x1C8947D34 + DYLD_FIXED_SLIDE;
+    ensure_uc_mem_write(nop_xpc_release_in_libxpc_initializer_addr, &nopCode, sizeof(uint32_t));
     {
         // kstool arm64 "b 0x1AEDBD8A4" 0x1AEDBD824
 //        uint32_t patchB = 0x14000020;
@@ -412,21 +414,29 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
 //        continue;
 //    }
     // init log function
-    shared_ptr<MachOModule> foundationModule = loader->findModuleByName("Foundation");
-    Symbol *_NSSetLogCStringFunction = foundationModule->getSymbolByName("__NSSetLogCStringFunction", false);
-    uint64_t _NSSetLogCStringFunction_addr = _NSSetLogCStringFunction->info->n_value;
-    uc_callFunction(uc, _NSSetLogCStringFunction_addr, Aarch64FunctionCallArg::voidArg(), {0x0});
+//    shared_ptr<MachOModule> foundationModule = loader->findModuleByName("Foundation");
+//    Symbol *_NSSetLogCStringFunction = foundationModule->getSymbolByName("__NSSetLogCStringFunction", false);
+//    uint64_t _NSSetLogCStringFunction_addr = _NSSetLogCStringFunction->info->n_value;
+//    uc_callFunction(uc, _NSSetLogCStringFunction_addr, Aarch64FunctionCallArg::voidArg(), {0x0});
     
     // init dyld lookup
     // _setLookupFunc
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-//    uc_debug_set_breakpoint(uc, 0x1C894E6F0);
-//    uc_debug_set_breakpoint(uc, 0x1C8952A9C);
+//    uc_debug_set_breakpoint(uc, 0x1000079A0);
+//    uc_debug_set_breakpoint(uc, 0x1000079b0);
+//    uc_debug_set_breakpoint(uc, 0x1000079b4);
+//    uc_debug_set_breakpoint(uc, 0x1C8952F3C);
+//    uc_debug_set_breakpoint(uc, 0x1C8952E90);
+//    uc_debug_set_breakpoint(uc, 0x1C8952CE4);
+//    uc_debug_set_breakpoint(uc, 0x1C8952A9C); // fstat(plist_path)
+//    uc_debug_set_breakpoint(uc, 0x1C8952C80);
+//    uc_debug_set_breakpoint(uc, 0x1C8952CD8);
+//    uc_debug_set_breakpoint(uc, 0x1941EFC60);
     
     // _dyld_initializer_0
-//    uc_debug_set_breakpoint(uc, 0x1800C9FF4);
+//    uc_debug_set_breakpoint(uc, 0x1C8947D34);
     
 //    shared_ptr<MachOModule> dyldModule = loader->findModuleByName("libdyld.dylib");
 //    assert(dyldModule != nullptr);
