@@ -85,6 +85,23 @@ void listClasses(void) {
     free(classes);
 }
 
+void testDispatch() {
+    static dispatch_once_t onceToken;
+    printf("register dispatch token %p\n", &onceToken);
+    dispatch_once(&onceToken, ^{
+        printf("I should only be called once\n");
+    });
+    printf("after dispatch once call\n");
+}
+
+void testDispatchAfter() {
+    printf("register for 0.5s delay\n");
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        printf("after 0.5s I'm called\n");
+    });
+    printf("wait for ~0.5s before I'm called\n");
+}
+
 void testObjc() {
     NSMutableDictionary *md = [NSMutableDictionary new];
     printf("allocate dict at %p\n", md);

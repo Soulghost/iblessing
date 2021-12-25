@@ -45,7 +45,7 @@ using namespace iblessing;
 #define IB_FD_CWD     5
 #define IB_FD_BOUND   5
 
-#define IB_AUDIT_SESSION_SELF 5
+//#define IB_AUDIT_SESSION_SELF 5
 
 uint64_t svc_uc_mmap(shared_ptr<Aarch64SVCManager> svcManager, uint64_t start, uint64_t mask, uint64_t size, int prot, int flags, int fd, int offset) {
     uc_engine *uc = svcManager->uc;
@@ -424,6 +424,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     }
                     default:
                         uc_debug_breakhere(uc);
+                        assert(false);
                         break;
                 }
                 syscall_return_success;
@@ -831,12 +832,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(ret);
                 return true;
             }
-            case 428: { // audit_session_self
-                int audit_self = IB_AUDIT_SESSION_SELF;
-                printf("[Stalker][+][Syscall] audit_session_self return %d", audit_self);
-                syscall_return_value(audit_self);
-                return true;
-            }
+//            case 428: { // audit_session_self
+//                int audit_self = IB_AUDIT_SESSION_SELF;
+//                printf("[Stalker][+][Syscall] audit_session_self return %d", audit_self);
+//                syscall_return_value(audit_self);
+//                return true;
+//            }
             case 463: { // openat
                 int fd;
                 char *path;
@@ -1027,16 +1028,16 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
 //                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
 //                return true;
 //            }
-            case 28: { // task_self_trap
-                int ret = TASK_SELF_PORT;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-                return true;
-            }
-            case 29: { // host_self_trap
-                int ret = HOST_SELF_PORT;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-                return true;
-            }
+//            case 28: { // task_self_trap
+//                int ret = TASK_SELF_PORT;
+//                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+//                return true;
+//            }
+//            case 29: { // host_self_trap
+//                int ret = HOST_SELF_PORT;
+//                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+//                return true;
+//            }
             case 31: { // mach_msg_trap
 //                PAD_ARG_(user_addr_t, msg);
 //                PAD_ARG_(mach_msg_option_t, option);
