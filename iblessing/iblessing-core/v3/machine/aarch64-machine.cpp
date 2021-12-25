@@ -424,7 +424,9 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-//    uc_debug_set_breakpoint(uc, 0x1000079A0);
+//    uc_debug_set_breakpoint(uc, 0x18005927C); // dispatch_root_queues_init_once
+    uc_debug_set_breakpoint(uc, 0x180059300); // dispatch_worker_thread2
+    uc_debug_set_breakpoint(uc, 0x1800593C0); // dispatch_kevent_worker_thread
 //    uc_debug_set_breakpoint(uc, 0x1000079b0);
 //    uc_debug_set_breakpoint(uc, 0x1000079b4);
 //    uc_debug_set_breakpoint(uc, 0x1C8952F3C);

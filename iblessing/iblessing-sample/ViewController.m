@@ -85,13 +85,21 @@ void listClasses(void) {
     free(classes);
 }
 
-void testDispatch() {
+void testDispatchOnce() {
     static dispatch_once_t onceToken;
-    printf("register dispatch token %p\n", &onceToken);
+    printf("enter dispatch_once call %p\n", &onceToken);
     dispatch_once(&onceToken, ^{
         printf("I should only be called once\n");
     });
-    printf("after dispatch once call\n");
+    printf("end of dispatch once call\n");
+}
+
+void testDispatch() {
+//    testDispatchOnce();
+//    testDispatchOnce();
+//    testDispatchOnce();
+//    testDispatchOnce();
+//    testDispatchOnce();
 }
 
 void testDispatchAfter() {

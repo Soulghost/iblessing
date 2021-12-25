@@ -160,13 +160,19 @@ uint64_t Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> lo
     assert(sym->info->n_value > 0);
     switch (type) {
         case IB_BIND_TYPE_POINTER: {
-            if (strcmp(symbolName, "_strncmp") == 0) {
-                printf("");
-            }
-            
             uint64_t bindToPtrAddr = addr + addend;
             uint64_t symbolAddr = sym->info->n_value;
             assert(symbolAddr != 0);
+            
+            if (strcmp(symbolName, "_dispatch_once") == 0) {
+                // dyld FIXME: tricky bind for _dispatch_once
+                symbolAddr = 0x1800B970C;
+                printf("[Stalker][!][Dyld][Warn] tricky bind for dispatch_once to 0x%llx\n", symbolAddr);
+            }
+            if (strcmp(symbolName, "_dispatch_after") == 0) {
+                symbolAddr = 0x1800B6C78;
+                printf("[Stalker][!][Dyld][Warn] tricky bind for dispatch_after to 0x%llx\n", symbolAddr);
+            }
             
             if (bindHooks.find(symbolName) != bindHooks.end()) {
                 symbolAddr = bindHooks[symbolName](symbolName, symbolAddr);

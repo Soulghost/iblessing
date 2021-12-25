@@ -710,16 +710,44 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X5, &offset);
 
                 printf("[Stalker][+] handle bsdthread_register: thread_start: 0x%llx, start_wqthread 0x%llx, page_size 0x%x, data 0x%llx, data_size 0x%x, offset 0x%llx\n", thread_start, start_wqthread, page_size, data, data_size, offset);
+                
+#define PTHREAD_FEATURE_FINEPRIO           0x02        /* are fine grained prioirities available */
+#define PTHREAD_FEATURE_BSDTHREADCTL       0x04        /* is the bsdthread_ctl syscall available */
+#define PTHREAD_FEATURE_SETSELF            0x08        /* is the BSDTHREAD_CTL_SET_SELF command of bsdthread_ctl available */
+#define PTHREAD_FEATURE_QOS_MAINTENANCE    0x10        /* is QOS_CLASS_MAINTENANCE available */
+#define PTHREAD_FEATURE_KEVENT             0x40        /* supports direct kevent delivery */
+#define PTHREAD_FEATURE_QOS_DEFAULT        0x40000000    /* the kernel supports QOS_CLASS_DEFAULT */
 
-                int ret = 0;
+                int ret =
+                    PTHREAD_FEATURE_FINEPRIO |
+                    PTHREAD_FEATURE_BSDTHREADCTL |
+                    PTHREAD_FEATURE_SETSELF |
+                    PTHREAD_FEATURE_QOS_MAINTENANCE |
+                    PTHREAD_FEATURE_KEVENT |
+                    PTHREAD_FEATURE_QOS_DEFAULT;
+                
+#if 0
+                // for PTHREAD_FEATURE_KEVENT
+                cfg.workq_cb = (pthread_workqueue_function2_t)_dispatch_worker_thread2;
+                cfg.kevent_cb = (pthread_workqueue_function_kevent_t)_dispatch_kevent_worker_thread;
+#endif
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
+//            case 368: { // SYS_workq_kernreturn
+//
+//                return true;
+//            }
 //            case 372: { // thread_selfid
 //                int ret = 1;
 //                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
 //                return true;
 //            }
+            case 374: { // kevent_qos
+                uc_debug_breakhere(uc);
+                // dispatch_kq_init -> dispatch_kq_poll (looping)
+                return false;
+            }
             case 381: { // sandbox_ms
                 uint64_t policyAddr, args;
                 int call;
