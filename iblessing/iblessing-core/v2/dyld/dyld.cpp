@@ -173,6 +173,14 @@ uint64_t Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> lo
                 symbolAddr = 0x1800B6C78;
                 printf("[Stalker][!][Dyld][Warn] tricky bind for dispatch_after to 0x%llx\n", symbolAddr);
             }
+            if (strcmp(symbolName, "_dispatch_async") == 0) {
+                symbolAddr = 0x1800B6FFC;
+                printf("[Stalker][!][Dyld][Warn] tricky bind for dispatch_async to 0x%llx\n", symbolAddr);
+            }
+            if (strcmp(symbolName, "_dispatch_async_f") == 0) {
+                symbolAddr = 0x1800B718C;
+                printf("[Stalker][!][Dyld][Warn] tricky bind for dispatch_async to 0x%llx\n", symbolAddr);
+            }
             
             if (bindHooks.find(symbolName) != bindHooks.end()) {
                 symbolAddr = bindHooks[symbolName](symbolName, symbolAddr);

@@ -734,19 +734,88 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
-//            case 368: { // SYS_workq_kernreturn
-//
-//                return true;
-//            }
+            case 367: { // workq_open
+                syscall_return_value(0);
+                return true;
+            }
+            case 368: { // workq_kernreturn
+                syscall_return_value(0);
+                return true;
+            }
 //            case 372: { // thread_selfid
 //                int ret = 1;
 //                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
 //                return true;
 //            }
-            case 374: { // kevent_qos
-                uc_debug_breakhere(uc);
+            case 374: { // kevent
+#if 0
+                int kevent_qos(int kq,
+                    const struct kevent_qos_s *changelist, int nchanges,
+                    struct kevent_qos_s *eventlist, int nevents,
+                    void *data_out, size_t *data_available,
+                    unsigned int flags);
+#endif
                 // dispatch_kq_init -> dispatch_kq_poll (looping)
-                return false;
+                #pragma pack(push, 1)
+                struct kevent_qos_s
+                {
+                  uint64_t ident;
+                  int16_t filter;
+                  uint16_t flags;
+                  int32_t qos;
+                  uint64_t udata;
+                  uint32_t fflags;
+                  uint32_t xflags;
+                  int64_t data;
+                  uint64_t ext[4];
+                };
+                #pragma pack(pop)
+
+                int kq;
+                struct kevent_qos_s *changelist;
+                int nchanges;
+                struct kevent_qos_s *eventlist;
+                int nevents;
+                void *data_out;
+                size_t *data_available;
+                unsigned int flags;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &kq);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &changelist);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &nchanges);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &eventlist);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &nevents);
+                ensure_uc_reg_read(UC_ARM64_REG_X5, &data_out);
+                ensure_uc_reg_read(UC_ARM64_REG_X6, &data_available);
+                ensure_uc_reg_read(UC_ARM64_REG_W7, &flags);
+                
+                if (nchanges == 1 && eventlist == NULL && nevents == 0) {
+                    // kqueue init
+                    syscall_return_value(0);
+                } else if (nchanges == 1 && nevents == 16 && eventlist != NULL) {
+                    // dispatch_kq_poll
+                    int count = 1;
+                    
+                    // mock a kevent
+#if 0
+                    (lldb) p/x event0
+                    (kevent_qos_s *) $0 = 0x00000003ffffe288
+                    (lldb) p/x &event0->flags
+                    (uint16_t *) $1 = 0x00000003ffffe292
+                    (lldb) p/x &event0->data
+                    (int64_t *) $1 = 0x00000003ffffe2a8
+#endif
+                    struct kevent_qos_s *event0 = eventlist;
+                    struct kevent_qos_s *change0 = changelist;
+                    memcpy(event0, change0, sizeof(struct kevent_qos_s));
+//                    event0->data = 0x233;
+//                    event0->flags = (uint16_t)0x4000;
+//                    uc_debug_set_breakpoint(uc, 0x1800666C8);
+                    syscall_return_value(count);
+                } else {
+                    uc_debug_print_backtrace(uc, true);
+                    assert(0);
+                }
+                return true;
             }
             case 381: { // sandbox_ms
                 uint64_t policyAddr, args;

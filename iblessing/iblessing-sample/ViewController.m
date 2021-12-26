@@ -94,12 +94,12 @@ void testDispatchOnce() {
     printf("end of dispatch once call\n");
 }
 
-void testDispatch() {
-//    testDispatchOnce();
-//    testDispatchOnce();
-//    testDispatchOnce();
-//    testDispatchOnce();
-//    testDispatchOnce();
+void testDispatchSync() {
+    printf("1. before async call\n");
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        printf("3. got async call\n");
+    });
+    printf("2. wait for async call\n");
 }
 
 void testDispatchAfter() {

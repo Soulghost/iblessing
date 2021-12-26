@@ -36,7 +36,7 @@ int main(int argc, const char *argv[]) {
 //    entry = "_testNetwork";
 //    entry = "_testNSLog";
 //    entry = "_testXPC";
-    entry = "_testDispatchAfter";
+    entry = "_testDispatchSync";
     
     shared_ptr<MachOLoader> loader = make_shared<MachOLoader>();
     shared_ptr<MachOModule> module = loader->loadModuleFromFile(modulePath);
