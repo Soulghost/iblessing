@@ -696,6 +696,27 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(0);
                 return true;
             }
+            case 360: { // bsdthread_create
+                // 360    AUE_NULL    ALL    { user_addr_t bsdthread_create(user_addr_t func, user_addr_t func_arg, user_addr_t stack, user_addr_t pthread, uint32_t flags) NO_SYSCALL_STUB; }
+                uint64_t func;
+                uint64_t func_arg;
+                uint64_t stack;
+                uint64_t pthread;
+                uint32_t flags;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &func);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &func_arg);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &stack);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &pthread);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &flags);
+                ib_pendding_thread *t = (ib_pendding_thread *)calloc(1, sizeof(ib_pendding_thread));
+                t->func = func;
+                t->func_arg = func_arg;
+                t->stack = stack;
+                t->pthread = pthread;
+                t->flags = flags;
+                machine.lock()->penddingContextSwitch(t);
+                return true;
+            }
             case 366: { // bsdthread_register
                 uint64_t thread_start, start_wqthread;
                 int page_size;

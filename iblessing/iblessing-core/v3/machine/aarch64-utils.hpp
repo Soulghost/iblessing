@@ -14,6 +14,7 @@
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 
 extern uint64_t callFunctionLR;
+extern uint64_t redirectFunctionLR;
 
 enum Aarch64FunctionCallArgType {
     Aarch64FunctionCallArgTypeVoid = 0,
@@ -54,5 +55,6 @@ typedef struct Aarch64FunctionCallArg {
 } Aarch64FunctionCallArg;
 
 extern uint64_t uc_callFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCallArg returnValue, std::vector<Aarch64FunctionCallArg> args);
+extern uint64_t uc_redirectToFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCallArg returnValue, std::vector<Aarch64FunctionCallArg> args);
 
 #endif /* aarch64_utils_hpp */

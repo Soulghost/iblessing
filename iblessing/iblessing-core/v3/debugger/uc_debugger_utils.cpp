@@ -318,6 +318,9 @@ bool uc_debug_check_breakpoint(uc_engine *uc, uint64_t address) {
     return false;
 }
 
-void uc_debug_breakhere(uc_engine *uc) {
+void uc_debug_breakhere(uc_engine *uc, string desc) {
+    if (desc.length() > 0) {
+        printf("[Stalker][+][Breakpoint] break for %s\n", desc.c_str());
+    }
     debugLoop(uc);
 }

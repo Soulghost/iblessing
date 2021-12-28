@@ -11,6 +11,7 @@
 using namespace std;
 
 uint64_t callFunctionLR = 0x1fee11337aaa;
+uint64_t redirectFunctionLR = 0x1fee1c01daaa;
 
 uint64_t uc_callFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCallArg returnValue, vector<Aarch64FunctionCallArg> args) {
     ensure_uc_reg_write(UC_ARM64_REG_LR, &callFunctionLR);
@@ -55,3 +56,31 @@ uint64_t uc_callFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCallAr
     }
     return 0;
 }
+
+uint64_t uc_redirectToFunction(uc_engine *uc, uint64_t function, Aarch64FunctionCallArg returnValue, vector<Aarch64FunctionCallArg> args) {
+    ensure_uc_reg_write(UC_ARM64_REG_LR, &callFunctionLR);
+    for (size_t i = 0; i < args.size(); i++) {
+        Aarch64FunctionCallArg &arg = args[i];
+        uc_arm64_reg reg;
+        switch (arg.type) {
+            case Aarch64FunctionCallArgTypeInt64: {
+                reg = (uc_arm64_reg)((int)UC_ARM64_REG_X0 + i);
+                ensure_uc_reg_write(reg, arg.data);
+                break;
+            }
+            case Aarch64FunctionCallArgTypeInt32: {
+                reg = (uc_arm64_reg)((int)UC_ARM64_REG_W0 + i);
+                ensure_uc_reg_write(reg, arg.data);
+                break;
+            }
+            default:
+                assert(false);
+                break;
+        }
+    }
+    
+    ensure_uc_reg_write(UC_ARM64_REG_PC, &function);
+    ensure_uc_reg_write(UC_ARM64_REG_LR, &redirectFunctionLR);
+    return 0;
+}
+

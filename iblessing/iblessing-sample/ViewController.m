@@ -10,6 +10,7 @@
 #import <objc/runtime.h>
 #include "xpc.h"
 #include <sys/sysctl.h>
+#include <pthread/pthread.h>
 
 void test_entry(void) {
     int a = 100;
@@ -136,6 +137,30 @@ uint64_t test_malloc(void) {
 //    free(large);
 //    printf("my malloc chunks %p %p %p\n", tiny, small, large);
     return 233;
+}
+
+void* pthreadWorker(void *ctx) {
+    int a = 1;
+    a += 1;
+    
+    char thread_name[16] = { 0 };
+    pthread_setname_np(ctx);
+    pthread_getname_np(pthread_self(), thread_name, 16);
+    printf("pthread %p(%s) has been called\n", pthread_self(), thread_name);
+    return NULL;
+}
+
+void testPthread(void) {
+    pthread_t thread;
+    void *ctx = strdup("thread 0");
+    printf("before register pthread\n");
+    assert(pthread_create(&thread, NULL, pthreadWorker, ctx) == 0);
+    printf("after register pthread\n");
+    pthread_join(thread, NULL);
+    
+    char thread_name[16] = { 0 };
+    pthread_getname_np(pthread_self(), thread_name, 16);
+    printf("after pthread join, my thread name is %s, self %p\n", thread_name, pthread_self());
 }
 
 @interface ViewController ()

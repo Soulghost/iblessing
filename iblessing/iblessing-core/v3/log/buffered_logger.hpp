@@ -22,12 +22,14 @@ public:
     void purgeBuffer(uint64_t limit);
     void printBuffer();
     void append(std::string content);
+    void startBuffer();
+    void stopBuffer();
     std::string getBuffer();
   
 protected:
     static BufferedLogger *_globalInstance;
     std::string buffer;
-    
+    bool useBuffer;
 };
 
 NS_IB_END
