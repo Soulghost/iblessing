@@ -31,7 +31,7 @@ typedef struct ib_pendding_thread {
     uint64_t pthread;
     uint32_t flags;
     uc_context *exit_ctx;
-    uint64_t origin_sp;
+    uint64_t tsd;
 } ib_pendding_thread;
 
 class Aarch64Machine {

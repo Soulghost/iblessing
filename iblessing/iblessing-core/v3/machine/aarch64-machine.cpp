@@ -519,12 +519,14 @@ void Aarch64Machine::contextSwitch(ib_pendding_thread *thread) {
     }
     assert(uc_context_save(uc, thread->exit_ctx) == UC_ERR_OK);
     
-    uint64_t pc, lr;
+    uint64_t pc, lr, tsd;
     ensure_uc_reg_read(UC_ARM64_REG_PC, &pc);
     ensure_uc_reg_read(UC_ARM64_REG_LR, &lr);
-    printf("[Stalker][+][Thread] switch before pc 0x%llx, lr 0x%llx\n", pc, lr);
+    ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
+    printf("[Stalker][+][Thread] switch before pc 0x%llx, lr 0x%llx, tsd 0x%llx\n", pc, lr, tsd);
     ensure_uc_reg_write(UC_ARM64_REG_SP, &thread->stack);
     BufferedLogger::globalLogger()->stopBuffer();
+    ensure_uc_reg_write(UC_ARM64_REG_TPIDRRO_EL0, &thread->tsd);
     uc_redirectToFunction(uc, thread->func, Aarch64FunctionCallArg::voidArg(), {thread->func_arg});
     contextList.push_back(thread);
 }
@@ -537,9 +539,10 @@ void Aarch64Machine::contextSwitchBack() {
     assert(uc_context_restore(uc, thread->exit_ctx) == UC_ERR_OK);
 //    uc_debug_breakhere(uc, "after restore");
     
-    uint64_t pc, lr;
+    uint64_t pc, lr, tsd;
     ensure_uc_reg_read(UC_ARM64_REG_PC, &pc);
     ensure_uc_reg_read(UC_ARM64_REG_LR, &lr);
+    ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
     ensure_uc_reg_write(UC_ARM64_REG_PC, &pc);
-    printf("[Stalker][+][Thread] restart with pc 0x%llx, lr 0x%llx\n", pc, lr);
+    printf("[Stalker][+][Thread] restart with pc 0x%llx, lr 0x%llx, tsd 0x%llx\n", pc, lr, tsd);
 }
