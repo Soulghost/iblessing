@@ -44,7 +44,7 @@ void print_uc_mem_regions(uc_engine *uc) {
 
 std::shared_ptr<iblessing::MachOLoader> _defaultLoader = nullptr;
 
-void print_backtrace(uc_engine *uc, shared_ptr<MachOLoader> loader) {
+void print_backtrace(uc_engine *uc, shared_ptr<MachOLoader> loader, bool beforePrologue) {
     if (!loader) {
         loader = _defaultLoader;
     }
@@ -55,6 +55,11 @@ void print_backtrace(uc_engine *uc, shared_ptr<MachOLoader> loader) {
     int num = 1;
     
     vector<uint64_t> toPrint{pc};
+    if (beforePrologue) {
+        uint64_t lr;
+        ensure_uc_reg_read(UC_ARM64_REG_LR, &lr);
+        toPrint.push_back(lr);
+    }
     int depth = 0;
     while (true) {
         if (depth++ > 20) {
@@ -102,9 +107,9 @@ void print_backtrace(uc_engine *uc, shared_ptr<MachOLoader> loader) {
     }
 }
 
-void uc_debug_print_backtrace(uc_engine *uc) {
+void uc_debug_print_backtrace(uc_engine *uc, bool beforePrologue) {
     BufferedLogger::globalLogger()->printBuffer();
-    print_backtrace(uc);
+    print_backtrace(uc, nullptr, beforePrologue);
 }
 
 void uc_debug_print_memory(uc_engine *uc, uint64_t addr, int format, int count) {
@@ -313,6 +318,9 @@ bool uc_debug_check_breakpoint(uc_engine *uc, uint64_t address) {
     return false;
 }
 
-void uc_debug_breakhere(uc_engine *uc) {
+void uc_debug_breakhere(uc_engine *uc, string desc) {
+    if (desc.length() > 0) {
+        printf("[Stalker][+][Breakpoint] break for %s\n", desc.c_str());
+    }
     debugLoop(uc);
 }

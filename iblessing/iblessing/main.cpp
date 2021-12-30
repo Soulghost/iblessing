@@ -32,10 +32,11 @@ int main(int argc, const char *argv[]) {
     string entry = "_test_malloc";
 //    entry = "_listClasses";
 //    entry = "_test_entry";
-    entry = "_testObjc";
+//    entry = "_testObjc";
 //    entry = "_testNetwork";
 //    entry = "_testNSLog";
 //    entry = "_testXPC";
+    entry = "_testPthread";
     
     shared_ptr<MachOLoader> loader = make_shared<MachOLoader>();
     shared_ptr<MachOModule> module = loader->loadModuleFromFile(modulePath);

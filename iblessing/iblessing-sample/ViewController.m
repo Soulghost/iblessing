@@ -10,6 +10,7 @@
 #import <objc/runtime.h>
 #include "xpc.h"
 #include <sys/sysctl.h>
+#include <pthread/pthread.h>
 
 void test_entry(void) {
     int a = 100;
@@ -85,6 +86,31 @@ void listClasses(void) {
     free(classes);
 }
 
+void testDispatchOnce() {
+    static dispatch_once_t onceToken;
+    printf("enter dispatch_once call %p\n", &onceToken);
+    dispatch_once(&onceToken, ^{
+        printf("I should only be called once\n");
+    });
+    printf("end of dispatch once call\n");
+}
+
+void testDispatchSync() {
+    printf("1. before async call\n");
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        printf("3. got async call\n");
+    });
+    printf("2. wait for async call\n");
+}
+
+void testDispatchAfter() {
+    printf("register for 0.5s delay\n");
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        printf("after 0.5s I'm called\n");
+    });
+    printf("wait for ~0.5s before I'm called\n");
+}
+
 void testObjc() {
     NSMutableDictionary *md = [NSMutableDictionary new];
     printf("allocate dict at %p\n", md);
@@ -111,6 +137,30 @@ uint64_t test_malloc(void) {
 //    free(large);
 //    printf("my malloc chunks %p %p %p\n", tiny, small, large);
     return 233;
+}
+
+void* pthreadWorker(void *ctx) {
+    int a = 1;
+    a += 1;
+    
+    char thread_name[16] = { 0 };
+    pthread_setname_np(ctx);
+    pthread_getname_np(pthread_self(), thread_name, 16);
+    printf("pthread %p(%s) has been called\n", pthread_self(), thread_name);
+    return NULL;
+}
+
+void testPthread(void) {
+    pthread_t thread;
+    void *ctx = strdup("thread 0");
+    printf("before register pthread\n");
+    assert(pthread_create(&thread, NULL, pthreadWorker, ctx) == 0);
+    printf("after register pthread\n");
+    pthread_join(thread, NULL);
+    
+    char thread_name[16] = { 0 };
+    pthread_getname_np(pthread_self(), thread_name, 16);
+    printf("after pthread join, my thread name is %s, self %p\n", thread_name, pthread_self());
 }
 
 @interface ViewController ()

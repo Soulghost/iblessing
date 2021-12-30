@@ -16,6 +16,7 @@
 #include <mach-o/loader.h>
 #include <set>
 #include <dlfcn.h>
+#include <mach-o/compact_unwind_encoding.h>
 
 #ifdef IB_PLATFORM_DARWIN
 #include <filesystem>
@@ -1447,6 +1448,10 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
                             common_start = sect->addr;
                             common_size = sect->size;
                         }
+                        if (strcmp(sectname, "__unwind_info") == 0) {
+                            struct unwind_info_section_header *unwind_hdr;
+                        }
+                        
                         if (sect->reloff > 0 && sect->nreloc > 0) {
                             allRelocs.push_back({{sect->reloff, sect->nreloc}, {sect->addr, sect}});
                         }

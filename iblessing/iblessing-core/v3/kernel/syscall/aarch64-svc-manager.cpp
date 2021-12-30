@@ -26,6 +26,7 @@
 #include <sys/attr.h>
 #include <sys/mman.h>
 #include <sys/sysctl.h>
+#include "pthread_types_14.h"
 
 using namespace std;
 using namespace iblessing;
@@ -45,7 +46,7 @@ using namespace iblessing;
 #define IB_FD_CWD     5
 #define IB_FD_BOUND   5
 
-#define IB_AUDIT_SESSION_SELF 5
+//#define IB_AUDIT_SESSION_SELF 5
 
 uint64_t svc_uc_mmap(shared_ptr<Aarch64SVCManager> svcManager, uint64_t start, uint64_t mask, uint64_t size, int prot, int flags, int fd, int offset) {
     uc_engine *uc = svcManager->uc;
@@ -424,6 +425,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     }
                     default:
                         uc_debug_breakhere(uc);
+                        assert(false);
                         break;
                 }
                 syscall_return_success;
@@ -695,6 +697,45 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(0);
                 return true;
             }
+            case 360: { // bsdthread_create
+                // 360    AUE_NULL    ALL    { user_addr_t bsdthread_create(user_addr_t func, user_addr_t func_arg, user_addr_t stack, user_addr_t pthread, uint32_t flags) NO_SYSCALL_STUB; }
+                uint64_t func;
+                uint64_t func_arg;
+                uint64_t stack;
+                uint64_t pthread;
+                uint32_t flags;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &func);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &func_arg);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &stack);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &pthread);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &flags);
+                
+                // create tsd
+                // pthread begin
+                uint64_t pthreadSize = sizeof(ib_pthread_s);
+                // alloca
+                stack -= pthreadSize;
+                stack &= (~15);
+                uint64_t pthreadAddr = stack;
+                uint64_t pthreadTSD = pthreadAddr + __offsetof(ib_pthread_s, tsd);
+                
+                // init
+                ib_pthread_s *thread = (ib_pthread_s *)calloc(1, pthreadSize);
+                *((uint64_t *)&thread->tsd[0]) = pthreadAddr; // self
+                thread->tsd[1] = 0; // errno
+                thread->sig = pthreadAddr ^ 0x1;
+                ensure_uc_mem_write(pthreadAddr, (void *)thread, pthreadSize);
+                free(thread);
+                ib_pendding_thread *t = (ib_pendding_thread *)calloc(1, sizeof(ib_pendding_thread));
+                t->func = func;
+                t->func_arg = func_arg;
+                t->stack = stack;
+                t->pthread = pthread;
+                t->flags = flags;
+                t->tsd = pthreadTSD;
+                machine.lock()->penddingContextSwitch(t);
+                return true;
+            }
             case 366: { // bsdthread_register
                 uint64_t thread_start, start_wqthread;
                 int page_size;
@@ -709,9 +750,36 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X5, &offset);
 
                 printf("[Stalker][+] handle bsdthread_register: thread_start: 0x%llx, start_wqthread 0x%llx, page_size 0x%x, data 0x%llx, data_size 0x%x, offset 0x%llx\n", thread_start, start_wqthread, page_size, data, data_size, offset);
+                
+#define PTHREAD_FEATURE_FINEPRIO           0x02        /* are fine grained prioirities available */
+#define PTHREAD_FEATURE_BSDTHREADCTL       0x04        /* is the bsdthread_ctl syscall available */
+#define PTHREAD_FEATURE_SETSELF            0x08        /* is the BSDTHREAD_CTL_SET_SELF command of bsdthread_ctl available */
+#define PTHREAD_FEATURE_QOS_MAINTENANCE    0x10        /* is QOS_CLASS_MAINTENANCE available */
+#define PTHREAD_FEATURE_KEVENT             0x40        /* supports direct kevent delivery */
+#define PTHREAD_FEATURE_QOS_DEFAULT        0x40000000    /* the kernel supports QOS_CLASS_DEFAULT */
 
-                int ret = 0;
+                int ret =
+                    PTHREAD_FEATURE_FINEPRIO |
+                    PTHREAD_FEATURE_BSDTHREADCTL |
+                    PTHREAD_FEATURE_SETSELF |
+                    PTHREAD_FEATURE_QOS_MAINTENANCE |
+                    PTHREAD_FEATURE_KEVENT |
+                    PTHREAD_FEATURE_QOS_DEFAULT;
+                
+#if 0
+                // for PTHREAD_FEATURE_KEVENT
+                cfg.workq_cb = (pthread_workqueue_function2_t)_dispatch_worker_thread2;
+                cfg.kevent_cb = (pthread_workqueue_function_kevent_t)_dispatch_kevent_worker_thread;
+#endif
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+                return true;
+            }
+            case 367: { // workq_open
+                syscall_return_value(0);
+                return true;
+            }
+            case 368: { // workq_kernreturn
+                syscall_return_value(0);
                 return true;
             }
 //            case 372: { // thread_selfid
@@ -719,6 +787,76 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
 //                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
 //                return true;
 //            }
+            case 374: { // kevent
+#if 0
+                int kevent_qos(int kq,
+                    const struct kevent_qos_s *changelist, int nchanges,
+                    struct kevent_qos_s *eventlist, int nevents,
+                    void *data_out, size_t *data_available,
+                    unsigned int flags);
+#endif
+                // dispatch_kq_init -> dispatch_kq_poll (looping)
+                #pragma pack(push, 1)
+                struct kevent_qos_s
+                {
+                  uint64_t ident;
+                  int16_t filter;
+                  uint16_t flags;
+                  int32_t qos;
+                  uint64_t udata;
+                  uint32_t fflags;
+                  uint32_t xflags;
+                  int64_t data;
+                  uint64_t ext[4];
+                };
+                #pragma pack(pop)
+
+                int kq;
+                struct kevent_qos_s *changelist;
+                int nchanges;
+                struct kevent_qos_s *eventlist;
+                int nevents;
+                void *data_out;
+                size_t *data_available;
+                unsigned int flags;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &kq);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &changelist);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &nchanges);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &eventlist);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &nevents);
+                ensure_uc_reg_read(UC_ARM64_REG_X5, &data_out);
+                ensure_uc_reg_read(UC_ARM64_REG_X6, &data_available);
+                ensure_uc_reg_read(UC_ARM64_REG_W7, &flags);
+                
+                if (nchanges == 1 && eventlist == NULL && nevents == 0) {
+                    // kqueue init
+                    syscall_return_value(0);
+                } else if (nchanges == 1 && nevents == 16 && eventlist != NULL) {
+                    // dispatch_kq_poll
+                    int count = 1;
+                    
+                    // mock a kevent
+#if 0
+                    (lldb) p/x event0
+                    (kevent_qos_s *) $0 = 0x00000003ffffe288
+                    (lldb) p/x &event0->flags
+                    (uint16_t *) $1 = 0x00000003ffffe292
+                    (lldb) p/x &event0->data
+                    (int64_t *) $1 = 0x00000003ffffe2a8
+#endif
+                    struct kevent_qos_s *event0 = eventlist;
+                    struct kevent_qos_s *change0 = changelist;
+                    memcpy(event0, change0, sizeof(struct kevent_qos_s));
+//                    event0->data = 0x233;
+//                    event0->flags = (uint16_t)0x4000;
+//                    uc_debug_set_breakpoint(uc, 0x1800666C8);
+                    syscall_return_value(count);
+                } else {
+                    uc_debug_print_backtrace(uc, true);
+                    assert(0);
+                }
+                return true;
+            }
             case 381: { // sandbox_ms
                 uint64_t policyAddr, args;
                 int call;
@@ -831,12 +969,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(ret);
                 return true;
             }
-            case 428: { // audit_session_self
-                int audit_self = IB_AUDIT_SESSION_SELF;
-                printf("[Stalker][+][Syscall] audit_session_self return %d", audit_self);
-                syscall_return_value(audit_self);
-                return true;
-            }
+//            case 428: { // audit_session_self
+//                int audit_self = IB_AUDIT_SESSION_SELF;
+//                printf("[Stalker][+][Syscall] audit_session_self return %d", audit_self);
+//                syscall_return_value(audit_self);
+//                return true;
+//            }
             case 463: { // openat
                 int fd;
                 char *path;
@@ -1027,16 +1165,16 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
 //                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
 //                return true;
 //            }
-            case 28: { // task_self_trap
-                int ret = TASK_SELF_PORT;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-                return true;
-            }
-            case 29: { // host_self_trap
-                int ret = HOST_SELF_PORT;
-                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-                return true;
-            }
+//            case 28: { // task_self_trap
+//                int ret = TASK_SELF_PORT;
+//                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+//                return true;
+//            }
+//            case 29: { // host_self_trap
+//                int ret = HOST_SELF_PORT;
+//                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
+//                return true;
+//            }
             case 31: { // mach_msg_trap
 //                PAD_ARG_(user_addr_t, msg);
 //                PAD_ARG_(mach_msg_option_t, option);

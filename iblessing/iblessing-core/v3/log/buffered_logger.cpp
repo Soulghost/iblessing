@@ -24,6 +24,7 @@ BufferedLogger* BufferedLogger::globalLogger() {
 
 BufferedLogger::BufferedLogger() {
     buffer = "";
+    useBuffer = true;
 }
 
 void BufferedLogger::purgeBuffer(uint64_t limit) {
@@ -38,7 +39,9 @@ void BufferedLogger::append(string content) {
         purgeBuffer(0);
     }
     buffer += content;
-//    printBuffer();
+    if (__builtin_expect(!useBuffer, false)) {
+        printBuffer();
+    }
 }
 
 void BufferedLogger::printBuffer() {
@@ -48,4 +51,12 @@ void BufferedLogger::printBuffer() {
 
 std::string BufferedLogger::getBuffer() {
     return buffer;
+}
+
+void BufferedLogger::startBuffer() {
+    useBuffer = true;
+}
+
+void BufferedLogger::stopBuffer() {
+    useBuffer = false;
 }

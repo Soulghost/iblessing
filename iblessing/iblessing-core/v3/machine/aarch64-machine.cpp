@@ -38,6 +38,13 @@ static uc_hook insn_hook;
 static uc_hook intr_hook, memexp_hook;
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
+    // the hook is **before execute**, redirect pc cause the execute to be cancelled
+    static int pthread_ticks = 0;
+    if (address == redirectFunctionLR) {
+        shared_ptr<Aarch64Machine> machine = uc2instance[uc]->loader->machine.lock();
+        machine->contextSwitchBack();
+    }
+    
     void *codes = malloc(sizeof(uint32_t));
     uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
     if (err != UC_ERR_OK) {
@@ -57,6 +64,12 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         print_backtrace(uc);
         assert(false);
         return;
+    }
+    
+    if (++pthread_ticks > 10) {
+        shared_ptr<Aarch64Machine> machine = uc2instance[uc]->loader->machine.lock();
+        machine->contextSwitchIfNeeded();
+        pthread_ticks = 0;
     }
     
     static set<string> symbolBlackList{"__platform_strlen", "__platform_bzero", "__platform_memset", "__platform_strstr", "__platform_strcmp", "__platform_strncmp", "__platform_memmove", "_getsectiondata", "_tiny_print_region_free_list", "_malloc_zone_malloc", "_mach_vm_allocate"};
@@ -292,6 +305,18 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     uint64_t nopPageAddr = (uint64_t)loader->memoryManager->mmapSharedMem(0x600000000, 0x4000, UC_PROT_ALL);
     callFunctionLR = nopPageAddr;
     ensure_uc_mem_write(callFunctionLR, &nopCode, sizeof(uint32_t));
+    nopPageAddr += sizeof(uint32_t);
+    
+    redirectFunctionLR = nopPageAddr;
+    ensure_uc_mem_write(redirectFunctionLR, &nopCode, sizeof(uint32_t));
+    nopPageAddr += sizeof(uint32_t);
+    ensure_uc_mem_write(nopPageAddr, &nopCode, sizeof(uint32_t));
+    nopPageAddr += sizeof(uint32_t);
+    ensure_uc_mem_write(nopPageAddr, &nopCode, sizeof(uint32_t));
+    nopPageAddr += sizeof(uint32_t);
+    
+    uint64_t loopCode = 0xd4200020;
+    ensure_uc_mem_write(nopPageAddr, &loopCode, sizeof(uint32_t));
     
     // FATAL FIXME: tricky nop
     uint64_t nop_xpc_release_in_libxpc_initializer_addr = 0x1C8947D34 + DYLD_FIXED_SLIDE;
@@ -424,7 +449,9 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-//    uc_debug_set_breakpoint(uc, 0x1000079A0);
+//    uc_debug_set_breakpoint(uc, 0x1800666B8); // event loop
+//    uc_debug_set_breakpoint(uc, 0x18004D3BC); // dispatch_after
+//    uc_debug_set_breakpoint(uc, 0x1800593C0); // dispatch_kevent_worker_thread
 //    uc_debug_set_breakpoint(uc, 0x1000079b0);
 //    uc_debug_set_breakpoint(uc, 0x1000079b4);
 //    uc_debug_set_breakpoint(uc, 0x1C8952F3C);
@@ -470,4 +497,52 @@ void Aarch64Machine::setErrno(int no) {
 void Aarch64Machine::setErrnoAddr(uint64_t addr) {
     errnoAddr = addr;
     setErrno(0);
+}
+
+void Aarch64Machine::penddingContextSwitch(ib_pendding_thread *thread) {
+    penddingThread.push_back(thread);
+}
+
+void Aarch64Machine::contextSwitchIfNeeded() {
+    if (penddingThread.size() == 0) {
+        return;
+    }
+    
+    ib_pendding_thread *t = penddingThread[0];
+    penddingThread.erase(penddingThread.begin());
+    contextSwitch(t);
+}
+
+void Aarch64Machine::contextSwitch(ib_pendding_thread *thread) {
+    if (!thread->exit_ctx) {
+        uc_context_alloc(uc, &thread->exit_ctx);
+    }
+    assert(uc_context_save(uc, thread->exit_ctx) == UC_ERR_OK);
+    
+    uint64_t pc, lr, tsd;
+    ensure_uc_reg_read(UC_ARM64_REG_PC, &pc);
+    ensure_uc_reg_read(UC_ARM64_REG_LR, &lr);
+    ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
+    printf("[Stalker][+][Thread] switch before pc 0x%llx, lr 0x%llx, tsd 0x%llx\n", pc, lr, tsd);
+    ensure_uc_reg_write(UC_ARM64_REG_SP, &thread->stack);
+    BufferedLogger::globalLogger()->stopBuffer();
+    ensure_uc_reg_write(UC_ARM64_REG_TPIDRRO_EL0, &thread->tsd);
+    uc_redirectToFunction(uc, thread->func, Aarch64FunctionCallArg::voidArg(), {thread->func_arg});
+    contextList.push_back(thread);
+}
+
+void Aarch64Machine::contextSwitchBack() {
+    assert(contextList.size() == 1);
+    ib_pendding_thread *thread = contextList[contextList.size() - 1];
+    contextList.pop_back();
+//    uc_debug_breakhere(uc, "before restore");
+    assert(uc_context_restore(uc, thread->exit_ctx) == UC_ERR_OK);
+//    uc_debug_breakhere(uc, "after restore");
+    
+    uint64_t pc, lr, tsd;
+    ensure_uc_reg_read(UC_ARM64_REG_PC, &pc);
+    ensure_uc_reg_read(UC_ARM64_REG_LR, &lr);
+    ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
+    ensure_uc_reg_write(UC_ARM64_REG_PC, &pc);
+    printf("[Stalker][+][Thread] restart with pc 0x%llx, lr 0x%llx, tsd 0x%llx\n", pc, lr, tsd);
 }
