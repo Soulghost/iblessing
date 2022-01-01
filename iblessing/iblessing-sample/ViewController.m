@@ -143,11 +143,11 @@ pthread_mutex_t lock1;
 
 void* pthreadWorker(void *ctx) {
     printf("subthread try lock\n");
-    pthread_mutex_lock(&lock1);
+//    pthread_mutex_lock(&lock1);
     printf("subthread get lock\n");
     int a = 1;
     a += 1;
-    pthread_mutex_unlock(&lock1);
+//    pthread_mutex_unlock(&lock1);
     printf("subthread release lock\n");
     
     char thread_name[16] = { 0 };
@@ -167,7 +167,7 @@ void testPthread(void) {
         printf("[-] pthread mutex init failed with ret %d\n", ret);
         abort();
     }
-    pthread_mutex_lock(&lock1);
+//    pthread_mutex_lock(&lock1);
     
     pthread_t thread;
     void *ctx = strdup("subthread 1");

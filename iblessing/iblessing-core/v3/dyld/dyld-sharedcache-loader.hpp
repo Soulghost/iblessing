@@ -58,6 +58,7 @@ NS_IB_BEGIN
 
 typedef struct DyldLinkContext {
     uc_engine *uc;
+    uint64_t linkEditBase;
     SharedCacheLoadInfo loadInfo;
 } DyldLinkContext;
 

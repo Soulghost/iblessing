@@ -1614,11 +1614,8 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
     ensure_uc_mem_read(symtab_addr, symtab_data, symtab_size);
     symtab->buildSymbolTable(moduleName, symtab_data, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
-        size_t dysymtab_size = sizeof(uint32_t) * dysymtab_cmd->nindirectsyms;
-        uint8_t *dysymtab_data = (uint8_t *)malloc(dysymtab_size);
-        uint64_t dysymtab_addr = linkedit_base + dysymtab_cmd->indirectsymoff;
-        ensure_uc_mem_read(dysymtab_addr, dysymtab_data, dysymtab_size);
-        symtab->buildDynamicSymbolTable(linkContext, sectionHeaders, dysymtab_data, dysymtab_cmd->nindirectsyms);
+        linkContext.linkEditBase = linkedit_base;
+        symtab->buildDynamicSymbolTable(moduleName, dysymtab_cmd, linkContext, sectionHeaders);
     }
     symtab->sync();
     
