@@ -432,6 +432,10 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     assert(uc_mem_write(uc, IB_COMM_PAGE_PHYSICAL_CPUS, &cpuCount, 1) == UC_ERR_OK);
     assert(uc_mem_write(uc, IB_COMM_PAGE_LOGICAL_CPUS, &cpuCount, 1) == UC_ERR_OK);
     assert(uc_mem_write(uc, IB_COMM_PAGE_MEMORY_SIZE, &null64, 8) == UC_ERR_OK);
+    
+    uint64_t pageShift = 14;
+    ensure_uc_mem_write(IB_COMM_PAGE_USER_PAGE_SHIFT_64, &pageShift, 8);
+    ensure_uc_mem_write(IB_COMM_PAGE_KERNEL_PAGE_SHIFT, &pageShift, 8);
 //    static set<string> moduleInitBlackList{"CoreFoundation", "Foundation"};
 //    if (moduleInitBlackList.find(module->name) != moduleInitBlackList.end()) {
 //        printf("[Stalker][!][Warn] skip mod init for %s\n", module->name.c_str());

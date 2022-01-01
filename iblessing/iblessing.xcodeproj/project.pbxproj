@@ -139,6 +139,13 @@
 			remoteGlobalIDString = 68B255AA26401DCD008FA1E2;
 			remoteInfo = "iblessing-core";
 		};
+		68FCABE827801A790097BD0D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 685CE7C724C55309002CC5E8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 6829628224CBEEA300EF9251;
+			remoteInfo = "iblessing-sample";
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -1520,6 +1527,7 @@
 			buildRules = (
 			);
 			dependencies = (
+				68FCABE927801A790097BD0D /* PBXTargetDependency */,
 				68B256C8264025AA008FA1E2 /* PBXTargetDependency */,
 			);
 			name = iblessing;
@@ -1769,6 +1777,11 @@
 			isa = PBXTargetDependency;
 			target = 68B255AA26401DCD008FA1E2 /* iblessing-core */;
 			targetProxy = 68B256C7264025AA008FA1E2 /* PBXContainerItemProxy */;
+		};
+		68FCABE927801A790097BD0D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 6829628224CBEEA300EF9251 /* iblessing-sample */;
+			targetProxy = 68FCABE827801A790097BD0D /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 

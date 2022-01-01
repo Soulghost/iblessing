@@ -860,9 +860,12 @@ typedef struct ib_mach_port_options {
 #define IB_KERNEL_BASE64            0xFFFFF0000
 #define IB_COMM_PAGE_START_ADDRESS  (IB_KERNEL_BASE64 + 0xc000) /* In TTBR0 */
 #define IB_COMM_PAGE_NCPUS          (IB_COMM_PAGE_START_ADDRESS+0x022)    /* uint8_t number of configured CPUs (hw.logicalcpu at boot time) */
+#define IB_COMM_PAGE_USER_PAGE_SHIFT_64 (IB_COMM_PAGE_START_ADDRESS+0x025)        // VM page shift for 64-bit processes
 #define IB_COMM_PAGE_ACTIVE_CPUS    (IB_COMM_PAGE_START_ADDRESS+0x034)    /* uint8_t number of active CPUs (hw.activecpu) */
 #define IB_COMM_PAGE_PHYSICAL_CPUS  (IB_COMM_PAGE_START_ADDRESS+0x035)    /* uint8_t number of physical CPUs (hw.physicalcpu_max) */
 #define IB_COMM_PAGE_LOGICAL_CPUS   (IB_COMM_PAGE_START_ADDRESS+0x036)    /* uint8_t number of logical CPUs (hw.logicalcpu_max) */
+#define IB_COMM_PAGE_KERNEL_PAGE_SHIFT (IB_COMM_PAGE_START_ADDRESS+0x037)        // uint8_t kernel vm page shift */
+
 #define IB_COMM_PAGE_MEMORY_SIZE    (IB_COMM_PAGE_START_ADDRESS+0x038)    /* uint64_t max memory size */
 
 enum ib_dyld_image_states
