@@ -184,6 +184,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 _abortAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
                     cout << termcolor::red << "[-] Error: abort raised !!!";
                     cout << termcolor::reset << endl;
+                    uc_debug_print_backtrace(uc);
                     assert(false);
                 });
             }

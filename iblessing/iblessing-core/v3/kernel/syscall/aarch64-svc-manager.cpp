@@ -710,22 +710,22 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X3, &pthread);
                 ensure_uc_reg_read(UC_ARM64_REG_W4, &flags);
                 
-                // create tsd
-                // pthread begin
-                uint64_t pthreadSize = sizeof(ib_pthread_s);
-                // alloca
-                stack -= pthreadSize;
-                stack &= (~15);
-                uint64_t pthreadAddr = stack;
-                uint64_t pthreadTSD = pthreadAddr + __offsetof(ib_pthread_s, tsd);
+                // get tsd
+//                // pthread begin
+//                uint64_t pthreadSize = sizeof(ib_pthread_s);
+//                // alloca
+//                stack -= pthreadSize;
+//                stack &= (~15);
+//                uint64_t pthreadAddr = stack;
+                uint64_t pthreadTSD = stack + __offsetof(ib_pthread_s, tsd);
                 
                 // init
-                ib_pthread_s *thread = (ib_pthread_s *)calloc(1, pthreadSize);
-                *((uint64_t *)&thread->tsd[0]) = pthreadAddr; // self
-                thread->tsd[1] = 0; // errno
-                thread->sig = pthreadAddr ^ 0x1;
-                ensure_uc_mem_write(pthreadAddr, (void *)thread, pthreadSize);
-                free(thread);
+//                ib_pthread_s *thread = (ib_pthread_s *)calloc(1, pthreadSize);
+//                *((uint64_t *)&thread->tsd[0]) = pthreadAddr; // self
+//                thread->tsd[1] = 0; // errno
+//                thread->sig = pthreadAddr ^ 0x1;
+//                ensure_uc_mem_write(pthreadAddr, (void *)thread, pthreadSize);
+//                free(thread);
                 ib_pendding_thread *t = (ib_pendding_thread *)calloc(1, sizeof(ib_pendding_thread));
                 t->func = func;
                 t->func_arg = func_arg;
