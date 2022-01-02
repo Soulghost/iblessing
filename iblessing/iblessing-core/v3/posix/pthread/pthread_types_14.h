@@ -163,4 +163,74 @@ struct ib_pthread_s {
     void *tsd[_EXTERNAL_POSIX_THREAD_KEYS_MAX + _INTERNAL_POSIX_THREAD_KEYS_MAX];
 };
 
+struct ib_pthread_mutex_options_s {
+    uint32_t
+        protocol:2,
+        type:2,
+        pshared:2,
+        policy:3,
+        hold:2,
+        misalign:1,
+        notify:1,
+        mutex:1,
+        ulock:1,
+        unused:1,
+        lock_count:16;
+};
+
+#define _PTHREAD_MUTEX_ULOCK_OWNER_MASK 0xfffffffcu
+#define _PTHREAD_MUTEX_ULOCK_WAITERS_BIT 0x00000001u
+#define _PTHREAD_MUTEX_ULOCK_UNLOCKED_VALUE 0x0u
+#define _PTHREAD_MUTEX_ULOCK_UNLOCKED \
+        ((struct _pthread_mutex_ulock_s){0})
+
+typedef struct ib_pthread_mutex_ulock_s {
+    uint32_t uval;
+} *ib_pthread_mutex_ulock_t;
+
+struct ib_pthread_mutex_s {
+    long sig;
+    ib_pthread_lock lock;
+    union {
+        uint32_t value;
+        struct ib_pthread_mutex_options_s options;
+    } mtxopts;
+    int16_t prioceiling;
+    int16_t priority;
+    uint32_t _pad;
+    union {
+        struct {
+            uint32_t m_tid[2]; // thread id of thread that has mutex locked
+            uint32_t m_seq[2]; // mutex sequence id
+            uint32_t m_mis[2]; // for misaligned locks m_tid/m_seq will span into here
+        } psynch;
+        struct ib_pthread_mutex_ulock_s ulock;
+    };
+    uint32_t _reserved[4];
+};
+
+typedef struct ib_pthread_mutex_s ib_pthread_mutex_t;
+
+typedef union ib_mutex_seq {
+    uint32_t seq[2];
+    struct { uint32_t lgenval; uint32_t ugenval; };
+    struct { uint32_t mgen; uint32_t ugen; };
+    uint64_t seq_LU;
+    uint64_t _Atomic atomic_seq_LU;
+} ib_mutex_seq;
+
+static inline void
+IB_MUTEX_GETSEQ_ADDR(ib_pthread_mutex_t *mutex, ib_mutex_seq **seqaddr)
+{
+    // 64-bit aligned address inside m_seq array (&m_seq[0] for aligned mutex)
+    // We don't require more than byte alignment on OS X. rdar://22278325
+    *seqaddr = (ib_mutex_seq *)(((uintptr_t)mutex->psynch.m_seq + 0x7ul) & ~0x7ul);
+}
+
+// L word
+#define IB_PTH_RWL_KBIT        0x01     // cannot acquire in user mode
+#define IB_PTH_RWL_EBIT        0x02    // exclusive lock in progress
+#define IB_PTH_RWL_WBIT        0x04    // write waiters pending in kernel
+#define IB_PTH_RWL_PBIT        0x04    // prepost (cv) pending in kernel
+
 #endif /* pthread_types_14_h */

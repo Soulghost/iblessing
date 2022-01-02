@@ -71,9 +71,6 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
             } else {
                 printf("\n");
             }
-            if (trap_no == -70) {
-                printf("");
-            }
             switch (trap.mach_trap_arg_count) {
                 case 0:
                     ret = ((fptr_0)trap.mach_trap_function)(); break;

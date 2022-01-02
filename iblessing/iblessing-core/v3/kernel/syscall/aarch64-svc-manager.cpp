@@ -599,6 +599,44 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
 //                syscall_return_success;
 //                return true;
 //            }
+            case 301: {
+                // 301    AUE_NULL    ALL    { uint32_t psynch_mutexwait(user_addr_t mutex,  uint32_t mgen, uint32_t  ugen, uint64_t tid, uint32_t flags) NO_SYSCALL_STUB; }
+                uint64_t mutexAddr;
+                uint32_t mgen, ugen;
+                uint64_t tid;
+                uint32_t flags;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &mutexAddr);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &mgen);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &ugen);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &tid);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &flags);
+                
+                ib_pthread_mutex_s *mutex = (ib_pthread_mutex_s *)malloc(sizeof(ib_pthread_mutex_s));
+                ensure_uc_mem_read(mutexAddr, mutex, sizeof(ib_pthread_mutex_s));
+                ib_mutex_seq *seqaddr;
+                IB_MUTEX_GETSEQ_ADDR(mutex, &seqaddr);
+                seqaddr->lgenval &= (~IB_PTH_RWL_EBIT);
+                ensure_uc_mem_write(mutexAddr, mutex, sizeof(ib_pthread_mutex_s));
+                printf("[Stalker][+][Syscall][Threading] psynch_mutexwait - mutex 0x%llx, mgen %d, ugen %d, tid 0x%llx, flags 0x%x\n", mutexAddr, mgen, ugen, tid, flags);
+                syscall_return_value(0);
+                free(mutex);
+                return true;
+            }
+            case 302: {
+                // 302    AUE_NULL    ALL    { uint32_t psynch_mutexdrop(user_addr_t mutex,  uint32_t mgen, uint32_t  ugen, uint64_t tid, uint32_t flags) NO_SYSCALL_STUB; }
+                uint64_t mutex;
+                uint32_t mgen, ugen;
+                uint64_t tid;
+                uint32_t flags;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &mutex);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &mgen);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &ugen);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &tid);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &flags);
+                printf("[Stalker][+][Syscall][Threading] psynch_mutexwait - mutex 0x%llx, mgen %d, ugen %d, tid 0x%llx, flags 0x%x\n", mutex, mgen, ugen, tid, flags);
+                syscall_return_value(0);
+                return true;
+            }
             // fstat64
             case 339: {
                 int fd = 0;
