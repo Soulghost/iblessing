@@ -652,8 +652,13 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         uint64_t nullSentry = 0;
                         
                         vector<shared_ptr<MachOModule>> objcModules;
+                        bool skipFirst = true;
                         for (shared_ptr<MachOModule> module : modules) {
                             if (!module->fNotifyObjc) {
+                                continue;
+                            }
+                            if (skipFirst) {
+                                skipFirst = false;
                                 continue;
                             }
                             objcModules.push_back(module);
@@ -743,8 +748,9 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         // write size to x0
                         DyldLinkContext &linkContext = this->linkContext;
                         CacheInfo &info = linkContext.loadInfo.info;
-                        ib_shared_file_mapping_slide_np *mapping = &info.mappings[info.mappingsCount - 1];
-                        uint64_t size = mapping->sms_address + mapping->sms_size - linkContext.loadInfo.slide;
+                        ib_shared_file_mapping_slide_np *lastMapping = &info.mappings[info.mappingsCount - 1];
+                        ib_shared_file_mapping_slide_np *firstMapping = &info.mappings[0];
+                        uint64_t size = lastMapping->sms_address + lastMapping->sms_size - firstMapping->sms_address;
                         ensure_uc_mem_write(sizeAddr, &size, sizeof(uint64_t));
                         
                         // return loadAddress

@@ -196,9 +196,12 @@ void SymbolTable::buildDynamicSymbolTable(string moduleName, struct ib_dysymtab_
                 // rebase it
                 uint64_t symbolAddr;
                 ensure_uc_mem_read(ptrToBind, &symbolAddr, sizeof(uint64_t));
-                symbolAddr += linkContext.loadInfo.slide;
-                ensure_uc_mem_write(ptrToBind, &symbolAddr, sizeof(uint64_t));
-                printf("[Stalker][+][Dyld] rebase indirect symbol in module %s at 0x%llx from 0x%llx to 0x%llx\n", moduleName.c_str(), ptrToBind, symbolAddr - linkContext.loadInfo.slide, symbolAddr);
+                if (symbolAddr < linkContext.loadInfo.loadAddress) {
+                    symbolAddr += linkContext.loadInfo.slide;
+                    ensure_uc_mem_write(ptrToBind, &symbolAddr, sizeof(uint64_t));
+                    printf("[Stalker][+][Dyld] rebase indirect symbol in module %s at 0x%llx from 0x%llx to 0x%llx\n", moduleName.c_str(), ptrToBind, symbolAddr - linkContext.loadInfo.slide, symbolAddr);
+                }
+                
                 continue;
             }
             

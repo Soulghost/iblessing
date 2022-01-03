@@ -635,6 +635,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_W4, &flags);
                 printf("[Stalker][+][Syscall][Threading] psynch_mutexwait - mutex 0x%llx, mgen %d, ugen %d, tid 0x%llx, flags 0x%x\n", mutex, mgen, ugen, tid, flags);
                 syscall_return_value(0);
+//                uc_debug_breakhere(uc);
                 return true;
             }
             // fstat64
