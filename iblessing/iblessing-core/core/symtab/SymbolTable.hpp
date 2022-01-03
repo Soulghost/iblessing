@@ -51,8 +51,9 @@ public:
     
     void buildSymbolTable(std::string moduleName, uint8_t *data, uint64_t nSymbols);
     
-    void buildDynamicSymbolTable(DyldLinkContext linkContext, std::vector<struct ib_section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols);
+    void buildDynamicSymbolTable(std::string moduleName, struct ib_dysymtab_command *dysymtab_cmd, DyldLinkContext linkContext, std::vector<struct ib_section_64 *> sectionHeaders);
     void buildDynamicSymbolTable(std::vector<struct ib_section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols, uint8_t *mappedData);
+    
     void insertSymbol(Symbol *symbol);
     void sync();
     bool relocSymbol(uint64_t addr, uint64_t idx, ib_section_64 *section);

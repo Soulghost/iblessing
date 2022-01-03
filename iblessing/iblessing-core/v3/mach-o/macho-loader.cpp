@@ -184,6 +184,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 _abortAddr = svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
                     cout << termcolor::red << "[-] Error: abort raised !!!";
                     cout << termcolor::reset << endl;
+                    uc_debug_print_backtrace(uc);
                     assert(false);
                 });
             }
@@ -651,8 +652,13 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         uint64_t nullSentry = 0;
                         
                         vector<shared_ptr<MachOModule>> objcModules;
+                        bool skipFirst = true;
                         for (shared_ptr<MachOModule> module : modules) {
                             if (!module->fNotifyObjc) {
+                                continue;
+                            }
+                            if (skipFirst) {
+                                skipFirst = false;
                                 continue;
                             }
                             objcModules.push_back(module);
@@ -742,8 +748,9 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         // write size to x0
                         DyldLinkContext &linkContext = this->linkContext;
                         CacheInfo &info = linkContext.loadInfo.info;
-                        ib_shared_file_mapping_slide_np *mapping = &info.mappings[info.mappingsCount - 1];
-                        uint64_t size = mapping->sms_address + mapping->sms_size - linkContext.loadInfo.slide;
+                        ib_shared_file_mapping_slide_np *lastMapping = &info.mappings[info.mappingsCount - 1];
+                        ib_shared_file_mapping_slide_np *firstMapping = &info.mappings[0];
+                        uint64_t size = lastMapping->sms_address + lastMapping->sms_size - firstMapping->sms_address;
                         ensure_uc_mem_write(sizeAddr, &size, sizeof(uint64_t));
                         
                         // return loadAddress
@@ -1613,11 +1620,8 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
     ensure_uc_mem_read(symtab_addr, symtab_data, symtab_size);
     symtab->buildSymbolTable(moduleName, symtab_data, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
-        size_t dysymtab_size = sizeof(uint32_t) * dysymtab_cmd->nindirectsyms;
-        uint8_t *dysymtab_data = (uint8_t *)malloc(dysymtab_size);
-        uint64_t dysymtab_addr = linkedit_base + dysymtab_cmd->indirectsymoff;
-        ensure_uc_mem_read(dysymtab_addr, dysymtab_data, dysymtab_size);
-        symtab->buildDynamicSymbolTable(linkContext, sectionHeaders, dysymtab_data, dysymtab_cmd->nindirectsyms);
+        linkContext.linkEditBase = linkedit_base;
+        symtab->buildDynamicSymbolTable(moduleName, dysymtab_cmd, linkContext, sectionHeaders);
     }
     symtab->sync();
     

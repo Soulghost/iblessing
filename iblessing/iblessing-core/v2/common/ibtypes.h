@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string>
 #include <memory>
+#include <signal.h>
 
 typedef int ib_return_t;
 
@@ -27,7 +28,13 @@ typedef int ib_return_t;
 #define IB_MEMORY_MAPPING_ERROR 6
 #define IB_OBJC_DATA_LOAD_ERROR 7
 
-#define ensure_uc_mem_read(addr, bytes, size) assert(uc_mem_read(uc, addr, bytes, size) == UC_ERR_OK)
+#define ensure_uc_mem_read(addr, bytes, size) do { \
+if (uc_mem_read(uc, addr, bytes, size) != UC_ERR_OK) { \
+    raise(SIGINT); \
+    uc_debug_print_backtrace(uc); \
+}\
+} while (0)
+
 #define ensure_uc_mem_write(addr, bytes, size) assert(uc_mem_write(uc, addr, bytes, size) == UC_ERR_OK)
 #define ensure_uc_reg_read(reg, value) assert(uc_reg_read(uc, reg, value) == UC_ERR_OK)
 #define ensure_uc_reg_write(reg, value) assert(uc_reg_write(uc, reg, value) == UC_ERR_OK)

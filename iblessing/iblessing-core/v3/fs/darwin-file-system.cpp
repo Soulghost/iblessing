@@ -298,7 +298,10 @@ int DarwinFileSystem::write(int fd, uint64_t bufferAddr, int count) {
         // stderr
         string type = (fd == 1 ? "STDOUT" : "STDERR") ;
         char *buf = (char *)calloc(1, count + 1);
-        ensure_uc_mem_read(bufferAddr, buf, count);
+        if (uc_mem_read(uc, bufferAddr, buf, count) != UC_ERR_OK) {
+            uc_debug_breakhere(uc);
+        }
+//        ensure_uc_mem_read(bufferAddr, buf, count);
         printf("%s[Logger][%s]: %s", SyscallBanner, type.c_str(), buf);
         free(buf);
         return 0;

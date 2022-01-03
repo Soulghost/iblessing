@@ -432,6 +432,10 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     assert(uc_mem_write(uc, IB_COMM_PAGE_PHYSICAL_CPUS, &cpuCount, 1) == UC_ERR_OK);
     assert(uc_mem_write(uc, IB_COMM_PAGE_LOGICAL_CPUS, &cpuCount, 1) == UC_ERR_OK);
     assert(uc_mem_write(uc, IB_COMM_PAGE_MEMORY_SIZE, &null64, 8) == UC_ERR_OK);
+    
+    uint64_t pageShift = 14;
+    ensure_uc_mem_write(IB_COMM_PAGE_USER_PAGE_SHIFT_64, &pageShift, 8);
+    ensure_uc_mem_write(IB_COMM_PAGE_KERNEL_PAGE_SHIFT, &pageShift, 8);
 //    static set<string> moduleInitBlackList{"CoreFoundation", "Foundation"};
 //    if (moduleInitBlackList.find(module->name) != moduleInitBlackList.end()) {
 //        printf("[Stalker][!][Warn] skip mod init for %s\n", module->name.c_str());
@@ -449,6 +453,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
+//    uc_debug_set_breakpoint(uc, 0x1C891C3B0);
 //    uc_debug_set_breakpoint(uc, 0x1800666B8); // event loop
 //    uc_debug_set_breakpoint(uc, 0x18004D3BC); // dispatch_after
 //    uc_debug_set_breakpoint(uc, 0x1800593C0); // dispatch_kevent_worker_thread
@@ -525,7 +530,7 @@ void Aarch64Machine::contextSwitch(ib_pendding_thread *thread) {
     ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
     printf("[Stalker][+][Thread] switch before pc 0x%llx, lr 0x%llx, tsd 0x%llx\n", pc, lr, tsd);
     ensure_uc_reg_write(UC_ARM64_REG_SP, &thread->stack);
-    BufferedLogger::globalLogger()->stopBuffer();
+//    BufferedLogger::globalLogger()->stopBuffer();
     ensure_uc_reg_write(UC_ARM64_REG_TPIDRRO_EL0, &thread->tsd);
     uc_redirectToFunction(uc, thread->func, Aarch64FunctionCallArg::voidArg(), {thread->func_arg});
     contextList.push_back(thread);

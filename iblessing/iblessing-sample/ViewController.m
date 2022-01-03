@@ -139,9 +139,16 @@ uint64_t test_malloc(void) {
     return 233;
 }
 
+pthread_mutex_t lock1;
+
 void* pthreadWorker(void *ctx) {
+    printf("subthread try lock\n");
+    pthread_mutex_lock(&lock1);
+    printf("subthread get lock\n");
     int a = 1;
     a += 1;
+    pthread_mutex_unlock(&lock1);
+    printf("subthread release lock\n");
     
     char thread_name[16] = { 0 };
     pthread_setname_np(ctx);
@@ -151,8 +158,19 @@ void* pthreadWorker(void *ctx) {
 }
 
 void testPthread(void) {
+    pthread_setname_np("main thread");
+    
+    pthread_mutexattr_t attr = { 0 };
+    pthread_mutexattr_init(&attr);
+    int ret = pthread_mutex_init(&lock1, &attr);
+    if (ret != 0) {
+        printf("[-] pthread mutex init failed with ret %d\n", ret);
+        abort();
+    }
+    pthread_mutex_lock(&lock1);
+    
     pthread_t thread;
-    void *ctx = strdup("thread 0");
+    void *ctx = strdup("subthread 1");
     printf("before register pthread\n");
     assert(pthread_create(&thread, NULL, pthreadWorker, ctx) == 0);
     printf("after register pthread\n");
@@ -161,6 +179,7 @@ void testPthread(void) {
     char thread_name[16] = { 0 };
     pthread_getname_np(pthread_self(), thread_name, 16);
     printf("after pthread join, my thread name is %s, self %p\n", thread_name, pthread_self());
+    pthread_mutex_unlock(&lock1);
 }
 
 @interface ViewController ()
