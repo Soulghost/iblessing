@@ -141,6 +141,11 @@ uint64_t test_malloc(void) {
 
 pthread_mutex_t lock1;
 
+void testAssert(void) {
+    printf("[*] before test assert\n");
+    assert(false);
+}
+
 void* pthreadWorker(void *ctx) {
     printf("subthread try lock\n");
     pthread_mutex_lock(&lock1);

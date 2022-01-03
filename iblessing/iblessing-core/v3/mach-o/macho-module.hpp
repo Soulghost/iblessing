@@ -42,8 +42,11 @@ public:
     uint64_t machHeader;
     uint64_t linkedit_base;
     bool hasInit;
+    bool isDummy;
+    bool isExecutable;
     
     MachOModule();
+    static std::shared_ptr<MachOModule> createDummyModule(uint64_t addr, uint64_t size, std::string name);
     
     std::weak_ptr<MachOLoader> loader;
     

@@ -82,8 +82,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         assert(uc_reg_read(uc, insn->detail->arm64.operands[0].reg, &regValue) == UC_ERR_OK);
         comments = StringUtils::format("#0x%llx", regValue);
         if (regValue == 0) {
-            print_backtrace(uc);
-            BufferedLogger::globalLogger()->printBuffer();
+            uc_debug_print_backtrace(uc);
             assert(false);
         }
         targetAddr = regValue;
@@ -477,7 +476,6 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
 //    Symbol *_setLookupFunc = dyldModule->getSymbolByName("_dyld_func_lookup", false);
 //    uint64_t lookupFuncAddr = 0x233;
 //    callFunction(uc, _setLookupFunc->info->n_value, Aarch64FunctionCallArg::voidArg(), {lookupFuncAddr});
-    
     
     // init modules
     defaultEnv = initEnv;

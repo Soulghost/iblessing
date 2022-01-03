@@ -304,7 +304,7 @@ int DarwinFileSystem::write(int fd, uint64_t bufferAddr, int count) {
 //        ensure_uc_mem_read(bufferAddr, buf, count);
         printf("%s[Logger][%s]: %s", SyscallBanner, type.c_str(), buf);
         free(buf);
-        return 0;
+        return count;
     }
     
     assert(has(fd));
