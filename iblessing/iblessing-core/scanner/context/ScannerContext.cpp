@@ -440,7 +440,7 @@ scanner_err ScannerContext::setupWithBinaryPath(string binaryPath, bool reentry)
     shared_ptr<SymbolTable> symtab = make_shared<SymbolTable>(strtab);
     this->symtab = symtab;
     assert(false);
-    symtab->buildSymbolTable("", mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
+    symtab->buildSymbolTable("", 0, mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
         symtab->buildDynamicSymbolTable(sectionHeaders, mappedFile + dysymtab_cmd->indirectsymoff, dysymtab_cmd->nindirectsyms, mappedFile);
     }

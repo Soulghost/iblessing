@@ -49,7 +49,7 @@ public:
     void buildExportNodes(DyldLinkContext linkContext, uint64_t linkeditBase, uint32_t export_off, uint32_t export_size);
     void buildExportNodes(uint8_t *data, uint32_t export_off, uint32_t export_size);
     
-    void buildSymbolTable(std::string moduleName, uint8_t *data, uint64_t nSymbols);
+    void buildSymbolTable(std::string moduleName, uint64_t slide, uint8_t *data, uint64_t nSymbols);
     
     void buildDynamicSymbolTable(std::string moduleName, struct ib_dysymtab_command *dysymtab_cmd, DyldLinkContext linkContext, std::vector<struct ib_section_64 *> sectionHeaders);
     void buildDynamicSymbolTable(std::vector<struct ib_section_64 *> sectionHeaders, uint8_t *data, uint64_t nSymbols, uint8_t *mappedData);

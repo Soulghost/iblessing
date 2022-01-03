@@ -652,13 +652,8 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         uint64_t nullSentry = 0;
                         
                         vector<shared_ptr<MachOModule>> objcModules;
-                        bool skipFirst = true;
                         for (shared_ptr<MachOModule> module : modules) {
                             if (!module->fNotifyObjc) {
-                                continue;
-                            }
-                            if (skipFirst) {
-                                skipFirst = false;
                                 continue;
                             }
                             objcModules.push_back(module);
@@ -944,7 +939,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(DyldLinkContext linkCon
     
     // parse section headers
     // vmaddr base
-    uint64_t imageBase = loaderOffset;
+    uint64_t imageBase = 0x200000;
     uint64_t imageSize = 0;
     vector<pair<uint64_t, uint64_t>> textSects;
     uint64_t vmaddr_bss_start = 0;
@@ -1174,7 +1169,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(DyldLinkContext linkCon
     
     // sync machHeader
     uint32_t lcsize = hdr->sizeofcmds;
-    uint64_t hdrAddr = imageBase > 0 ? imageBase : 0x100000000 ;
+    uint64_t hdrAddr = imageBase > 0 ? (0x100000000 + imageBase) : 0x100000000 ;
     assert(uc_mem_write(uc, hdrAddr, mappedFile, lcsize) == UC_ERR_OK);
     
     // init bss
@@ -1213,7 +1208,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(DyldLinkContext linkCon
         symtab->buildExportNodes(mappedFile, dyld_info->export_off, dyld_info->export_size);
     }
     module->symtab = symtab;
-    symtab->buildSymbolTable(moduleName, mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
+    symtab->buildSymbolTable(moduleName, 0x200000, mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
         symtab->buildDynamicSymbolTable(sectionHeaders, mappedFile + dysymtab_cmd->indirectsymoff, dysymtab_cmd->nindirectsyms, mappedFile);
     }
@@ -1618,7 +1613,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
     uint8_t *symtab_data = (uint8_t *)malloc(symtab_size);
     uint64_t symtab_addr = linkedit_base + symtab_cmd->symoff;
     ensure_uc_mem_read(symtab_addr, symtab_data, symtab_size);
-    symtab->buildSymbolTable(moduleName, symtab_data, symtab_cmd->nsyms);
+    symtab->buildSymbolTable(moduleName, linkContext.loadInfo.slide, symtab_data, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
         linkContext.linkEditBase = linkedit_base;
         symtab->buildDynamicSymbolTable(moduleName, dysymtab_cmd, linkContext, sectionHeaders);

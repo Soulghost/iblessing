@@ -74,7 +74,7 @@ void SymbolTable::buildExportNodes(uint8_t *data, uint32_t export_off, uint32_t 
     }
 }
 
-void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64_t nSymbols) {
+void SymbolTable::buildSymbolTable(std::string moduleName, uint64_t slide, uint8_t *data, uint64_t nSymbols) {
     symbols.clear();
     name2symbol.clear();
     symbolMap.clear();
@@ -97,7 +97,7 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint8_t *data, uint64
             if (li->n_value != 0) {
                 // FIXME: symbol base in sharedcache
                 if (moduleBase > 0) {
-                    li->n_value += DYLD_FIXED_SLIDE;
+                    li->n_value += slide;
                 }
                 if (exportSymbols.size() == 0) {
                     // add symbol directly
