@@ -118,7 +118,7 @@ MachOLoader::MachOLoader()  {
     
     uint64_t module_addr = MAIN_MODULE_BASE;
     uint64_t module_size = MAIN_MODULE_SIZE;
-    void *mmaped_addr = mmap((void *)module_addr, module_size, UC_PROT_ALL, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+    void *mmaped_addr = mmap((void *)module_addr, module_size, VM_PROT_READ | VM_PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
     assert((uint64_t)mmaped_addr == module_addr);
     uc_err uc_map_err = uc_mem_map_ptr(uc, (uint64_t)mmaped_addr, module_size, UC_PROT_ALL, mmaped_addr);
     assert(uc_map_err == UC_ERR_OK);
