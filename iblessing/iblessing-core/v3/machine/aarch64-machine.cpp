@@ -82,8 +82,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         assert(uc_reg_read(uc, insn->detail->arm64.operands[0].reg, &regValue) == UC_ERR_OK);
         comments = StringUtils::format("#0x%llx", regValue);
         if (regValue == 0) {
-            print_backtrace(uc);
-            BufferedLogger::globalLogger()->printBuffer();
+            uc_debug_print_backtrace(uc);
             assert(false);
         }
         targetAddr = regValue;
@@ -453,7 +452,9 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-//    uc_debug_set_breakpoint(uc, 0x1C891C3B0);
+//    uc_debug_set_breakpoint(uc, 0x994202310);
+//    uc_debug_set_breakpoint(uc, 0x9941F1B50);
+//    uc_debug_set_breakpoint(uc, 0x994202428);
 //    uc_debug_set_breakpoint(uc, 0x1800666B8); // event loop
 //    uc_debug_set_breakpoint(uc, 0x18004D3BC); // dispatch_after
 //    uc_debug_set_breakpoint(uc, 0x1800593C0); // dispatch_kevent_worker_thread
@@ -475,7 +476,6 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
 //    Symbol *_setLookupFunc = dyldModule->getSymbolByName("_dyld_func_lookup", false);
 //    uint64_t lookupFuncAddr = 0x233;
 //    callFunction(uc, _setLookupFunc->info->n_value, Aarch64FunctionCallArg::voidArg(), {lookupFuncAddr});
-    
     
     // init modules
     defaultEnv = initEnv;

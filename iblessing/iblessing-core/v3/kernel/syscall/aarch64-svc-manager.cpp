@@ -638,6 +638,16 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
 //                uc_debug_breakhere(uc);
                 return true;
             }
+            case 328: { // pthread_kill
+                int thread_port;
+                int sig;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &thread_port);
+                ensure_uc_reg_read(UC_ARM64_REG_W1, &sig);
+                uc_debug_print_backtrace(uc, true);
+                printf("[Stalker][+][Syscall][Error][Logger] receive pthread kill for thread_port %d, sig %d\n", thread_port, sig);
+                assert(false);
+                return true;
+            }
             // fstat64
             case 339: {
                 int fd = 0;

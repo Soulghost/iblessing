@@ -37,6 +37,7 @@ int main(int argc, const char *argv[]) {
 //    entry = "_testNSLog";
 //    entry = "_testXPC";
     entry = "_testPthread";
+//    entry = "_testAssert";
     
     shared_ptr<MachOLoader> loader = make_shared<MachOLoader>();
     shared_ptr<MachOModule> module = loader->loadModuleFromFile(modulePath);

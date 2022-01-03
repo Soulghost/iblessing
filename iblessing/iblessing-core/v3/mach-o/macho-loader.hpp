@@ -49,6 +49,7 @@ public:
 protected:
     std::shared_ptr<MachOModule> _loadModuleFromFile(DyldLinkContext linkContext, std::string filePath, bool loadDylibs);
     std::shared_ptr<MachOModule> _loadModuleFromFileUsingSharedCache(DyldLinkContext linkContext, std::string filePath, bool loadDylibs);
+    void loadDummyModules();
     std::set<uint64_t> dyldInitHandlers;
     std::set<uint64_t> dyldBoundHandlers;
 };

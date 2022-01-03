@@ -16,6 +16,7 @@
 #include <mach-o/loader.h>
 #include <set>
 #include <dlfcn.h>
+#include <sys/mman.h>
 #include <mach-o/compact_unwind_encoding.h>
 
 #ifdef IB_PLATFORM_DARWIN
@@ -88,6 +89,8 @@ MachOLoader::MachOLoader()  {
         cout << termcolor::reset << endl;
         assert(false);
     }
+    
+#if !defined(MAIN_MODULE_FIXED_SLIDE) || (MAIN_MODULE_FIXED_SLIDE == 0)
     // mach-o mapping start from 0x100000000 (app), 0x0 (dylib)
     // heap using vm_base ~ vmbase + 12G
     // stack using vmbase + 12G ~ .
@@ -107,16 +110,19 @@ MachOLoader::MachOLoader()  {
         cout << termcolor::reset << endl;
         assert(false);
     }
+#endif
     
-//    uint64_t stack_top = UnicornStackTopAddr;
-//    uint64_t stack_size = 0x10000;
-//    uint64_t stack_addr = stack_top - stack_size;
-//    err = uc_mem_map(uc, stack_addr, stack_size, UC_PROT_ALL);
-//    if (err != UC_ERR_OK) {
-//        cout << termcolor::red << "[-] MachOLoader - Error: unicorn error " << uc_strerror(err);
-//        cout << termcolor::reset << endl;
-//        assert(false);
-//    }
+#if defined(MAIN_MODULE_FIXED_SLIDE) && (MAIN_MODULE_FIXED_SLIDE > 0)
+    uint64_t dummy_page_zero_addr = DUMMY_PAGE_ZERO;
+    assert(uc_mem_map(uc, dummy_page_zero_addr, 0x100000000, UC_PROT_NONE) == UC_ERR_OK);
+    
+    uint64_t module_addr = MAIN_MODULE_BASE;
+    uint64_t module_size = MAIN_MODULE_SIZE;
+    void *mmaped_addr = mmap((void *)module_addr, module_size, VM_PROT_READ | VM_PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+    assert((uint64_t)mmaped_addr == module_addr);
+    uc_err uc_map_err = uc_mem_map_ptr(uc, (uint64_t)mmaped_addr, module_size, UC_PROT_ALL, mmaped_addr);
+    assert(uc_map_err == UC_ERR_OK);
+#endif
     
     // memory
     shared_ptr<MachOMemoryManager> memoryManager = make_shared<MachOMemoryManager>(uc);
@@ -148,17 +154,21 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     // load
     _loadModuleFromFileUsingSharedCache(linkContext, "/usr/lib/updaters/libSEUpdater.dylib", false);
     
+    // load dummy modules
+    loadDummyModules();
+    
     // rebase
     printImageList();
     
     set<pair<string, string>> symbolNotFoundErrorSet;
-    bool isExecutable = true;
     for (shared_ptr<MachOModule> module : modules) {
-        if (isExecutable) {
+        if (module->isDummy) {
+            continue;
+        }
+        if (__builtin_expect(module->isExecutable, false)) {
             DyldSimulator::eachBind(module->mappedBuffer, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int libraryOrdinal, const char *msg) {
                 Dyld::bindAt(module, this->shared_from_this(), libraryOrdinal, symbolName, addr, addend, type);
             });
-            isExecutable = false;
         } else {
             DyldSimulator::eachBind(linkContext, module->linkedit_base, module->segmentHeaders, module->dyldInfoCommand, [&](uint64_t addr, uint8_t type, const char *symbolName, uint8_t symbolFlags, uint64_t addend, int libraryOrdinal, const char *msg) {
                 Dyld::bindAt(module, this->shared_from_this(), libraryOrdinal, symbolName, addr, addend, type);
@@ -652,13 +662,8 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                         uint64_t nullSentry = 0;
                         
                         vector<shared_ptr<MachOModule>> objcModules;
-                        bool skipFirst = true;
                         for (shared_ptr<MachOModule> module : modules) {
                             if (!module->fNotifyObjc) {
-                                continue;
-                            }
-                            if (skipFirst) {
-                                skipFirst = false;
                                 continue;
                             }
                             objcModules.push_back(module);
@@ -909,6 +914,17 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
     return mainModule;
 }
 
+void MachOLoader::loadDummyModules() {
+    vector<shared_ptr<MachOModule>> dummyModules;
+    dummyModules.push_back(MachOModule::createDummyModule(0x600000000, 0x4000, "Common Trampoline"));
+    dummyModules.push_back(MachOModule::createDummyModule(0x700000000, 0x100000000, "SVC Trampoline"));
+    for (shared_ptr<MachOModule> module : dummyModules) {
+        name2module[module->name] = module;
+        addr2module[module->addr] = module;
+        modules.push_back(module);
+    }
+}
+
 shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(DyldLinkContext linkContext, std::string filePath, bool loadDylibs) {
     string moduleName = StringUtils::path_basename(filePath);
     if (name2module.find(moduleName) != name2module.end()) {
@@ -944,7 +960,8 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(DyldLinkContext linkCon
     
     // parse section headers
     // vmaddr base
-    uint64_t imageBase = loaderOffset;
+    uint64_t imageSlide = MAIN_MODULE_FIXED_SLIDE;
+    uint64_t imageBase = imageSlide;
     uint64_t imageSize = 0;
     vector<pair<uint64_t, uint64_t>> textSects;
     uint64_t vmaddr_bss_start = 0;
@@ -1174,7 +1191,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(DyldLinkContext linkCon
     
     // sync machHeader
     uint32_t lcsize = hdr->sizeofcmds;
-    uint64_t hdrAddr = imageBase > 0 ? imageBase : 0x100000000 ;
+    uint64_t hdrAddr = imageBase > 0 ? (0x100000000 + imageBase) : 0x100000000 ;
     assert(uc_mem_write(uc, hdrAddr, mappedFile, lcsize) == UC_ERR_OK);
     
     // init bss
@@ -1213,7 +1230,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFile(DyldLinkContext linkCon
         symtab->buildExportNodes(mappedFile, dyld_info->export_off, dyld_info->export_size);
     }
     module->symtab = symtab;
-    symtab->buildSymbolTable(moduleName, mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
+    symtab->buildSymbolTable(moduleName, imageSlide, mappedFile + symtab_cmd->symoff, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
         symtab->buildDynamicSymbolTable(sectionHeaders, mappedFile + dysymtab_cmd->indirectsymoff, dysymtab_cmd->nindirectsyms, mappedFile);
     }
@@ -1618,7 +1635,7 @@ shared_ptr<MachOModule> MachOLoader::_loadModuleFromFileUsingSharedCache(DyldLin
     uint8_t *symtab_data = (uint8_t *)malloc(symtab_size);
     uint64_t symtab_addr = linkedit_base + symtab_cmd->symoff;
     ensure_uc_mem_read(symtab_addr, symtab_data, symtab_size);
-    symtab->buildSymbolTable(moduleName, symtab_data, symtab_cmd->nsyms);
+    symtab->buildSymbolTable(moduleName, linkContext.loadInfo.slide, symtab_data, symtab_cmd->nsyms);
     if (dysymtab_cmd) {
         linkContext.linkEditBase = linkedit_base;
         symtab->buildDynamicSymbolTable(moduleName, dysymtab_cmd, linkContext, sectionHeaders);
@@ -1762,5 +1779,5 @@ void MachOLoader::printImageList(void) {
         printf("%s", line.c_str());
         i++;
     }
-    printf("[Stalker][Dyld] <===================== ImageList - Begin\n");
+    printf("[Stalker][Dyld] <===================== ImageList - End\n");
 }
