@@ -111,27 +111,25 @@ int __shared_region_map_and_slide_np(uc_engine *uc, int fd, uint32_t count, cons
         ib_shared_file_mapping_np mapping = mappings[i];
         int prot = mapping.sfm_init_prot & (0x7);
         uc_err err = UC_ERR_OK;
-        if (prot == (VM_PROT_READ | VM_PROT_EXECUTE)) {
-            // prot trick
-            // host is rw-, emulator is r-x
-            void *hostmem = mmap((void *)mapping.sfm_address, mapping.sfm_size, VM_PROT_READ | VM_PROT_WRITE, MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, 0, 0);
-            assert(hostmem != MAP_FAILED && (uint64_t)hostmem == mapping.sfm_address);
-            uc_err err = uc_mem_map_ptr(uc, mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot & (0x7), hostmem);
-            if (err != UC_ERR_OK) {
-                printf("[-] failed to map sharedcache region 0x%llx, size 0x%llx, prot 0x%x\n", mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot);
-                assert(false);
-            }
-        } else {
-            // share memory
-            void *hostmem = mmap((void *)mapping.sfm_address, mapping.sfm_size, VM_PROT_ALL, MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, 0, 0);
-            assert(hostmem != MAP_FAILED && (uint64_t)hostmem == mapping.sfm_address);
-            uc_err err = uc_mem_map_ptr(uc, mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot & (0x7), hostmem);
-            if (err != UC_ERR_OK) {
-                printf("[-] failed to map sharedcache region 0x%llx, size 0x%llx, prot 0x%x\n", mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot);
-                assert(false);
-            }
-        }
         
+        /*
+        if ((prot & (VM_PROT_WRITE| VM_PROT_EXECUTE)) == (VM_PROT_WRITE| VM_PROT_EXECUTE)) {
+            prot &= ~VM_PROT_EXECUTE;
+        }
+        prot |= VM_PROT_WRITE;
+         */
+        prot = VM_PROT_WRITE|VM_PROT_READ;
+        
+        // prot trick
+        // host is rw-, emulator is r-x
+        void *hostmem = mmap((void *)mapping.sfm_address, mapping.sfm_size, prot, MAP_PRIVATE | MAP_FIXED | MAP_ANONYMOUS, 0, 0);
+        assert(hostmem != MAP_FAILED && (uint64_t)hostmem == mapping.sfm_address);
+        err = uc_mem_map_ptr(uc, mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot & (0x7), hostmem);
+        if (err != UC_ERR_OK) {
+            printf("[-] failed to map sharedcache region 0x%llx, size 0x%llx, prot 0x%x\n", mapping.sfm_address, mapping.sfm_size, mapping.sfm_init_prot);
+            assert(false);
+        }
+
         printf("[+] mapping 0x%llx - 0x%llx, with fileoff 0x%llx\n", mapping.sfm_address, mapping.sfm_address + mapping.sfm_size, mapping.sfm_file_offset);
 //        assert(mprotect(hostmem, mapping.sfm_size, VM_PROT_ALL) == 0);
         err = uc_mem_write(uc, mapping.sfm_address, mappedFile + mapping.sfm_file_offset, mapping.sfm_size);

@@ -43,13 +43,12 @@
            ((SYSCALL_CLASS_DIAG << SYSCALL_CLASS_SHIFT) | \
             (SYSCALL_NUMBER_MASK & (syscall_number)))
 
-
 #define kernel_trap(trap_name,trap_number,number_args) \
 .globl    _##trap_name                    ;\
 _##trap_name:                            ;\
     movq    %rcx, %r10    ;\
     movl    $ SYSCALL_CONSTRUCT_MACH(-##trap_number), %eax    ;\
     syscall        ;\
-    ret
+    ret;
 
 #endif /* syscall_helper_x64_h */

@@ -75,6 +75,11 @@ void MachOMemoryManager::dealloc(uint64_t addr) {
 
 void *MachOMemoryManager::mmapWrapper(uint64_t guest_addr, size_t size, int prot, int flags, int fd, off_t off) {
     
+    int host_prot = prot;
+    if(host_prot & (UC_PROT_WRITE|UC_PROT_EXEC)){
+        host_prot &= ~UC_PROT_EXEC;
+    }
+    
     uint64_t guest_addr_rounded = (guest_addr / 0x4000) * 0x4000;
     if(guest_addr != guest_addr_rounded){
         size += guest_addr - guest_addr_rounded;
@@ -84,7 +89,7 @@ void *MachOMemoryManager::mmapWrapper(uint64_t guest_addr, size_t size, int prot
     if (guest_addr_rounded == 0) {
         guest_addr_rounded = 0x400000000;
     }
-    void *mmaped_addr = mmap((void *)guest_addr_rounded, size_rounded, prot, flags, fd, off);
+    void *mmaped_addr = mmap((void *)guest_addr_rounded, size_rounded, host_prot, flags, fd, off);
     assert(!guest_addr_rounded || mmaped_addr == (void *)guest_addr_rounded);
     uc_err uc_map_err = uc_mem_map_ptr(uc, (uint64_t)mmaped_addr, size_rounded, prot, mmaped_addr);
     if (uc_map_err != UC_ERR_OK) {
@@ -93,8 +98,54 @@ void *MachOMemoryManager::mmapWrapper(uint64_t guest_addr, size_t size, int prot
         assert(false);
     }
     return mmaped_addr;
+}
+
+/*
+int MachOMemoryManager::mprotectSharedPage(uint64_t guest_addr, int prot) {
+    vm_size_t vmsize = PAGE_SIZE;
+    vm_address_t address = (vm_address_t)guest_addr;
+    vm_region_basic_info_data_t info = {0};
+    mach_msg_type_number_t info_count = VM_REGION_BASIC_INFO_COUNT;
+    memory_object_name_t object = {0};
+    
+
+    kern_return_t status = vm_region((vm_map_t)mach_task_self(), &address, &vmsize, (vm_region_flavor_t)VM_REGION_BASIC_INFO,
+                           (vm_region_info_t)&info, (mach_msg_type_number_t *)&info_count, (mach_port_t *)&object);
+    assert(status == 0);
+
+
+    
+    guest_addr = (guest_addr/PAGE_SIZE)*PAGE_SIZE;
+    int err = mprotectSharedMem(guest_addr, PAGE_SIZE, prot);
+    assert(err == 0);
+    return info.protection;
+}
+
+int MachOMemoryManager::mprotectSharedMem(uint64_t guest_addr, size_t size, int prot) {
+    
+    uint64_t guest_addr_rounded = (guest_addr / 0x4000) * 0x4000;
+    if(guest_addr != guest_addr_rounded){
+        size += guest_addr - guest_addr_rounded;
+    }
+    size_t size_rounded = ROUNDUP(size, 0x4000);
+    
+    if (guest_addr_rounded == 0) {
+        guest_addr_rounded = 0x400000000;
+    }
+
+    int err = mprotect((void *)guest_addr_rounded, size_rounded, prot);
+    assert(err == 0);
+    err = (int)uc_mem_protect(uc, (uint64_t)guest_addr_rounded, size_rounded, prot);
+    if (err != UC_ERR_OK) {
+        print_uc_mem_regions(uc);
+        uc_debug_print_backtrace(uc);
+        assert(false);
+    }
+
+    return err;
 
 }
+ */
 
 void *MachOMemoryManager::mmapSharedMem(uint64_t guest_addr, size_t size, int prot) {
     int flags = MAP_PRIVATE|MAP_ANONYMOUS;
@@ -103,6 +154,7 @@ void *MachOMemoryManager::mmapSharedMem(uint64_t guest_addr, size_t size, int pr
     }
     return mmapWrapper(guest_addr, size, prot, flags, -1, 0);
 }
+
 
 void *MachOMemoryManager::consumeMmapRegion(uint64_t start_addr, uint64_t size, int prot) {
     return mmap((void *)start_addr, size, prot, MAP_ANONYMOUS | MAP_PRIVATE, 0, 0);

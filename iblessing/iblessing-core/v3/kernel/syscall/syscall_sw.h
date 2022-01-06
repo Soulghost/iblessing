@@ -9,10 +9,20 @@
 #ifndef syscall_sw_h
 #define syscall_sw_h
 
+/*
 #ifdef __x86_64__
 #include "syscall_helper_x64.h"
 #else
 #include "syscall_helper_arm64.h"
+#endif
+ */
+
+#if defined (__i386__) || defined(__x86_64__)
+#include "syscall_helper_x64.h"
+#elif defined (__arm__) || defined (__arm64__)
+#include "syscall_helper_arm64.h"
+#else
+#error architecture not supported
 #endif
 
 /*
@@ -27,6 +37,9 @@
  * into registers beyond r3, unlike the normal
  * procedure call standard; we pad for 64-bit args.
  */
+
+
+
 kernel_trap(_kernelrpc_mach_vm_allocate_trap,-10,5) /* 4 args, +1 for mach_vm_size_t */
 kernel_trap(_kernelrpc_mach_vm_purgable_control_trap,-11,5) /* 4 args, +1 for mach_vm_offset_t */
 kernel_trap(_kernelrpc_mach_vm_deallocate_trap,-12,5) /* 3 args, +2 for mach_vm_size_t and mach_vm_address_t */
@@ -127,7 +140,7 @@ kernel_trap(mk_timer_arm_leeway,-95,7)
 #endif
 kernel_trap(debug_control_port_for_pid,-96,3)
 
-#pragma mark -
+
 kernel_trap(iokit_user_client_trap,-100,8)
 kernel_trap(pfz_exit, -58, 0)
 
