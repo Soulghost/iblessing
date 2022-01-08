@@ -762,6 +762,35 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 // get tsd
                 uint64_t pthreadTSD = stack + __offsetof(ib_pthread_s, tsd);
                 
+                // update flags
+                /*
+                 * Flags filed passed to bsdthread_create and back in pthread_start
+                 * 31  <---------------------------------> 0
+                 * _________________________________________
+                 * | flags(8) | policy(8) | importance(16) |
+                 * -----------------------------------------
+                 */
+                #define PTHREAD_START_CUSTOM        0x01000000 // <rdar://problem/34501401>
+                #define PTHREAD_START_SETSCHED        0x02000000
+                // was PTHREAD_START_DETACHED        0x04000000
+                #define PTHREAD_START_QOSCLASS        0x08000000
+                #define PTHREAD_START_TSD_BASE_SET    0x10000000
+                #define PTHREAD_START_SUSPENDED        0x20000000
+                #define PTHREAD_START_QOSCLASS_MASK 0x00ffffff
+                #define PTHREAD_START_POLICY_BITSHIFT 16
+                #define PTHREAD_START_POLICY_MASK 0xff
+                #define PTHREAD_START_IMPORTANCE_MASK 0xffff
+                
+                flags |= PTHREAD_START_TSD_BASE_SET;
+                /*
+                 * Strip PTHREAD_START_SUSPENDED so that libpthread can observe the kernel
+                 * supports this flag (after the fact).
+                 */
+                flags &= ~PTHREAD_START_SUSPENDED;
+                
+                // update tsd
+                *((uint64_t *)pthreadTSD + 3) = 0x2333;
+                
                 // init
                 ib_pendding_thread *t = (ib_pendding_thread *)calloc(1, sizeof(ib_pendding_thread));
                 t->func = func;
@@ -770,7 +799,46 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 t->pthread = pthread;
                 t->flags = flags;
                 t->tsd = pthreadTSD;
+                
+                // init state
+                shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+                
+#if 0
+                .pc   = (uint64_t)pthread_kern->proc_get_threadstart(p),
+                .x[0] = (uint64_t)user_pthread,
+                .x[1] = (uint64_t)th_thport,
+                .x[2] = (uint64_t)user_func,    /* golang wants this */
+                .x[3] = (uint64_t)user_funcarg, /* golang wants this */
+                .x[4] = (uint64_t)user_stack,   /* golang wants this */
+                .x[5] = (uint64_t)flags,
+
+                .sp   = (uint64_t)user_stack,
+#endif
+                t->pc = threadManager->proc_threadstart;
+                t->sp = stack;
+                t->x[0] = pthread;
+                t->x[1] = 2333; // port
+                t->x[2] = func;
+                t->x[3] = func_arg;
+                t->x[4] = stack;
+                t->x[5] = flags;
+                
                 machine.lock()->penddingContextSwitch(t);
+                return true;
+            }
+            case 361: {
+                // 361    AUE_NULL    ALL    { int bsdthread_terminate(user_addr_t stackaddr, size_t freesize, uint32_t port, uint32_t sem) NO_SYSCALL_STUB; }
+                uc_debug_print_backtrace(uc, true);
+                uint64_t stackaddr;
+                uint64_t freesize;
+                uint32_t port;
+                uint32_t sem;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &stackaddr);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &freesize);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &port);
+                ensure_uc_reg_read(UC_ARM64_REG_W3, &sem);
+                printf("[Stalker][+][Syscall] bsdthread_terminate with stackaddr 0x%llx, freesize 0x%llx, port %u, sem %d\n", stackaddr, freesize, port, sem);
+                machine.lock()->contextSwitchBack();
                 return true;
             }
             case 366: { // bsdthread_register
@@ -808,14 +876,20 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 cfg.workq_cb = (pthread_workqueue_function2_t)_dispatch_worker_thread2;
                 cfg.kevent_cb = (pthread_workqueue_function_kevent_t)_dispatch_kevent_worker_thread;
 #endif
+                
+                shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+                threadManager->proc_threadstart = thread_start;
+                threadManager->proc_wqthread = start_wqthread;
                 assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
                 return true;
             }
             case 367: { // workq_open
+                uc_debug_breakhere(uc);
                 syscall_return_value(0);
                 return true;
             }
             case 368: { // workq_kernreturn
+                uc_debug_breakhere(uc);
                 syscall_return_value(0);
                 return true;
             }

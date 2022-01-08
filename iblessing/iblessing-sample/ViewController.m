@@ -183,8 +183,8 @@ void testPthread(void) {
     
     char thread_name[16] = { 0 };
     pthread_getname_np(pthread_self(), thread_name, 16);
-    printf("after pthread join, my thread name is %s, self %p\n", thread_name, pthread_self());
-    pthread_mutex_unlock(&lock1);
+    printf("after pthread join, my thread name is %s, self %p (not unlock)\n", thread_name, pthread_self());
+//    pthread_mutex_unlock(&lock1);
 }
 
 @interface ViewController ()

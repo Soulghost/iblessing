@@ -39,12 +39,7 @@ static uc_hook intr_hook, memexp_hook;
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     // the hook is **before execute**, redirect pc cause the execute to be cancelled
-    static int pthread_ticks = 0;
-    if (address == redirectFunctionLR) {
-        shared_ptr<Aarch64Machine> machine = uc2instance[uc]->loader->machine.lock();
-        machine->contextSwitchBack();
-    }
-    
+    static int pthread_ticks = 0;    
     void *codes = malloc(sizeof(uint32_t));
     uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
     if (err != UC_ERR_OK) {
@@ -375,6 +370,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     /**
         set sysregs
      */
+    this->threadManager = make_shared<PthreadKern>();
     // pthread begin
     uint64_t pthreadSize = sizeof(ib_pthread_s);
     // alloca
@@ -452,7 +448,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-//    uc_debug_set_breakpoint(uc, 0x994202310);
+//    uc_debug_set_breakpoint(uc, 0x9C891385C);
 //    uc_debug_set_breakpoint(uc, 0x9941F1B50);
 //    uc_debug_set_breakpoint(uc, 0x994202428);
 //    uc_debug_set_breakpoint(uc, 0x1800666B8); // event loop
@@ -529,10 +525,16 @@ void Aarch64Machine::contextSwitch(ib_pendding_thread *thread) {
     ensure_uc_reg_read(UC_ARM64_REG_LR, &lr);
     ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
     printf("[Stalker][+][Thread] switch before pc 0x%llx, lr 0x%llx, tsd 0x%llx\n", pc, lr, tsd);
-    ensure_uc_reg_write(UC_ARM64_REG_SP, &thread->stack);
-//    BufferedLogger::globalLogger()->stopBuffer();
+    
+    // change thread state
     ensure_uc_reg_write(UC_ARM64_REG_TPIDRRO_EL0, &thread->tsd);
-    uc_redirectToFunction(uc, thread->func, Aarch64FunctionCallArg::voidArg(), {thread->func_arg});
+    ensure_uc_reg_write(UC_ARM64_REG_SP, &thread->sp);
+    ensure_uc_reg_write(UC_ARM64_REG_PC, &thread->pc);
+    for (int i = 0; i < 8; i++) {
+        ensure_uc_reg_write(UC_ARM64_REG_X0 + i, &thread->x[i]);
+    }
+//    BufferedLogger::globalLogger()->stopBuffer();
+    uc_redirectToFunction(uc, thread->pc, Aarch64FunctionCallArg::voidArg(), {});
     contextList.push_back(thread);
 }
 

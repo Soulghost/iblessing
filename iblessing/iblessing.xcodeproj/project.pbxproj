@@ -39,6 +39,8 @@
 		687A745327428A1300DBEA11 /* darwin-file-system.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 687A745127428A1300DBEA11 /* darwin-file-system.hpp */; };
 		68892F9A2734DF92000095A2 /* buffered_logger.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68892F982734DF92000095A2 /* buffered_logger.cpp */; };
 		68892F9B2734DF92000095A2 /* buffered_logger.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 68892F992734DF92000095A2 /* buffered_logger.hpp */; };
+		688AB4A127892D5600307758 /* pthread_kern.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 688AB49F27892D5600307758 /* pthread_kern.cpp */; };
+		688AB4A227892D5600307758 /* pthread_kern.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 688AB4A027892D5600307758 /* pthread_kern.hpp */; };
 		6895A1C2268A0C2400EE558D /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6895A1C1268A0C2400EE558D /* main.cpp */; };
 		6895A1C6268A0C3800EE558D /* libiblessing-core.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 68B255AB26401DCD008FA1E2 /* libiblessing-core.dylib */; };
 		6895A1C7268A0C5000EE558D /* classdump.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6894E0EF263BAB51000642F5 /* classdump.cpp */; };
@@ -359,6 +361,8 @@
 		687A745127428A1300DBEA11 /* darwin-file-system.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "darwin-file-system.hpp"; sourceTree = "<group>"; };
 		68892F982734DF92000095A2 /* buffered_logger.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = buffered_logger.cpp; sourceTree = "<group>"; };
 		68892F992734DF92000095A2 /* buffered_logger.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = buffered_logger.hpp; sourceTree = "<group>"; };
+		688AB49F27892D5600307758 /* pthread_kern.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = pthread_kern.cpp; sourceTree = "<group>"; };
+		688AB4A027892D5600307758 /* pthread_kern.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = pthread_kern.hpp; sourceTree = "<group>"; };
 		6894E0E1263BA97C000642F5 /* mach-o.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = "mach-o.cpp"; sourceTree = "<group>"; };
 		6894E0E2263BA97C000642F5 /* mach-o.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = "mach-o.hpp"; sourceTree = "<group>"; };
 		6894E0EF263BAB51000642F5 /* classdump.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = classdump.cpp; sourceTree = "<group>"; };
@@ -683,6 +687,8 @@
 			isa = PBXGroup;
 			children = (
 				685B890B275B5B270084D30A /* pthread_types_14.h */,
+				688AB49F27892D5600307758 /* pthread_kern.cpp */,
+				688AB4A027892D5600307758 /* pthread_kern.hpp */,
 			);
 			path = pthread;
 			sourceTree = "<group>";
@@ -1465,6 +1471,7 @@
 				6829112A2740B24B00D35A2A /* dyld-sharedcache-loader.hpp in Headers */,
 				CF0B024327547D6E0026AD81 /* syscall_helper_x64.h in Headers */,
 				6829112A2740B24B00D35A2A /* dyld-sharedcache-loader.hpp in Headers */,
+				688AB4A227892D5600307758 /* pthread_kern.hpp in Headers */,
 				6877275D271C07680081A4DA /* macho-memory-manager.hpp in Headers */,
 				6838CBD326E0EF2E00315E72 /* aarch64-machine.hpp in Headers */,
 				68496FE226E3A4C3000DEE11 /* aarch64-svc-manager.hpp in Headers */,
@@ -1750,6 +1757,7 @@
 				68B2561D26401F65008FA1E2 /* ScannerWorkDirManager.cpp in Sources */,
 				68B2562226401F73008FA1E2 /* Scanner.cpp in Sources */,
 				68A44D46270C473600C91CC6 /* uc_debugger_utils.cpp in Sources */,
+				688AB4A127892D5600307758 /* pthread_kern.cpp in Sources */,
 				682911342740BA0700D35A2A /* dyld2.cpp in Sources */,
 				68B2562726401F7C008FA1E2 /* StringUtils.cpp in Sources */,
 				CF0B0246275481C30026AD81 /* mach_traps.c in Sources */,

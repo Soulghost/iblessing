@@ -13,6 +13,7 @@
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <iblessing-core/v3/mach-o/macho-loader.hpp>
 #include <iblessing-core/v3/kernel/syscall/aarch64-svc-manager.hpp>
+#include <iblessing-core/v3/posix/pthread/pthread_kern.hpp>
 
 NS_IB_BEGIN
 
@@ -32,6 +33,10 @@ typedef struct ib_pendding_thread {
     uint32_t flags;
     uc_context *exit_ctx;
     uint64_t tsd;
+    // init state
+    uint64_t pc;
+    uint64_t sp;
+    uint64_t x[8];
 } ib_pendding_thread;
 
 class Aarch64Machine {
@@ -39,6 +44,7 @@ public:
     uc_engine *uc;
     std::shared_ptr<Aarch64SVCManager> svcManager;
     std::shared_ptr<MachOLoader> loader;
+    std::shared_ptr<PthreadKern> threadManager;
     
     int callModule(std::shared_ptr<MachOModule> module, std::string symbolName = "");
     void initModule(std::shared_ptr<MachOModule> module, ib_module_init_env &env);
