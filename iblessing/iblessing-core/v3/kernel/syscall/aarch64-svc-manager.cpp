@@ -20,6 +20,7 @@
 
 #include <mach/mach_time.h>
 #include <mach/mach_traps.h>
+#include <mach/mach_port.h>
 
 #include <sys/ioctl.h>
 #include <sys/socket.h>
@@ -788,42 +789,33 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                  */
                 flags &= ~PTHREAD_START_SUSPENDED;
                 
-                // update tsd
-                *((uint64_t *)pthreadTSD + 3) = 0x2333;
-                
-                // init
-                ib_pendding_thread *t = (ib_pendding_thread *)calloc(1, sizeof(ib_pendding_thread));
-                t->func = func;
-                t->func_arg = func_arg;
-                t->stack = stack;
-                t->pthread = pthread;
-                t->flags = flags;
-                t->tsd = pthreadTSD;
-                
+                // update port
+                mach_port_t threadPort = 0;
+                assert(mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &threadPort) == KERN_SUCCESS);
+                *((uint64_t *)pthreadTSD + 3) = threadPort;
+    
                 // init state
                 shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
-                
-#if 0
-                .pc   = (uint64_t)pthread_kern->proc_get_threadstart(p),
-                .x[0] = (uint64_t)user_pthread,
-                .x[1] = (uint64_t)th_thport,
-                .x[2] = (uint64_t)user_func,    /* golang wants this */
-                .x[3] = (uint64_t)user_funcarg, /* golang wants this */
-                .x[4] = (uint64_t)user_stack,   /* golang wants this */
-                .x[5] = (uint64_t)flags,
-
-                .sp   = (uint64_t)user_stack,
-#endif
-                t->pc = threadManager->proc_threadstart;
-                t->sp = stack;
-                t->x[0] = pthread;
-                t->x[1] = 2333; // port
-                t->x[2] = func;
-                t->x[3] = func_arg;
-                t->x[4] = stack;
-                t->x[5] = flags;
-                
-                machine.lock()->penddingContextSwitch(t);
+                shared_ptr<PthreadInternal> s = make_shared<PthreadInternal>();
+                s->x[0] = pthread;
+                s->x[1] = threadPort;
+                s->x[2] = func;
+                s->x[3] = func_arg;
+                s->x[4] = stack;
+                s->x[5] = flags;
+                s->x[6] = 0;
+                s->x[7] = 0;
+                s->sp = stack;
+                s->pc = threadManager->proc_threadstart;
+                s->thread_port = threadPort;
+                s->state = PthreadInternalStateNew;
+                s->self = stack;
+                s->tsd = pthreadTSD;
+                s->isMain = false;
+                s->ctx = NULL;
+                s->ticks = 0;
+                s->maxTikcs = 30;
+                machine.lock()->threadManager->createThread(s);
                 return true;
             }
             case 361: {
@@ -838,7 +830,16 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &port);
                 ensure_uc_reg_read(UC_ARM64_REG_W3, &sem);
                 printf("[Stalker][+][Syscall] bsdthread_terminate with stackaddr 0x%llx, freesize 0x%llx, port %u, sem %d\n", stackaddr, freesize, port, sem);
-                machine.lock()->contextSwitchBack();
+                
+                // write state
+                uint64_t cspr = 0;
+                assert(uc_reg_read(uc, UC_ARM64_REG_NZCV, &cspr) == UC_ERR_OK);
+                // clear carry
+                cspr &= ~(1UL << 29);
+                ensure_uc_reg_write(UC_ARM64_REG_NZCV, &cspr);
+                
+                // context switch
+                machine.lock()->threadManager->terminateThread(port);
                 return true;
             }
             case 366: { // bsdthread_register
@@ -893,11 +894,19 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 syscall_return_value(0);
                 return true;
             }
-//            case 372: { // thread_selfid
-//                int ret = 1;
-//                assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
-//                return true;
-//            }
+            case 372: { // thread_selfid
+                // 372    AUE_NULL    ALL    { uint64_t thread_selfid (void) NO_SYSCALL_STUB; }
+                uint64_t cspr = 0;
+                assert(uc_reg_read(uc, UC_ARM64_REG_NZCV, &cspr) == UC_ERR_OK);
+                // clear carry
+                cspr &= ~(1UL << 29);
+                ensure_uc_reg_write(UC_ARM64_REG_NZCV, &cspr);
+                machine.lock()->setErrno(0);
+                
+                shared_ptr<PthreadInternal> s = machine.lock()->threadManager->currentThread();
+                syscall_return_value64(s->self);
+                return true;
+            }
             case 374: { // kevent
 #if 0
                 int kevent_qos(int kq,
@@ -1127,6 +1136,13 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 uc_debug_print_backtrace(uc);
                 printf("[Stalker][!][Syscall][Logger][Error] abort occurred %d.%lld: %s\n", reason_namespace, reason_code, reason_string);
                 assert(false);
+                return true;
+            }
+            case 515: {
+                // 515    AUE_NULL    ALL    { int ulock_wait(uint32_t operation, void *addr, uint64_t value, uint32_t timeout) NO_SYSCALL_STUB; }
+
+                uc_debug_print_backtrace(uc, true);
+                syscall_return_value(0);
                 return true;
             }
             case 0x80000000: { // pthread_set_self

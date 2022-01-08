@@ -39,7 +39,6 @@ static uc_hook intr_hook, memexp_hook;
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     // the hook is **before execute**, redirect pc cause the execute to be cancelled
-    static int pthread_ticks = 0;    
     void *codes = malloc(sizeof(uint32_t));
     uc_err err = uc_mem_read(uc, address, codes, sizeof(uint32_t));
     if (err != UC_ERR_OK) {
@@ -61,11 +60,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         return;
     }
     
-    if (++pthread_ticks > 10) {
-        shared_ptr<Aarch64Machine> machine = uc2instance[uc]->loader->machine.lock();
-        machine->contextSwitchIfNeeded();
-        pthread_ticks = 0;
-    }
+    uc2instance[uc]->threadManager->tick();
     
     static set<string> symbolBlackList{"__platform_strlen", "__platform_bzero", "__platform_memset", "__platform_strstr", "__platform_strcmp", "__platform_strncmp", "__platform_memmove", "_getsectiondata", "_tiny_print_region_free_list", "_malloc_zone_malloc", "_mach_vm_allocate"};
     string comments = "";
@@ -370,7 +365,16 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     /**
         set sysregs
      */
-    this->threadManager = make_shared<PthreadKern>();
+    shared_ptr<PthreadKern> threadManager = make_shared<PthreadKern>();
+    this->threadManager = threadManager;
+    threadManager->machine = this->shared_from_this();
+    shared_ptr<PthreadInternal> mainThread = make_shared<PthreadInternal>();
+    mainThread->isMain = true;
+    mainThread->ticks = 0;
+    mainThread->maxTikcs = 50;
+    threadManager->createThread(mainThread);
+    threadManager->setActiveThread(mainThread);
+    
     // pthread begin
     uint64_t pthreadSize = sizeof(ib_pthread_s);
     // alloca
@@ -382,6 +386,8 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     ib_pthread_s *thread = (ib_pthread_s *)calloc(1, pthreadSize);
     *((uint64_t *)&thread->tsd[0]) = pthreadAddr; // self
     thread->tsd[1] = 0; // errno
+    thread->tsd[2] = 0;
+    *((uint64_t *)&thread->tsd[3]) = 0xaa; // kport
     assert(uc_mem_write(uc, pthreadAddr, (void *)thread, pthreadSize) == UC_ERR_OK);
     assert(uc_reg_write(uc, UC_ARM64_REG_TPIDRRO_EL0, &pthreadTSD) == UC_ERR_OK);
     free(thread);
@@ -448,7 +454,8 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(__int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-//    uc_debug_set_breakpoint(uc, 0x9C891385C);
+//    uc_debug_set_breakpoint(uc, 0x9C891E578);
+//    uc_debug_set_breakpoint(uc, 0x9C891E608);
 //    uc_debug_set_breakpoint(uc, 0x9941F1B50);
 //    uc_debug_set_breakpoint(uc, 0x994202428);
 //    uc_debug_set_breakpoint(uc, 0x1800666B8); // event loop

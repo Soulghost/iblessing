@@ -39,7 +39,7 @@ typedef struct ib_pendding_thread {
     uint64_t x[8];
 } ib_pendding_thread;
 
-class Aarch64Machine {
+class Aarch64Machine : public std::enable_shared_from_this<Aarch64Machine> {
 public:
     uc_engine *uc;
     std::shared_ptr<Aarch64SVCManager> svcManager;

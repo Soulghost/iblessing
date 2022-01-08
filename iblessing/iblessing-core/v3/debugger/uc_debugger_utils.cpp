@@ -284,6 +284,19 @@ static void debugLoop(uc_engine *uc) {
             uint64_t addr = strtol(commandParts[1].c_str(), NULL, 16);
             breakpointMap[uc].erase(addr);
             printf("debugger: delete breakpoint at 0x%llx\n", addr);
+        } else if (cmd == "info") {
+            uint64_t pc, lr, sp, fp;
+            ensure_uc_reg_read(UC_ARM64_REG_PC, &pc);
+            ensure_uc_reg_read(UC_ARM64_REG_FP, &fp);
+            ensure_uc_reg_read(UC_ARM64_REG_LR, &lr);
+            ensure_uc_reg_read(UC_ARM64_REG_SP, &sp);
+            printf("debugger: thread state:\n");
+            printf("pc 0x%llx, lr 0x%llx, sp 0x%llx, fp 0x%llx\n", pc, lr, sp, fp);
+            for (int i = 0; i <= 28; i++) {
+                uint64_t val;
+                ensure_uc_reg_read(UC_ARM64_REG_X0 + i, &val);
+                printf("x%d 0x%llx\n", i, val);
+            }
         } else {
             debugLoopAssert(false);
         }

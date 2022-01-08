@@ -179,7 +179,8 @@ void testPthread(void) {
     printf("before register pthread\n");
     assert(pthread_create(&thread, NULL, pthreadWorker, ctx) == 0);
     printf("after register pthread\n");
-    pthread_join(thread, NULL);
+//    ret = pthread_join(thread, NULL);
+//    printf("pthread ret %d\n", ret);
     
     char thread_name[16] = { 0 };
     pthread_getname_np(pthread_self(), thread_name, 16);
