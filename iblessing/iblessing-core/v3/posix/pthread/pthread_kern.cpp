@@ -134,6 +134,12 @@ void PthreadKern::contextSwitch(shared_ptr<PthreadInternal> nextThread) {
         ensure_uc_reg_read(UC_ARM64_REG_X16, &x16);
         ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
         printf("[Stalker][+][Thread] after switch %s -> %s: pc 0x%llx, tsd 0x%llx, x16 0x%llx\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pc, tsd, x16);
+        
+        if (pendingThread->continuation) {
+            printf("[Stalker][+][Thread] execute continuation for thread %s\n", pendingThread->name.c_str());
+            pendingThread->continuation(uc);
+            pendingThread->continuation = NULL;
+        }
     }
     // change thread state
     activeThread = pendingThread;
@@ -147,10 +153,67 @@ shared_ptr<PthreadInternal> PthreadKern::currentThread() {
     return activeThread;
 }
 
+shared_ptr<PthreadInternal> PthreadKern::findThreadByPort(mach_port_t port) {
+    if (port2thread.find(port) != port2thread.end()) {
+        return port2thread[port];
+    }
+    return nullptr;
+}
+
 void PthreadKern::setInterruptEnable(bool enable) {
     this->enableInterrupt = enable;
 }
 
 bool PthreadKern::getInterruptEnableState() {
     return this->enableInterrupt;
+}
+
+shared_ptr<ib_ull> PthreadKern::ull_get(ib_ulk_t &key, uint32_t flags) {
+    auto index = ull_hashindex(key);
+    if (ullBucket.find(index) != ullBucket.end()) {
+        return ullBucket[index];
+    }
+    shared_ptr<ib_ull> ull = make_shared<ib_ull>();
+    ull->ull_key = key;
+    ull->ull_refcount = 1;
+    ull->ull_key = key;
+    ull->ull_nwaiters = 0;
+    ull->ull_opcode = 0;
+    ull->ull_owner = THREAD_NULL;
+    ullBucket[index] = ull;
+    return ull;
+}
+
+pair<int, pair<uint64_t, uint64_t>> PthreadKern::ull_hashindex(ib_ulk_t &key) {
+    return {key.ulk_key_type, {key.ulk_addr, key.ulk_pid}};
+}
+
+void PthreadKern::yieldWithUll(shared_ptr<ib_ull> ull) {
+    enableInterrupt = true;
+    mach_port_t target_port = ull->ull_owner;
+    shared_ptr<PthreadInternal> targetThread = findThreadByPort(target_port);
+    assert(targetThread != nullptr);
+    
+    auto currentIt = find(threads.begin(), threads.end(), activeThread);
+    assert(currentIt != threads.end());
+    activeThread->continuation = [](uc_engine *uc) {
+        syscall_return_value(0);
+    };
+    threads.erase(currentIt);
+    waitqThreads.push_back(activeThread);
+    contextSwitch(targetThread);
+}
+
+void PthreadKern::wakeupWithUll(shared_ptr<ib_ull> ull) {
+    enableInterrupt = true;
+    for (mach_port_t waiter_port : ull->waiters) {
+        shared_ptr<PthreadInternal> waiterThread = findThreadByPort(waiter_port);
+        assert(waiterThread != nullptr);
+        assert(find(threads.begin(), threads.end(), waiterThread) == threads.end());
+        threads.push_back(waiterThread);
+        
+        auto waiterIt = find(waitqThreads.begin(), waitqThreads.end(), waiterThread);
+        assert(waiterIt != waitqThreads.end());
+        waitqThreads.erase(waiterIt);
+    }
 }

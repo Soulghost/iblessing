@@ -174,25 +174,25 @@ void testPthread(void) {
     }
     pthread_mutex_lock(&lock1);
     
-    for (int i = 0; i < 100; i++) {
+    for (int i = 0; i < 1; i++) {
         pthread_t thread;
         void *ctx = malloc(100);
         sprintf(ctx, "subthread-%d", i);
         printf("before register pthread %d\n", i);
         assert(pthread_create(&thread, NULL, pthreadWorker, ctx) == 0);
         printf("after register pthread %d\n", i);
+        ret = pthread_join(thread, NULL);
+        printf("pthread ret %d\n", ret);
     }
-//    ret = pthread_join(thread, NULL);
-//    printf("pthread ret %d\n", ret);
     
     char thread_name[16] = { 0 };
     pthread_getname_np(pthread_self(), thread_name, 16);
     printf("after pthread join, my thread name is %s, self %p (not unlock)\n", thread_name, pthread_self());
 //    pthread_mutex_unlock(&lock1);
-    
-    while (1) {
-        
-    }
+//    
+//    while (1) {
+//        
+//    }
 }
 
 @interface ViewController ()

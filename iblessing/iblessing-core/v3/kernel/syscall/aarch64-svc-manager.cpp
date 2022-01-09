@@ -1145,7 +1145,103 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             case 515: {
                 // 515    AUE_NULL    ALL    { int ulock_wait(uint32_t operation, void *addr, uint64_t value, uint32_t timeout) NO_SYSCALL_STUB; }
 
-                uc_debug_print_backtrace(uc, true);
+                uint32_t operation;
+                uint64_t addr;
+                uint64_t value;
+                uint32_t timeout;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &operation);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &addr);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &value);
+                ensure_uc_reg_read(UC_ARM64_REG_W3, &timeout);
+                uint8_t opcode = (uint8_t)(operation & UL_OPCODE_MASK);
+                uint flags = operation & UL_FLAGS_MASK;
+                // FIXME: ULF_WAIT_CANCEL_POINT
+//                assert((flags & ULF_WAIT_CANCEL_POINT) == 0);
+                bool set_owner = false;
+                bool xproc = false;
+//                size_t lock_size = sizeof(uint32_t);
+                ib_ulk_t key;
+                switch (opcode) {
+                    case UL_UNFAIR_LOCK:
+                        set_owner = true;
+                        break;
+                    default:
+                        uc_debug_print_backtrace(uc, true);
+                        assert(false);
+                        break;
+                }
+                if (xproc) {
+                    uc_debug_print_backtrace(uc, true);
+                    assert(false);
+                } else {
+                    key.ulk_key_type = ULK_UADDR;
+                    key.ulk_pid = getpid();
+                    key.ulk_addr = addr;
+                }
+                
+                if ((flags & ULF_WAIT_ADAPTIVE_SPIN) && set_owner) {
+                    uc_debug_print_backtrace(uc);
+                    assert(false);
+                }
+                
+                shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+                shared_ptr<ib_ull> ull = threadManager->ull_get(key, 0);
+                ull->ull_nwaiters++;
+                if (ull->ull_opcode == 0) {
+                    ull->ull_opcode = opcode;
+                } else if (ull->ull_opcode != opcode) {
+                    uc_debug_print_backtrace(uc, true);
+                    assert(false);
+                }
+                assert(set_owner);
+                ull->ull_owner = *(uint32_t *)addr;
+                mach_port_t waiter_port = threadManager->currentThread()->thread_port;
+                ull->waiters.push_back(waiter_port);
+                threadManager->yieldWithUll(ull);
+                return true;
+            }
+            case 516: {
+                // 516    AUE_NULL    ALL    { int ulock_wake(uint32_t operation, void *addr, uint64_t wake_value) NO_SYSCALL_STUB; }
+                uint32_t operation;
+                uint64_t addr;
+                uint64_t wake_value;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &operation);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &addr);
+                ensure_uc_reg_read(UC_ARM64_REG_X2, &wake_value);
+                
+                uint8_t opcode = (uint8_t)(operation & UL_OPCODE_MASK);
+                uint flags = operation & UL_FLAGS_MASK;
+                // FIXME: ULF_WAIT_CANCEL_POINT
+//                assert((flags & ULF_WAIT_CANCEL_POINT) == 0);
+                bool set_owner = false;
+                bool xproc = false;
+//                size_t lock_size = sizeof(uint32_t);
+                ib_ulk_t key;
+                switch (opcode) {
+                    case UL_UNFAIR_LOCK:
+                        set_owner = true;
+                        break;
+                    default:
+                        uc_debug_print_backtrace(uc, true);
+                        assert(false);
+                        break;
+                }
+                if (xproc) {
+                    uc_debug_print_backtrace(uc, true);
+                    assert(false);
+                } else {
+                    key.ulk_key_type = ULK_UADDR;
+                    key.ulk_pid = getpid();
+                    key.ulk_addr = addr;
+                }
+                
+                shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+                shared_ptr<ib_ull> ull = threadManager->ull_get(key, 0);
+                if (opcode != ull->ull_opcode) {
+                    uc_debug_print_backtrace(uc, true);
+                    assert(false);
+                }
+                threadManager->wakeupWithUll(ull);
                 syscall_return_value(0);
                 return true;
             }
