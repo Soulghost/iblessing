@@ -205,7 +205,6 @@ void PthreadKern::yieldWithUll(shared_ptr<ib_ull> ull) {
 }
 
 void PthreadKern::wakeupWithUll(shared_ptr<ib_ull> ull) {
-    enableInterrupt = true;
     for (mach_port_t waiter_port : ull->waiters) {
         shared_ptr<PthreadInternal> waiterThread = findThreadByPort(waiter_port);
         assert(waiterThread != nullptr);
