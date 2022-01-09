@@ -10,16 +10,23 @@
 #include "aarch64-machine.hpp"
 #include "buffered_logger.hpp"
 #include "uc_debugger_utils.hpp"
+#include "StringUtils.h"
 #include <mach/mach_init.h>
 #include <mach/mach_port.h>
 
 using namespace std;
 using namespace iblessing;
 
+static int threadCounter = 1;
+
 void PthreadKern::createThread(shared_ptr<PthreadInternal> s) {
     assert(port2thread.find(s->thread_port) == port2thread.end());
+    if (s->name.length() == 0) {
+        s->name = StringUtils::format("unamed-thread-%d", threadCounter++);
+    }
     port2thread[s->thread_port] = s;
     threads.push_back(s);
+    printf("[Stalker][+][Thread] create thread %s\n", s->name.c_str());
 }
 
 void PthreadKern::terminateThread(mach_port_t port) {
@@ -33,6 +40,7 @@ void PthreadKern::terminateThread(mach_port_t port) {
         }
     }
     port2thread.erase(port);
+    printf("[Stalker][+][Thread] thread %s terminated\n", s->name.c_str());
     
     activeThread = nullptr;
     if (it != threads.end()) {
@@ -47,20 +55,28 @@ void PthreadKern::setActiveThread(shared_ptr<PthreadInternal> s) {
     activeThread->state = PthreadInternalStateRunning;
 }
 
-void PthreadKern::tick() {
+bool PthreadKern::tick() {
+    if (!enableInterrupt) {
+        return false;
+    }
+    
     if (threads.size() == 1) {
         // only main thread
-        return;
+        return false;
     }
     
     activeThread->ticks += 1;
     if (activeThread->ticks >= activeThread->maxTikcs) {
         activeThread->ticks = 0;
         contextSwitch();
+        return true;
     }
+    return false;
 }
 
 void PthreadKern::contextSwitch(shared_ptr<PthreadInternal> nextThread) {
+    // thread termination can be interrupted
+    assert(enableInterrupt == true || currentThread() == nullptr);
     shared_ptr<PthreadInternal> pendingThread;
     if (__builtin_expect(nextThread == nullptr, true)) {
         auto it = threads.begin();
@@ -90,11 +106,12 @@ void PthreadKern::contextSwitch(shared_ptr<PthreadInternal> nextThread) {
         activeThread->state = PthreadInternalStateWaiting;
     }
     
-    uint64_t pc, lr, tsd;
+    uint64_t pc, lr, tsd, x16;
     ensure_uc_reg_read(UC_ARM64_REG_PC, &pc);
     ensure_uc_reg_read(UC_ARM64_REG_LR, &lr);
     ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
-    printf("[Stalker][+][Thread] switch before pc 0x%llx, lr 0x%llx, tsd 0x%llx\n", pc, lr, tsd);
+    ensure_uc_reg_read(UC_ARM64_REG_X16, &x16);
+    printf("[Stalker][+][Thread] before switch %s -> %s: pc 0x%llx, lr 0x%llx, tsd 0x%llx, x16 0x%llx\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pc, lr, tsd, x16);
     
     if (pendingThread->state == PthreadInternalStateNew) {
         // thread start
@@ -111,19 +128,29 @@ void PthreadKern::contextSwitch(shared_ptr<PthreadInternal> nextThread) {
         assert(pendingThread->ctx != NULL);
         assert(uc_context_restore(uc, pendingThread->ctx) == UC_ERR_OK);
         // notify unicorn
-        uint64_t pc;
+        uint64_t pc, tsd, x16;
         ensure_uc_reg_read(UC_ARM64_REG_PC, &pc);
         ensure_uc_reg_write(UC_ARM64_REG_PC, &pc);
-        BufferedLogger::globalLogger()->stopBuffer();
-        printf("[Stalker][+][Thread] switch to pc 0x%llx\n", pc);
+        ensure_uc_reg_read(UC_ARM64_REG_X16, &x16);
+        ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
+        printf("[Stalker][+][Thread] after switch %s -> %s: pc 0x%llx, tsd 0x%llx, x16 0x%llx\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pc, tsd, x16);
     }
     // change thread state
     activeThread = pendingThread;
     activeThread->state = PthreadInternalStateRunning;
     activeThread->ticks = 0;
-    activeThread->maxTikcs = 10000;
+    activeThread->maxTikcs = 30;
+//    printf("[Stalker][+][Thread] switch to thread %s\n", activeThread->name.c_str());
 }
 
 shared_ptr<PthreadInternal> PthreadKern::currentThread() {
     return activeThread;
+}
+
+void PthreadKern::setInterruptEnable(bool enable) {
+    this->enableInterrupt = enable;
+}
+
+bool PthreadKern::getInterruptEnableState() {
+    return this->enableInterrupt;
 }

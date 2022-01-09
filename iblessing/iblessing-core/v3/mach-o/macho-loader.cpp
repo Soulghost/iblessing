@@ -232,6 +232,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
             
             // write return value to x0
             assert(uc_reg_write(uc, UC_ARM64_REG_X0, &targetAddr) == UC_ERR_OK);
+            assert(!machine.lock()->threadManager->getInterruptEnableState());
         });
     }
     if (_dyld_nopAddr == 0) {

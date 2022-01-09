@@ -12,6 +12,7 @@
 #include "mach_traps.h"
 #include "mach-universal.hpp"
 #include "uc_debugger_utils.hpp"
+#include "aarch64-machine.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -273,6 +274,7 @@ bool Aarch64SVCProxy::handleSpecialSyscall(uc_engine *uc, uint32_t intno, uint32
 }
 
 bool Aarch64SVCProxy::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
+    shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
     bool ret = Aarch64SVCManager::handleSyscall(uc, intno, swi, user_data);
     if (!ret) {
         ret = handleNormalSyscall(uc, intno, swi, user_data);

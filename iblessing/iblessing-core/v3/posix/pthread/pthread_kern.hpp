@@ -44,6 +44,7 @@ typedef struct PthreadInternal {
     bool isMain;
     int ticks;
     int maxTikcs;
+    std::string name;
 } PthreadInternal;
 
 class PthreadKern {
@@ -54,7 +55,9 @@ public:
     
     void createThread(std::shared_ptr<PthreadInternal> s);
     void terminateThread(mach_port_t port);
-    void tick();
+    bool tick();
+    void setInterruptEnable(bool enable);
+    bool getInterruptEnableState();
     void setActiveThread(std::shared_ptr<PthreadInternal> s);
     void contextSwitch(std::shared_ptr<PthreadInternal> nextThread = nullptr);
     std::shared_ptr<PthreadInternal> currentThread();
@@ -62,6 +65,7 @@ protected:
     std::map<mach_port_t, std::shared_ptr<PthreadInternal>> port2thread;
     std::vector<std::shared_ptr<PthreadInternal>> threads;
     std::shared_ptr<PthreadInternal> activeThread;
+    bool enableInterrupt;
 };
 
 NS_IB_END

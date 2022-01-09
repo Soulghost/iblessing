@@ -60,7 +60,10 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         return;
     }
     
-    uc2instance[uc]->threadManager->tick();
+    if (uc2instance[uc]->threadManager->tick()) {
+        printf("[Stalker][+][Thread] a context switch has occurred\n");
+        return;
+    }
     
     static set<string> symbolBlackList{"__platform_strlen", "__platform_bzero", "__platform_memset", "__platform_strstr", "__platform_strcmp", "__platform_strncmp", "__platform_memmove", "_getsectiondata", "_tiny_print_region_free_list", "_malloc_zone_malloc", "_mach_vm_allocate"};
     string comments = "";
@@ -89,6 +92,9 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
             comments += StringUtils::format(" ; target = %s, ", sym->name.c_str());
         }
     }
+    
+    comments += StringUtils::format("(thread %s)", uc2instance[uc]->threadManager->currentThread()->name.c_str());
+    
 #endif
     
 #if TraceLevel >= TraceLevelASMComment
@@ -372,8 +378,10 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     mainThread->isMain = true;
     mainThread->ticks = 0;
     mainThread->maxTikcs = 50;
+    mainThread->name = "main";
     threadManager->createThread(mainThread);
     threadManager->setActiveThread(mainThread);
+    threadManager->setInterruptEnable(true);
     
     // pthread begin
     uint64_t pthreadSize = sizeof(ib_pthread_s);

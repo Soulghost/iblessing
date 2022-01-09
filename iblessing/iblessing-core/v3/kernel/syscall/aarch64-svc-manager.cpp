@@ -163,9 +163,13 @@ uint64_t Aarch64SVCManager::createSVCWithCustomCode(int swi, uint32_t *code, siz
 
 bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
     assert(uc == this->uc);
+    shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+    threadManager->setInterruptEnable(false);
     if (svcMap.find(swi) == svcMap.end()) {
         if (swi == 0x80) {
-            return handleSyscall(uc, intno, swi, user_data);
+            bool success = handleSyscall(uc, intno, swi, user_data);
+            threadManager->setInterruptEnable(true);
+            return success;
         }
         
         BufferedLogger::globalLogger()->printBuffer();
@@ -175,6 +179,7 @@ bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, v
     }
     
     svcMap[swi].callback(uc, intno, swi, user_data);
+    threadManager->setInterruptEnable(true);
     return true;
 }
 
@@ -820,7 +825,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
             }
             case 361: {
                 // 361    AUE_NULL    ALL    { int bsdthread_terminate(user_addr_t stackaddr, size_t freesize, uint32_t port, uint32_t sem) NO_SYSCALL_STUB; }
-                uc_debug_print_backtrace(uc, true);
                 uint64_t stackaddr;
                 uint64_t freesize;
                 uint32_t port;
