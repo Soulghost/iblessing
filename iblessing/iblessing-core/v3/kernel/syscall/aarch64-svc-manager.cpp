@@ -768,25 +768,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 // get tsd
                 uint64_t pthreadTSD = stack + __offsetof(ib_pthread_s, tsd);
                 
-                // update flags
-                /*
-                 * Flags filed passed to bsdthread_create and back in pthread_start
-                 * 31  <---------------------------------> 0
-                 * _________________________________________
-                 * | flags(8) | policy(8) | importance(16) |
-                 * -----------------------------------------
-                 */
-                #define PTHREAD_START_CUSTOM        0x01000000 // <rdar://problem/34501401>
-                #define PTHREAD_START_SETSCHED        0x02000000
-                // was PTHREAD_START_DETACHED        0x04000000
-                #define PTHREAD_START_QOSCLASS        0x08000000
-                #define PTHREAD_START_TSD_BASE_SET    0x10000000
-                #define PTHREAD_START_SUSPENDED        0x20000000
-                #define PTHREAD_START_QOSCLASS_MASK 0x00ffffff
-                #define PTHREAD_START_POLICY_BITSHIFT 16
-                #define PTHREAD_START_POLICY_MASK 0xff
-                #define PTHREAD_START_IMPORTANCE_MASK 0xffff
-                
                 flags |= PTHREAD_START_TSD_BASE_SET;
                 /*
                  * Strip PTHREAD_START_SUSPENDED so that libpthread can observe the kernel
@@ -889,13 +870,132 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 return true;
             }
             case 367: { // workq_open
-                uc_debug_breakhere(uc);
-                syscall_return_value(0);
+                int error = 0;
+                shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+                if (!threadManager->workq) {
+                    shared_ptr<struct workqueue> wq = make_shared<struct workqueue>();
+                    bzero(wq.get(), sizeof(struct workqueue));
+                    wq->wq_event_manager_priority = 0;
+                    threadManager->workq = wq;
+                }
+                syscall_return_value(error);
                 return true;
             }
             case 368: { // workq_kernreturn
-                uc_debug_breakhere(uc);
-                syscall_return_value(0);
+                int options;
+                uint64_t item;
+                int affinity;
+                int prio;
+                ensure_uc_reg_read(UC_ARM64_REG_W0, &options);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &item);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &affinity);
+                ensure_uc_reg_read(UC_ARM64_REG_W3, &prio);
+                
+                int error = 0;
+                shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+                switch (options) {
+                    case WQOPS_SETUP_DISPATCH: {
+                        /*
+                         * item = pointer to workq_dispatch_config structure
+                         * arg2 = sizeof(item)
+                         */
+                        struct workq_dispatch_config cfg;
+                        bzero(&cfg, sizeof(cfg));
+                        ensure_uc_mem_read(item, &cfg, MIN(sizeof(cfg), affinity));
+                        if (cfg.wdc_flags & ~WORKQ_DISPATCH_SUPPORTED_FLAGS ||
+                            cfg.wdc_version < WORKQ_DISPATCH_MIN_SUPPORTED_VERSION) {
+                            assert(false);
+                        }
+
+                        /* Load fields from version 1 */
+                        threadManager->p_dispatchqueue_serialno_offset = cfg.wdc_queue_serialno_offs;
+
+                        /* Load fields from version 2 */
+                        if (cfg.wdc_version >= 2) {
+                            threadManager->p_dispatchqueue_label_offset = cfg.wdc_queue_label_offs;
+                        }
+                        break;
+                    }
+                    case WQOPS_QUEUE_REQTHREADS: {
+                        uint32_t reqcount = affinity;
+                        uint32_t unpacked;
+                        if (reqcount > 1) {
+                            uc_debug_print_backtrace(uc, true);
+                            assert(false);
+                        } else {
+                            unpacked = reqcount - 1;
+                        }
+                        
+                        while (unpacked > 0) {
+                            uc_debug_print_backtrace(uc, true);
+                            assert(false);
+                        }
+                        
+                        shared_ptr<struct workqueue> wq = threadManager->workq;
+                        assert(wq != nullptr);
+                        
+                        struct uthread *uth = wq->wq_creator;
+                        assert(wq->wq_thidlecount == 0);
+                        assert(uth == nullptr);
+                        
+                        // try dispatch the first workq thread
+                        uint64_t th_stacksize = 0x10000;
+                        uint64_t th_stackaddr = machine.lock()->loader->memoryManager->alloc(th_stacksize);
+                        // try to dispatch the thread
+                        // update port
+                        mach_port_t threadPort = 0;
+                        assert(mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &threadPort) == KERN_SUCCESS);
+                        
+                        uint32_t upcall_flags = 0;
+                        upcall_flags |= WQ_FLAG_THREAD_TSD_BASE_SET;
+                        upcall_flags |= WQ_FLAG_THREAD_PRIO_SCHED;
+                        // get tsd
+                        ib_pthread_s *pthread = (ib_pthread_s *)th_stackaddr;
+                        uint64_t pthreadTSD = th_stackaddr + __offsetof(ib_pthread_s, tsd);
+                        *((uint64_t *)pthreadTSD + 3) = threadPort;
+            
+                        // init state
+                        shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+                        shared_ptr<PthreadInternal> s = make_shared<PthreadInternal>();
+                        s->x[0] = (uint64_t)pthread; // pthread_self
+                        s->x[1] = threadPort; // kport
+                        s->x[2] = th_stackaddr; // stacklowaddr
+                        s->x[3] = 0; // keventlist
+                        s->x[4] = upcall_flags; // upcall_flags
+                        s->x[5] = 0; // kevent_count
+                        s->x[6] = 0;
+                        s->x[7] = 0;
+                        s->sp = th_stackaddr;
+                        s->pc = threadManager->proc_wqthread;
+                        s->thread_port = threadPort;
+                        s->state = PthreadInternalStateNew;
+                        s->self = th_stackaddr;
+                        s->tsd = pthreadTSD;
+                        s->isMain = false;
+                        s->ctx = NULL;
+                        s->ticks = 0;
+                        s->maxTikcs = 30;
+                        s->name = "workq_bootstrap";
+                        machine.lock()->threadManager->createThread(s);
+                        break;
+                    }
+                    case WQOPS_THREAD_RETURN: {
+                        // this thread never return
+                        shared_ptr<PthreadInternal> s = threadManager->currentThread();
+                        int nevents = affinity, error;
+                        uint64_t eventlist = item;
+                        
+                        // drop this thread for test
+                        threadManager->terminateThread(s->thread_port);
+                        break;
+                    }
+                    default:
+                        uc_debug_print_backtrace(uc, true);
+                        assert(false);
+                        break;
+                }
+                
+                syscall_return_value(error);
                 return true;
             }
             case 372: { // thread_selfid
