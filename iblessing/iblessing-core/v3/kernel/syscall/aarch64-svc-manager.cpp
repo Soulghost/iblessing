@@ -791,6 +791,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 s->x[5] = flags;
                 s->x[6] = 0;
                 s->x[7] = 0;
+                s->flags = flags;
                 s->sp = stack;
                 s->pc = threadManager->proc_threadstart;
                 s->thread_port = threadPort;
@@ -939,8 +940,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(uth == nullptr);
                         
                         // try dispatch the first workq thread
-                        uint64_t th_stacksize = 0x10000;
+                        uint64_t th_stacksize = 512 * 1024;
                         uint64_t th_stackaddr = machine.lock()->loader->memoryManager->alloc(th_stacksize);
+                        // realstack
+                        th_stackaddr += 0x87000;
                         // try to dispatch the thread
                         // update port
                         mach_port_t threadPort = 0;
@@ -982,11 +985,34 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     case WQOPS_THREAD_RETURN: {
                         // this thread never return
                         shared_ptr<PthreadInternal> s = threadManager->currentThread();
-                        int nevents = affinity, error;
-                        uint64_t eventlist = item;
+//                        int nevents = affinity, error;
+//                        uint64_t eventlist = item;
                         
-                        // drop this thread for test
-                        threadManager->terminateThread(s->thread_port);
+                        // switch to workfunction ?
+                        uint64_t pflags = 0;
+                        pflags |= PTHREAD_START_TSD_BASE_SET;
+                        /*
+                         * Strip PTHREAD_START_SUSPENDED so that libpthread can observe the kernel
+                         * supports this flag (after the fact).
+                         */
+                        pflags &= ~PTHREAD_START_SUSPENDED;
+                        ib_pthread_s *pthread = (ib_pthread_s *)s->self;
+                        s->x[0] = (uint64_t)pthread;
+                        s->x[1] = s->thread_port;
+                        s->x[2] = (uint64_t)pthread->fun;
+                        s->x[3] = (uint64_t)pthread->arg;
+                        s->x[4] = (uint64_t)pthread->stackaddr;
+                        s->x[5] = pflags;
+                        s->x[6] = 0;
+                        s->x[7] = 0;
+                        s->sp = (uint64_t)pthread->stackaddr;
+                        s->pc = threadManager->proc_threadstart;
+                        s->state = PthreadInternalStateNew;
+                        s->ticks = 0;
+                        s->maxTikcs = 30;
+                        s->discardCurrentContext = true;
+                        s->name = "libpthread_workthread_from_bootstrap";
+                        threadManager->contextSwitch(nullptr, true);
                         break;
                     }
                     default:

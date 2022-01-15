@@ -101,6 +101,9 @@ void testDispatchSync() {
         printf("3. got async call\n");
     });
     printf("2. wait for async call\n");
+    while (true) {
+        
+    }
 }
 
 void testDispatchAfter() {

@@ -198,6 +198,7 @@ typedef struct PthreadInternal {
     uint64_t pc;
     uint64_t self;
     uint64_t tsd;
+    uint32_t flags;
     
     // context
     uc_context *ctx;
@@ -209,6 +210,7 @@ typedef struct PthreadInternal {
     int ticks;
     int maxTikcs;
     std::string name;
+    bool discardCurrentContext;
     PthreadContinuation continuation;
 } PthreadInternal;
 
@@ -264,7 +266,7 @@ public:
     void setInterruptEnable(bool enable);
     bool getInterruptEnableState();
     void setActiveThread(std::shared_ptr<PthreadInternal> s);
-    void contextSwitch(std::shared_ptr<PthreadInternal> nextThread = nullptr);
+    void contextSwitch(std::shared_ptr<PthreadInternal> nextThread = nullptr, bool forceSwitch = false);
     std::shared_ptr<PthreadInternal> currentThread();
     std::shared_ptr<PthreadInternal> findThreadByPort(mach_port_t port);
     

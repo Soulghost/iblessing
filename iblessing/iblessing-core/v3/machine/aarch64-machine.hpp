@@ -51,10 +51,6 @@ public:
     void initModule(std::shared_ptr<MachOModule> module);
     void setErrno(int no);
     void setErrnoAddr(uint64_t addr);
-    void penddingContextSwitch(ib_pendding_thread *thread);
-    void contextSwitchIfNeeded();
-    void contextSwitch(ib_pendding_thread *thread);
-    void contextSwitchBack();
     
 protected:
     ib_module_init_env defaultEnv;
