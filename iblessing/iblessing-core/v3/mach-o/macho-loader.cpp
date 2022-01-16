@@ -1729,7 +1729,13 @@ shared_ptr<MachOModule> MachOLoader::findModuleByAddr(uint64_t addr) {
     if (addr >= module->addr && addr < (module->addr + module->size)) {
         return module;
     }
-    assert(moduleIt != addr2module.begin());
+    
+//    assert(moduleIt != addr2module.begin());
+    if (moduleIt == addr2module.begin()) {
+        printf("[Stalker][!][Error] cannot find module with addr 0x%llx", addr);
+        return nullptr;
+    }
+    
     module = (--moduleIt)->second;
     if (addr >= module->addr && addr < (module->addr + module->size)) {
         return module;

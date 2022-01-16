@@ -977,9 +977,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         s->isMain = false;
                         s->ctx = NULL;
                         s->ticks = 0;
-                        s->maxTikcs = 30;
+                        s->maxTikcs = 1000;
                         s->name = "workq_bootstrap";
                         machine.lock()->threadManager->createThread(s);
+                        BufferedLogger::globalLogger()->stopBuffer();
                         break;
                     }
                     case WQOPS_THREAD_RETURN: {
