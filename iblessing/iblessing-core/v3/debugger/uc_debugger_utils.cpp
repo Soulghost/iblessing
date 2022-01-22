@@ -16,7 +16,7 @@
 using namespace std;
 using namespace iblessing;
 
-static map<uc_engine *, set<uint64_t>> breakpointMap;
+static map<uc_engine *, map<uint64_t, string>> breakpointMap;
 static int stopImmediatelyCount = 0;
 static uint64_t stopImmediateAddress = 0;
 
@@ -137,8 +137,8 @@ void uc_debug_print_memory(uc_engine *uc, uint64_t addr, int format, int count) 
     printf("\n");
 }
 
-void uc_debug_set_breakpoint(uc_engine *uc, uint64_t address) {
-    breakpointMap[uc].insert(address);
+void uc_debug_set_breakpoint(uc_engine *uc, uint64_t address, string desc) {
+    breakpointMap[uc].insert({address, desc});
 }
 
 static uc_arm64_reg uc_debug_regname2index(string regName, size_t *size) {
@@ -209,7 +209,16 @@ static void debugLoop(uc_engine *uc) {
                     printf("%s: 0x%llx\n", regName.c_str(), val);
                 }
             } else if (operation == "write") {
-                debugLoopAssert_Msg(false, "unsupport");
+                debugLoopAssert_Msg(commandParts.size() == 4, "malformed input");
+                if (size == 4) {
+                    uint32_t val = (uint32_t)strtol(commandParts[3].c_str(), NULL, 16);
+                    ensure_uc_reg_write(reg, &val);
+                    printf("write 0x%x to reg %s\n", val, regName.c_str());
+                } else if (size == 8) {
+                    uint64_t val = strtol(commandParts[3].c_str(), NULL, 16);
+                    ensure_uc_reg_write(reg, &val);
+                    printf("write 0x%llx to reg %s\n", val, regName.c_str());
+                }
             } else {
                 debugLoopAssert_Msg(false, "unknown operation, please use <read> or <write>");
             }
@@ -277,7 +286,7 @@ static void debugLoop(uc_engine *uc) {
         } else if (cmd == "b") {
             debugLoopAssert(commandParts.size() == 2);
             uint64_t addr = strtol(commandParts[1].c_str(), NULL, 16);
-            breakpointMap[uc].insert(addr);
+            breakpointMap[uc].insert({addr, ""});
             printf("debugger: set breakpoint at 0x%llx\n", addr);
         } else if (cmd == "bd") {
             debugLoopAssert(commandParts.size() == 2);
@@ -309,7 +318,8 @@ bool uc_debug_check_breakpoint(uc_engine *uc, uint64_t address) {
     auto bps = breakpointMap[uc];
     if (bps.find(address) != bps.end()) {
         uc_debug_print_backtrace(uc);
-        printf("[+][Stalker][Debugger] stop at breakpoint 0x%llx\n", address);
+        string reason = bps[address].length() > 0 ? bps[address] : "default";
+        printf("[+][Stalker][Debugger] stop at breakpoint 0x%llx, reason %s\n", address, reason.c_str());
         stopImmediatelyCount = 0;
         stopImmediateAddress = 0;
         debugLoop(uc);
