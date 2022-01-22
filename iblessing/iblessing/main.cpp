@@ -37,7 +37,7 @@ int main(int argc, const char *argv[]) {
 //    entry = "_testNSLog";
 //    entry = "_testXPC";
 //    entry = "_testPthread";
-    entry = "_testDispatchSync";
+    entry = "_testDispatchASync";
 //    entry = "_testAssert";
     
     shared_ptr<MachOLoader> loader = make_shared<MachOLoader>();

@@ -952,6 +952,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         uint32_t upcall_flags = 0;
                         upcall_flags |= WQ_FLAG_THREAD_TSD_BASE_SET;
                         upcall_flags |= WQ_FLAG_THREAD_PRIO_SCHED;
+
                         // get tsd
                         ib_pthread_s *pthread = (ib_pthread_s *)th_stackaddr;
                         uint64_t pthreadTSD = th_stackaddr + __offsetof(ib_pthread_s, tsd);
