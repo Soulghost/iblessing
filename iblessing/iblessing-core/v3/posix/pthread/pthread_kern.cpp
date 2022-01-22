@@ -110,7 +110,7 @@ void PthreadKern::contextSwitch(shared_ptr<PthreadInternal> nextThread, bool for
             activeThread->state = PthreadInternalStateWaiting;
         } else {
             activeThread->discardCurrentContext = false;
-            assert(activeThread->ctx != NULL);
+//            assert(activeThread->ctx != NULL);
             assert(activeThread->state == PthreadInternalStateNew);
             printf("[Stalker][+][Thread] discard current context for thread %s, maybe a workqueue bootstrap thread to workthread\n", activeThread->name.c_str());
             logger->append(StringUtils::format("[Stalker][+][Thread] discard current context for thread %s, maybe a workqueue bootstrap thread to workthread\n", activeThread->name.c_str()));

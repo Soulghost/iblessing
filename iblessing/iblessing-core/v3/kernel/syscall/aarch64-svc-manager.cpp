@@ -892,7 +892,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &affinity);
                 ensure_uc_reg_read(UC_ARM64_REG_W3, &prio);
                 
-                int error = 0;
+                int retval = 0;
                 shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
                 switch (options) {
                     case WQOPS_SETUP_DISPATCH: {
@@ -940,49 +940,51 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(uth == nullptr);
                         
                         // try dispatch the first workq thread
-                        uint64_t th_stacksize = 512 * 1024;
-                        uint64_t th_stackaddr = machine.lock()->loader->memoryManager->alloc(th_stacksize);
-                        // realstack
-                        th_stackaddr += 0x87000;
-                        // try to dispatch the thread
-                        // update port
-                        mach_port_t threadPort = 0;
-                        assert(mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &threadPort) == KERN_SUCCESS);
-                        
-                        uint32_t upcall_flags = 0;
-                        upcall_flags |= WQ_FLAG_THREAD_TSD_BASE_SET;
-                        upcall_flags |= WQ_FLAG_THREAD_PRIO_SCHED;
-                        upcall_flags |= WQ_FLAG_THREAD_PRIO_QOS;
-                        upcall_flags |= 4;
+                        for (int i = 0; i < 1; i++) {
+                            uint64_t th_stacksize = 512 * 1024;
+                            uint64_t th_stackaddr = machine.lock()->loader->memoryManager->alloc(th_stacksize);
+                            // realstack
+                            th_stackaddr += 0x87000;
+                            // try to dispatch the thread
+                            // update port
+                            mach_port_t threadPort = 0;
+                            assert(mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &threadPort) == KERN_SUCCESS);
+                            
+                            uint32_t upcall_flags = 0;
+                            upcall_flags |= WQ_FLAG_THREAD_TSD_BASE_SET;
+                            upcall_flags |= WQ_FLAG_THREAD_PRIO_SCHED;
+                            upcall_flags |= WQ_FLAG_THREAD_PRIO_QOS;
+                            upcall_flags |= 4;
 
-                        // get tsd
-                        ib_pthread_s *pthread = (ib_pthread_s *)th_stackaddr;
-                        uint64_t pthreadTSD = th_stackaddr + __offsetof(ib_pthread_s, tsd);
-                        *((uint64_t *)pthreadTSD + 3) = threadPort;
-            
-                        // init state
-                        shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
-                        shared_ptr<PthreadInternal> s = make_shared<PthreadInternal>();
-                        s->x[0] = (uint64_t)pthread; // pthread_self
-                        s->x[1] = threadPort; // kport
-                        s->x[2] = th_stackaddr; // stacklowaddr
-                        s->x[3] = 0; // keventlist
-                        s->x[4] = upcall_flags; // upcall_flags
-                        s->x[5] = 0; // kevent_count
-                        s->x[6] = 0;
-                        s->x[7] = 0;
-                        s->sp = th_stackaddr;
-                        s->pc = threadManager->proc_wqthread;
-                        s->thread_port = threadPort;
-                        s->state = PthreadInternalStateNew;
-                        s->self = th_stackaddr;
-                        s->tsd = pthreadTSD;
-                        s->isMain = false;
-                        s->ctx = NULL;
-                        s->ticks = 0;
-                        s->maxTikcs = 1000;
-                        s->name = "workq_bootstrap";
-                        machine.lock()->threadManager->createThread(s);
+                            // get tsd
+                            ib_pthread_s *pthread = (ib_pthread_s *)th_stackaddr;
+                            uint64_t pthreadTSD = th_stackaddr + __offsetof(ib_pthread_s, tsd);
+                            *((uint64_t *)pthreadTSD + 3) = threadPort;
+                
+                            // init state
+                            shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+                            shared_ptr<PthreadInternal> s = make_shared<PthreadInternal>();
+                            s->x[0] = (uint64_t)pthread; // pthread_self
+                            s->x[1] = threadPort; // kport
+                            s->x[2] = th_stackaddr; // stacklowaddr
+                            s->x[3] = 0; // keventlist
+                            s->x[4] = upcall_flags; // upcall_flags
+                            s->x[5] = 0; // kevent_count
+                            s->x[6] = 0;
+                            s->x[7] = 0;
+                            s->sp = th_stackaddr;
+                            s->pc = threadManager->proc_wqthread;
+                            s->thread_port = threadPort;
+                            s->state = PthreadInternalStateNew;
+                            s->self = th_stackaddr;
+                            s->tsd = pthreadTSD;
+                            s->isMain = false;
+                            s->ctx = NULL;
+                            s->ticks = 0;
+                            s->maxTikcs = 1000;
+                            s->name = "workq_bootstrap";
+                            machine.lock()->threadManager->createThread(s);
+                        }
 //                        BufferedLogger::globalLogger()->stopBuffer();
                         break;
                     }
@@ -993,30 +995,34 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
 //                        uint64_t eventlist = item;
                         
                         // switch to workfunction ?
-                        uint64_t pflags = 0;
-                        pflags |= PTHREAD_START_TSD_BASE_SET;
+//                        uint64_t pflags = 0;
+//                        pflags |= PTHREAD_START_TSD_BASE_SET;
                         /*
                          * Strip PTHREAD_START_SUSPENDED so that libpthread can observe the kernel
                          * supports this flag (after the fact).
                          */
-                        pflags &= ~PTHREAD_START_SUSPENDED;
-                        ib_pthread_s *pthread = (ib_pthread_s *)s->self;
-                        s->x[0] = (uint64_t)pthread;
-                        s->x[1] = s->thread_port;
-                        s->x[2] = (uint64_t)pthread->fun;
-                        s->x[3] = (uint64_t)pthread->arg;
-                        s->x[4] = (uint64_t)pthread->stackaddr;
-                        s->x[5] = pflags;
-                        s->x[6] = 0;
-                        s->x[7] = 0;
-                        s->sp = (uint64_t)pthread->stackaddr;
-                        s->pc = threadManager->proc_threadstart;
+//                        pflags &= ~PTHREAD_START_SUSPENDED;
+//                        ib_pthread_s *pthread = (ib_pthread_s *)s->self;
+//                        s->x[0] = (uint64_t)pthread;
+//                        s->x[1] = s->thread_port;
+//                        s->x[2] = (uint64_t)pthread->fun;
+//                        s->x[3] = (uint64_t)pthread->arg;
+//                        s->x[4] = (uint64_t)pthread->stackaddr;
+//                        s->x[5] = pflags;
+//                        s->x[6] = 0;
+//                        s->x[7] = 0;
+//                        s->sp = (uint64_t)pthread->stackaddr;
+//                        s->pc = threadManager->proc_threadstart;
                         s->state = PthreadInternalStateNew;
                         s->ticks = 0;
-                        s->maxTikcs = 30;
+                        s->maxTikcs = 100;
                         s->discardCurrentContext = true;
                         s->name = "libpthread_workthread_from_bootstrap";
                         threadManager->contextSwitch(nullptr, true);
+                        break;
+                    }
+                    case WQOPS_SHOULD_NARROW: {
+                        retval = 0;
                         break;
                     }
                     default:
@@ -1025,7 +1031,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         break;
                 }
                 
-                syscall_return_value(error);
+                syscall_return_value(retval);
                 return true;
             }
             case 372: { // thread_selfid

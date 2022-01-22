@@ -98,8 +98,17 @@ void testDispatchOnce() {
 void testDispatchASync() {
     printf("1. before async call\n");
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        printf("3. got async call\n");
+        printf("3.0 got async call\n");
     });
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        printf("3.1 got async call\n");
+    });
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        printf("3.2 got async call\n");
+    });
+//    dispatch_async(dispatch_get_main_queue(), ^{
+//        printf("3.3 got async call\n");
+//    });
     printf("2. wait for async call\n");
     while (true) {
         

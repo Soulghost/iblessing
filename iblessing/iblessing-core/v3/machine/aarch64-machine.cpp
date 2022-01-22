@@ -462,6 +462,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(_/Users/soulghost/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/com.tencent.xinWeChat/2.0b4.0.9/a059f2c5177212c13d02987f45ab4e54/Message/MessageTemp/4ebc709cee4f193faf94a726391c292d/Image/137581642838792_.pic.jpg_int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
+//    uc_debug_set_breakpoint(uc, 0x9C891D560, "libdispatch_workerfunction"); 
 //    uc_debug_set_breakpoint(uc, 0x9C891D4AC, "pthread_wqthread prologue");
 //    uc_debug_set_breakpoint(uc, 0x98005932C, "dispatch_worker_thread2 clz");
 //    uc_debug_set_breakpoint(uc, 0x980059324, "dispatch_worker_thread2, calculate qos");
