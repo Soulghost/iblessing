@@ -952,6 +952,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         uint32_t upcall_flags = 0;
                         upcall_flags |= WQ_FLAG_THREAD_TSD_BASE_SET;
                         upcall_flags |= WQ_FLAG_THREAD_PRIO_SCHED;
+                        upcall_flags |= WQ_FLAG_THREAD_PRIO_QOS;
+                        upcall_flags |= 4;
 
                         // get tsd
                         ib_pthread_s *pthread = (ib_pthread_s *)th_stackaddr;
@@ -981,7 +983,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         s->maxTikcs = 1000;
                         s->name = "workq_bootstrap";
                         machine.lock()->threadManager->createThread(s);
-                        BufferedLogger::globalLogger()->stopBuffer();
+//                        BufferedLogger::globalLogger()->stopBuffer();
                         break;
                     }
                     case WQOPS_THREAD_RETURN: {
