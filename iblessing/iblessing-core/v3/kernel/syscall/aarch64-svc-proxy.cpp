@@ -69,6 +69,12 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
                 machMsg = true;
                 ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)args[0];
                 printf("(msgh_id = %d(0x%x))\n", hdr->msgh_id, hdr->msgh_id);
+                if (hdr->msgh_id == 0) {
+                    printf("[Stalker][!][Syscall][Mach] skip mach_msg with id %d with timeout\n", hdr->msgh_id);
+                    ret = 0;
+                    syscall_return_value(ret);
+                    return true;
+                }
             } else {
                 printf("\n");
             }

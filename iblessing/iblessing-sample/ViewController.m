@@ -42,25 +42,26 @@ void testXPC(void) {
     xpc_dictionary_set_uint64(req, "numpackets", 1);
     xpc_dictionary_set_int64(req, "startingPacket", 1);
     xpc_object_t reply = xpc_connection_send_message_with_reply_sync(conn, req);
+    printf("the reply addr %p\n", reply);
+//    char *desc = xpc_copy_description(reply);
+//    printf("[+] reply desc length %lu\n", strlen(desc));
+//    NSLog(@"[+] reply desc %s\n", xpc_copy_description(reply));
     
-    printf("[+] reply desc %s\n", xpc_copy_description(reply));
-    NSLog(@"[+] reply desc %s\n", xpc_copy_description(reply));
-    
-    xpc_dictionary_apply(reply, ^bool(const char *key, xpc_object_t value) {
-        if (strcmp(key, "status") == 0) {
-            int64_t val = xpc_int64_get_value(value);
-            val = CFSwapInt64(val) >> 32;
-            char *str = (char *)malloc(sizeof(int64_t) + 1);
-            memcpy(str, &val, sizeof(int64_t));
-            str[sizeof(int64_t)] = '\0';
-            printf("[+] status: %s\n", str);
-            free(str);
-        } else {
-            printf("\t[+] %s -> %s\n", key, xpc_copy_description(value));
-        }
-        
-        return true;
-    });
+//    xpc_dictionary_apply(reply, ^bool(const char *key, xpc_object_t value) {
+//        if (strcmp(key, "status") == 0) {
+//            int64_t val = xpc_int64_get_value(value);
+//            val = CFSwapInt64(val) >> 32;
+//            char *str = (char *)malloc(sizeof(int64_t) + 1);
+//            memcpy(str, &val, sizeof(int64_t));
+//            str[sizeof(int64_t)] = '\0';
+//            printf("[+] status: %s\n", str);
+//            free(str);
+//        } else {
+//            printf("\t[+] %s -> %s\n", key, xpc_copy_description(value));
+//        }
+//
+//        return true;
+//    });
 }
 
 
@@ -113,6 +114,14 @@ void testDispatchASync() {
     while (true) {
         
     }
+}
+
+void testDispatchAsyncMain(void)  {
+    printf("1. before async call to main queue\n");
+    dispatch_async(dispatch_get_main_queue(), ^{
+        printf("3. main queue got called\n");
+    });
+    printf("2. after async call to main queue\n");
 }
 
 void testDispatchAfter() {
@@ -216,12 +225,13 @@ void testPthread(void) {
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    const char *name = strdup("kern.osvariant_status");
-    uint64_t oldp;
-    uint64_t oldlenp = 0x8;
-    int ret = sysctlbyname(name, &oldp, (size_t *)&oldlenp, NULL, NULL);
+//    const char *name = strdup("kern.osvariant_status");
+//    uint64_t oldp;
+//    uint64_t oldlenp = 0x8;
+//    int ret = sysctlbyname(name, &oldp, (size_t *)&oldlenp, NULL, NULL);
     
-    test_entry();
+//    test_entry();
+    testDispatchAsyncMain();
 }
 
 

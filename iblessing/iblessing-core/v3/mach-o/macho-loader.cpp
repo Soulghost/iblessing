@@ -430,7 +430,8 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
             ensure_uc_reg_read(UC_ARM64_REG_X0, &addr);
             shared_ptr<MachOModule> module = findModuleByAddr(addr);
             if (!module) {
-                assert(false);
+                module = modules[0];
+                printf("[Stalker][!][Warn][Dyld] _dyld_image_path_containing_address - cannot find module for address 0x%llx, try main module\n", addr);
             }
             
             uint64_t pathAddr = memoryManager->allocPath(module->path);

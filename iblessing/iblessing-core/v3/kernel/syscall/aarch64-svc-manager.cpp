@@ -173,7 +173,10 @@ bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, v
         }
         
         BufferedLogger::globalLogger()->printBuffer();
-        print_backtrace(uc);
+//        print_backtrace(uc);
+        uc_debug_print_backtrace(uc);
+        uc_debug_print_backtrace(uc, true);
+        
         assert(false);
         return false;
     }
