@@ -42,11 +42,8 @@ void testXPC(void) {
     xpc_dictionary_set_uint64(req, "numpackets", 1);
     xpc_dictionary_set_int64(req, "startingPacket", 1);
     xpc_object_t reply = xpc_connection_send_message_with_reply_sync(conn, req);
-    printf("the reply addr %p, type %p\n", reply, xpc_get_type(reply));
-    
-    printf("before copy reply msg\n");
     char *reply_msg = xpc_copy_description(reply);
-    printf("copy reply result %p, length %lu: %s\n", reply_msg, strlen(reply_msg), reply_msg);
+    printf("reply result %p, length %lu: %s\n", reply_msg, strlen(reply_msg), reply_msg);
 //    __asm__ __volatile__ ("svc #0x0");
 //    char *desc = xpc_copy_description(reply);
 //    printf("[+] reply desc length %lu\n", strlen(desc));
@@ -239,7 +236,8 @@ void testPthread(void) {
 //    int ret = sysctlbyname(name, &oldp, (size_t *)&oldlenp, NULL, NULL);
     
 //    test_entry();
-    testDispatchAsyncMain();
+//    testDispatchAsyncMain();
+    testXPC();
 }
 
 
