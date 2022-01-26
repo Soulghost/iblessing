@@ -77,7 +77,7 @@ int DarwinUdpSocket::connect(uint64_t addrAddr, int addrlen) {
     ensure_uc_mem_read(addrAddr + 1, &sa_family, 1);
     assert(sa_family == AF_LOCAL);
     
-    char *path = MachoMemoryUtils::uc_read_string(uc, addrAddr + 2, 1000);
+    char *path = MachoMemoryUtils::uc_read_string(uc, addrAddr + 2, 1000, false);
     printf("[Stalker][+][Syscall] connect to local udp socket with fd %d, path %s\n", fd, path);
     this->path = string(path);
     free(path);

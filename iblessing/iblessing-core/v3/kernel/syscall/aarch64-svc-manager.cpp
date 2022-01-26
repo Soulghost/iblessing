@@ -170,6 +170,10 @@ bool Aarch64SVCManager::handleSVC(uc_engine *uc, uint32_t intno, uint32_t swi, v
             bool success = handleSyscall(uc, intno, swi, user_data);
             threadManager->setInterruptEnable(true);
             return success;
+        } else if (swi == 0x0) {
+            uc_debug_breakhere(uc, "software breakpoint");
+            threadManager->setInterruptEnable(true);
+            return true;
         }
         
         BufferedLogger::globalLogger()->printBuffer();
@@ -226,7 +230,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_W1, &oflags);
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &mode);
                 
-                char *path = MachoMemoryUtils::uc_read_string(uc, pathaddr, 1000);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathaddr, 1000, false);
                 int fd = fs->open(path, oflags);
                 free(path);
                 syscall_return_value(fd);
@@ -255,7 +259,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 int mode;
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
                 ensure_uc_reg_read(UC_ARM64_REG_W1, &mode);
-                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000, false);
                 int ret = access(path, mode);
                 if (ret != 0) {
                     uc_debug_print_backtrace(uc);
@@ -297,7 +301,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X1, &bufAddr);
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &bufSize);
                 
-                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000, false);
                 assert(path != nullptr);
                 if (strcmp(path, "/var/db/timezone/localtime") == 0) {
                     free(path);
@@ -534,7 +538,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X3, &attrBufSize);
                 ensure_uc_reg_read(UC_ARM64_REG_W4, &options);
                 
-                char *path = MachoMemoryUtils::uc_read_string(uc, pathaAddr, 1000);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathaAddr, 1000, false);
                 struct attrlist attr;
                 ensure_uc_mem_read(attrListAddr, &attr, sizeof(attrlist));
                 void *attrBuf = malloc(attrBufSize);
@@ -556,7 +560,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
                 ensure_uc_reg_read(UC_ARM64_REG_W1, &oflags);
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &mode);
-                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000, false);
                 printf("[Stalker][+][Syscall] shm_open %s, oflags %d, mode %d\n", path, oflags, mode);
                 free(path);
                 
@@ -724,7 +728,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
                 ensure_uc_reg_read(UC_ARM64_REG_X1, &bufAddr);
                 
-                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000, false);
                 machine.lock()->setErrno(ENOENT);
                 syscall_return_value(-1);
                 free(path);
@@ -735,7 +739,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
                 ensure_uc_reg_read(UC_ARM64_REG_X1, &bufAddr);
                 
-                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000, false);
                 if (strcmp(path, "/var/root/Documents/__ignore.unidbg_keychain.plist") == 0) {
                     machine.lock()->setErrno(ENOENT);
                     syscall_return_value(-1);
@@ -1126,7 +1130,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &policyAddr);
                 ensure_uc_reg_read(UC_ARM64_REG_W1, &call);
                 ensure_uc_reg_read(UC_ARM64_REG_X2, &args);
-                char *policy = MachoMemoryUtils::uc_read_string(uc, policyAddr, 100);
+                char *policy = MachoMemoryUtils::uc_read_string(uc, policyAddr, 100, true);
                 assert(policy != NULL);
                 printf("[Stalker][+][Sandbox] apply sandbox check by sandbox_ms with policy %s, call %d, args 0x%llx\n", policy, call, args);
                 free(policy);
@@ -1175,10 +1179,14 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X1, &bufferAddr);
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &count);
                 assert(fd == 1);
-                char *content = MachoMemoryUtils::uc_read_string(uc, bufferAddr, count);
+                if (count == 124) {
+                    printf("");
+                    uc_debug_print_backtrace(uc);
+                }
+                char *content = MachoMemoryUtils::uc_read_string(uc, bufferAddr, count, true);
                 printf("[Stalker][STDOUT][Logger] %s", content);
                 free(content);
-                syscall_return_success;
+                syscall_return_value(count);
                 return true;
             }
             case 398: { // open_NOCANCEL
@@ -1187,7 +1195,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
                 ensure_uc_reg_read(UC_ARM64_REG_W1, &oflags);
                 ensure_uc_reg_read(UC_ARM64_REG_W2, &mode);
-                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000);
+                char *path = MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000, false);
                 int fd = -1;
                 if (strcmp(path, "/dev/urandom") == 0 ||
                     strcmp(path, "/dev/random") == 0 ||

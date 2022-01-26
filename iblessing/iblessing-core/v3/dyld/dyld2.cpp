@@ -56,7 +56,7 @@ SharedCacheLoadInfo mapSharedCache(uc_engine *uc, uintptr_t mainExecutableSlide)
 
 uint64_t dlsym_internal(shared_ptr<MachOLoader> loader, int64_t handle, uint64_t symbolAddr, uint64_t callerAddress) {
     uc_engine *uc = loader->uc;
-    char *symbolName = MachoMemoryUtils::uc_read_string(uc, symbolAddr, 1000);
+    char *symbolName = MachoMemoryUtils::uc_read_string(uc, symbolAddr, 1000, false);
     if (handle == IB_RTLD_MAIN_ONLY) {
         if (strcmp(symbolName, "_os_debug_log_redirect_func") == 0) {
 #if 0
@@ -67,7 +67,7 @@ uint64_t dlsym_internal(shared_ptr<MachOLoader> loader, int64_t handle, uint64_t
                 symaddr = loader->svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
                     uint64_t msgAddr = 0;
                     ensure_uc_reg_read(UC_ARM64_REG_X0, &msgAddr);
-                    char *msg = MachoMemoryUtils::uc_read_string(uc, msgAddr, 1000);
+                    char *msg = MachoMemoryUtils::uc_read_string(uc, msgAddr, 1000, true);
                     printf("[Stalker][*][Logger] os_debug_log_redirect_func: %s\n", msg);
                     free(msg);
                 });
@@ -83,7 +83,7 @@ uint64_t dlsym_internal(shared_ptr<MachOLoader> loader, int64_t handle, uint64_t
                 symaddr = loader->svcManager->createSVC([&](uc_engine *uc, uint32_t intno, uint32_t swi, void *user_data) {
                     uint64_t msgAddr = 0;
                     ensure_uc_reg_read(UC_ARM64_REG_X0, &msgAddr);
-                    char *msg = MachoMemoryUtils::uc_read_string(uc, msgAddr, 1000);
+                    char *msg = MachoMemoryUtils::uc_read_string(uc, msgAddr, 1000, true);
                     printf("[Stalker][*][Logger] _os_crash_function: %s\n", msg);
                     free(msg);
                 });

@@ -148,14 +148,27 @@ uint64_t Dyld::bindAt(shared_ptr<MachOModule> module, shared_ptr<MachOLoader> lo
     set<pair<string, string>> symbolNotFoundErrorSet;
     Symbol *sym = targetModule->getSymbolByName(symbolName, true);
     if (!sym) {
-        pair<string, string> errorPattern = {symbolName, targetModule->name};
-        if (symbolNotFoundErrorSet.find(errorPattern) == symbolNotFoundErrorSet.end()) {
-            cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind cannot find symbol %s in %s\n", symbolName, targetModule->name.c_str());
-            cout << termcolor::reset << endl;
-            symbolNotFoundErrorSet.insert(errorPattern);
+        static set<string> validMissingSymbols{"___chkstk_darwin"};
+        if (validMissingSymbols.find(symbolName) == validMissingSymbols.end()) {
+            printf("[-] MachOLoader - cannot find symbol %s in module %s\n", symbolName, module->name.c_str());
+            if (StringUtils::has_prefix(symbolName, "_")) {
+                string platformName = StringUtils::format("__platform%s", symbolName);
+                sym = targetModule->getSymbolByName(platformName, true);
+            }
+            assert(sym != NULL);
+        } else {
+            pair<string, string> errorPattern = {symbolName, targetModule->name};
+            if (symbolNotFoundErrorSet.find(errorPattern) == symbolNotFoundErrorSet.end()) {
+                cout << termcolor::yellow << StringUtils::format("[-] MachOLoader - Warn: eachBind cannot find symbol %s in %s\n", symbolName, targetModule->name.c_str());
+                cout << termcolor::reset << endl;
+                symbolNotFoundErrorSet.insert(errorPattern);
+            }
+            return 0;
         }
-        return 0;
+        
     }
+    
+find_symbol:
     assert(sym->info);
     assert(sym->info->n_value > 0);
     switch (type) {

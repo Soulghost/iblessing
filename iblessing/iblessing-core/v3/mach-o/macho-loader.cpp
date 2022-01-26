@@ -32,6 +32,7 @@
 #include "dyld_images.h"
 #include "aarch64-utils.hpp"
 #include "dyld2.hpp"
+#include "buffered_logger.hpp"
 
 #ifdef IB_PLATFORM_DARWIN
 namespace fs = std::filesystem;
@@ -228,6 +229,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
                 }
             }
             assert(targetModule != nullptr);
+            BufferedLogger::globalLogger()->append(StringUtils::format("[Stalker][+][Dyld] _dyld_fast_stub in module %s, offset 0x%llx\n", targetModule->name.c_str(), offset));
             uint64_t targetAddr = Dyld::doFastLazyBind(targetModule, shared_from_this(), offset);
             
             // write return value to x0
@@ -399,7 +401,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
             int mode;
             ensure_uc_reg_read(UC_ARM64_REG_X0, &pathAddr);
             ensure_uc_reg_read(UC_ARM64_REG_W1, &mode);
-            char *path = pathAddr > 0 ? MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000) : NULL;
+            char *path = pathAddr > 0 ? MachoMemoryUtils::uc_read_string(uc, pathAddr, 1000, false) : NULL;
             
             uint64_t ret;
             if (path == NULL) {
@@ -460,7 +462,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
             uint64_t symbolAddr;
             ensure_uc_reg_read(UC_ARM64_REG_X0, &handle);
             ensure_uc_reg_read(UC_ARM64_REG_X1, &symbolAddr);
-            char *symbolName = MachoMemoryUtils::uc_read_string(uc, symbolAddr, 1000);
+            char *symbolName = MachoMemoryUtils::uc_read_string(uc, symbolAddr, 1000, false);
             if (handle == IB_RTLD_MAIN_ONLY) {
                 if (strcmp(symbolName, "_os_trace_redirect_func") == 0) {
                     assert(false);
@@ -511,7 +513,7 @@ shared_ptr<MachOModule> MachOLoader::loadModuleFromFile(std::string filePath) {
             uint64_t dyldFuncNameAddr = 0, dyldFuncBindToAddr;
             assert(uc_reg_read(uc, UC_ARM64_REG_X0, &dyldFuncNameAddr) == UC_ERR_OK);
             assert(uc_reg_read(uc, UC_ARM64_REG_X1, &dyldFuncBindToAddr) == UC_ERR_OK);
-            char *dyldFuncName = MachoMemoryUtils::uc_read_string(uc, dyldFuncNameAddr, 10000);
+            char *dyldFuncName = MachoMemoryUtils::uc_read_string(uc, dyldFuncNameAddr, 10000, false);
             if (strcmp(dyldFuncName, "__dyld_fast_stub_entry") == 0) {
                 printf("[+] dyld function lookup - bind %s from 0x%llx to 0x%llx\n", dyldFuncName, _dyld_fast_stub_entryAddr, dyldFuncBindToAddr);
                 assert(uc_mem_write(uc, dyldFuncBindToAddr, &_dyld_fast_stub_entryAddr, 8) == UC_ERR_OK);

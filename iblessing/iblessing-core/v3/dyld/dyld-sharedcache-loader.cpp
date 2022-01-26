@@ -559,7 +559,7 @@ bool findInSharedCacheImage(uc_engine *uc, const SharedCacheLoadInfo& loadInfo, 
 //        if ( (p->modTime == 0) && (p->inode != hash) )
 //            continue;
         uint64_t aPathAddr = loadInfo.loadAddress + p->pathFileOffset;
-        char* aPath = MachoMemoryUtils::uc_read_string(uc, aPathAddr, 1000);
+        char* aPath = MachoMemoryUtils::uc_read_string(uc, aPathAddr, 1000, false);
 //        printf("[+] path %s\n", aPath);
         assert(aPath != NULL);
         if ( strcmp(aPath, dylibPathToFind) == 0 ) {

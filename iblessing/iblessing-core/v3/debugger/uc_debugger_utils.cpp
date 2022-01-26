@@ -266,7 +266,7 @@ static void debugLoop(uc_engine *uc) {
         } else if (cmd == "rs") {
             debugLoopAssert(commandParts.size() == 2);
             uint64_t addr = strtol(commandParts[1].c_str(), NULL, 16);
-            char *str = MachoMemoryUtils::uc_read_string(uc, addr, 1000);
+            char *str = MachoMemoryUtils::uc_read_string(uc, addr, 1000, true);
             printf("0x%llx: %s (%zu)\n", addr, str, strlen(str));
             free(str);
         } else if (cmd == "si") {

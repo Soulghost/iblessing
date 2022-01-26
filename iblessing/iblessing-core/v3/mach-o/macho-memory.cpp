@@ -12,7 +12,7 @@ NS_IB_BEGIN
 
 namespace MachoMemoryUtils {
 
-char* uc_read_string(uc_engine *uc, uint64_t address, uint64_t limit) {
+char* uc_read_string(uc_engine *uc, uint64_t address, uint64_t limit, bool allowSpecialChars) {
     char *charBuf = (char *)malloc(limit + 1);
     uint64_t offset = 0;
     uint64_t unPrintCount = 0;
@@ -21,7 +21,7 @@ char* uc_read_string(uc_engine *uc, uint64_t address, uint64_t limit) {
         if (charBuf[offset] == 0) {
             break;
         }
-        if (!(charBuf[offset] >= 0x20 && charBuf[offset] <= 0x7E)) {
+        if (!allowSpecialChars && !(charBuf[offset] >= 0x20 && charBuf[offset] <= 0x7E)) {
             unPrintCount++;
             if (unPrintCount > 10) {
                 ok = false;

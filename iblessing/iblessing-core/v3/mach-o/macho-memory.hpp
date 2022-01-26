@@ -15,7 +15,7 @@
 NS_IB_BEGIN
 
 namespace MachoMemoryUtils {
-    char* uc_read_string(uc_engine *uc, uint64_t address, uint64_t limit);
+    char* uc_read_string(uc_engine *uc, uint64_t address, uint64_t limit, bool allowSpecialChars);
 };
 
 NS_IB_END
