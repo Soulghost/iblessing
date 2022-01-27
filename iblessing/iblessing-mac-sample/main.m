@@ -17,22 +17,23 @@ bootstrap_look_up(mach_port_t  bootstrap_port,
 void testXPC(void) {
     printf("[+] prepare for connect to suggestd\n");
     
-    mach_port_t service_port;
+    mach_port_t service_port = 0;
     // com.apple.private.suggestions.reminders
-    kern_return_t ret = bootstrap_look_up(bootstrap_port, "com.apple.suggestd.reminders", &service_port);
-    printf("[+] service lookup result %s\n", mach_error_string(ret));
+    char *service_name = "com.soulghost.dynamic.entrypoint";
+//    kern_return_t ret = bootstrap_look_up(bootstrap_port, service_name, &service_port);
+//    printf("[+] service %s lookup result %s, port %d\n", service_name, mach_error_string(ret), service_port);
     static xpc_connection_t conn;
-    conn = xpc_connection_create_mach_service("com.apple.suggestd.reminders", NULL, XPC_CONNECTION_MACH_SERVICE_PRIVILEGED);
+    conn = xpc_connection_create_mach_service(service_name, NULL, 0);
     xpc_connection_set_event_handler(conn, ^(xpc_object_t object) {
         printf("[*] connect result %p %s\n", object, xpc_copy_description(object));
     });
     xpc_connection_resume(conn);
     
     xpc_object_t req = xpc_dictionary_create(NULL, NULL, 0);
-//    xpc_dictionary_set_uint64(req, "type", 'read');
-//    xpc_dictionary_set_uint64(req, "numbytes", 1);
-//    xpc_dictionary_set_uint64(req, "numpackets", 1);
-//    xpc_dictionary_set_int64(req, "startingPacket", 1);
+    xpc_dictionary_set_uint64(req, "type", 'read');
+    xpc_dictionary_set_uint64(req, "numbytes", 1);
+    xpc_dictionary_set_uint64(req, "numpackets", 1);
+    xpc_dictionary_set_int64(req, "startingPacket", 1);
     xpc_object_t reply = xpc_connection_send_message_with_reply_sync(conn, req);
     char *reply_msg = xpc_copy_description(reply);
     printf("reply result %p, length %lu: %s\n", reply_msg, strlen(reply_msg), reply_msg);

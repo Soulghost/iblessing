@@ -28,9 +28,9 @@ void testNetwork(void) {
 }
 
 void testXPC(void) {
-    printf("[+] prepare for connect to com.apple.audio.AudioFileServer\n");
+    printf("[+] prepare for connect to com.soulghost.dynamic.entrypoint\n");
     static xpc_connection_t conn;
-    conn = xpc_connection_create_mach_service("com.apple.audio.AudioFileServer", NULL, XPC_CONNECTION_MACH_SERVICE_PRIVILEGED);
+    conn = xpc_connection_create_mach_service("com.soulghost.dynamic.entrypoint", NULL, 0);
     xpc_connection_set_event_handler(conn, ^(xpc_object_t object) {
         printf("[*] connect result %p %s\n", object, xpc_copy_description(object));
     });

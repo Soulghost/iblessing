@@ -1571,6 +1571,10 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 assert(hdr != NULL);
                 assert(uc_mem_read(uc, msg, hdr, msgSize) == UC_ERR_OK);
                 switch (hdr->msgh_id) {
+//                    case 0: {
+//                        uc_debug_print_backtrace(uc, true);
+//                        return false;
+//                    }
 //                    case 200: { // host_info
 //                        #pragma pack(push, 4)
 //                        typedef struct {
