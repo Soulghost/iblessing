@@ -1,0 +1,22 @@
+//
+//  DarwinService.iig
+//  DarwinService
+//
+//  Created by soulghost on 2020/7/11.
+//  Copyright © 2020 soulghost. All rights reserved.
+//
+
+#ifndef DarwinService_h
+#define DarwinService_h
+
+#include <Availability.h>
+#include <DriverKit/IOService.iig>
+
+class DarwinService: public IOService
+{
+public:
+    virtual kern_return_t
+    Start(IOService * provider) override;
+};
+
+#endif /* DarwinService_h */
