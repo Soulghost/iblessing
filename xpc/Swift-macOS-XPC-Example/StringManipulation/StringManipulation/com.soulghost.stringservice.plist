@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>WaitForDebugger</key>
+	<false/>
+	<key>Label</key>
+	<string>com.soulghost.stringservice</string>
+	<key>Program</key>
+	<string>/Users/soulghost/Library/Developer/Xcode/DerivedData/SwiftXPCExample-crlducangvmvkkfunfredsyhbmno/Build/Products/Debug/StringManipulation.xpc/Contents/MacOS/StringManipulation</string>
+	<key>MachServices</key>
+	<dict>
+		<key>com.soulghost.dynamic.entrypoint</key>
+		<true/>
+	</dict>
+</dict>
+</plist>
