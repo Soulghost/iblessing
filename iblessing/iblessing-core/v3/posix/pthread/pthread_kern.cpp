@@ -122,8 +122,9 @@ void PthreadKern::contextSwitch(shared_ptr<PthreadInternal> nextThread, bool for
     ensure_uc_reg_read(UC_ARM64_REG_SP, &sp);
     ensure_uc_reg_read(UC_ARM64_REG_LR, &lr);
     ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
-    printf("[Stalker][+][Thread] before switch %s -> %s: pc 0x%llx, sp 0x%llx, lr 0x%llx, tsd 0x%llx\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pc, sp, lr, tsd);
-    logger->append(StringUtils::format("[Stalker][+][Thread] before switch %s -> %s: pc 0x%llx, sp 0x%llx, lr 0x%llx, tsd 0x%llx\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pc, sp, lr, tsd));
+    string beforeContent = StringUtils::format("[Stalker][+][Thread] before switch %s -> %s: pc 0x%llx, sp 0x%llx, lr 0x%llx, tsd 0x%llx, state %s\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pc, sp, lr, tsd, uc_get_thread_state_desc(uc).c_str());
+    printf("%s", beforeContent.c_str());
+    logger->append(beforeContent);
     
     if (pendingThread->state == PthreadInternalStateNew) {
         // thread start
@@ -135,8 +136,9 @@ void PthreadKern::contextSwitch(shared_ptr<PthreadInternal> nextThread, bool for
         uint64_t threadShouldNeverReturnLR = 0xfafafafa;
         ensure_uc_reg_write(UC_ARM64_REG_LR, &threadShouldNeverReturnLR);
         ensure_uc_reg_write(UC_ARM64_REG_PC, &pendingThread->pc);
-        printf("[Stalker][+][Thread] after switch %s -> %s(new create): pc 0x%llx, sp 0x%llx tsd 0x%llx\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pendingThread->pc, pendingThread->sp, pendingThread->tsd);
-        logger->append(StringUtils::format("[Stalker][+][Thread] after switch %s -> %s(new create): pc 0x%llx, sp 0x%llx tsd 0x%llx\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pendingThread->pc, pendingThread->sp, pendingThread->tsd));
+        string afterContent = StringUtils::format("[Stalker][+][Thread] after switch %s -> %s(new create): pc 0x%llx, sp 0x%llx tsd 0x%llx, state %s\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pendingThread->pc, pendingThread->sp, pendingThread->tsd, uc_get_thread_state_desc(uc).c_str());
+        printf("%s", afterContent.c_str());
+        logger->append(afterContent);
     } else {
         // restore thread state
         assert(pendingThread->ctx != NULL);
@@ -147,8 +149,9 @@ void PthreadKern::contextSwitch(shared_ptr<PthreadInternal> nextThread, bool for
         ensure_uc_reg_write(UC_ARM64_REG_PC, &pc);
         ensure_uc_reg_read(UC_ARM64_REG_SP, &sp);
         ensure_uc_reg_read(UC_ARM64_REG_TPIDRRO_EL0, &tsd);
-        printf("[Stalker][+][Thread] after switch %s -> %s(wakeup): pc 0x%llx, sp 0x%llx, tsd 0x%llx\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pc, sp, tsd);
-        logger->append(StringUtils::format("[Stalker][+][Thread] after switch %s -> %s(wakeup): pc 0x%llx, sp 0x%llx, tsd 0x%llx\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pc, sp, tsd));
+        string afterContent = StringUtils::format("[Stalker][+][Thread] after switch %s -> %s(wakeup): pc 0x%llx, sp 0x%llx, tsd 0x%llx, state %s\n", activeThread ? activeThread->name.c_str() : "terminated", pendingThread->name.c_str(), pc, sp, tsd, uc_get_thread_state_desc(uc).c_str());
+        printf("%s", afterContent.c_str());
+        logger->append(afterContent);
         
         if (pendingThread->continuation) {
             printf("[Stalker][+][Thread] execute continuation for thread %s\n", pendingThread->name.c_str());

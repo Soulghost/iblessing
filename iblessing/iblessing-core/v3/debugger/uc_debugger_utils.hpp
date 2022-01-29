@@ -23,5 +23,6 @@ void uc_debug_print_memory(uc_engine *uc, uint64_t addr, int format, int count);
 void uc_debug_set_breakpoint(uc_engine *uc, uint64_t address, std::string desc = "");
 bool uc_debug_check_breakpoint(uc_engine *uc, uint64_t address);
 void uc_debug_breakhere(uc_engine *uc, std::string desc = "");
+std::string uc_get_thread_state_desc(uc_engine *uc);
 
 #endif /* uc_debugger_utils_hpp */

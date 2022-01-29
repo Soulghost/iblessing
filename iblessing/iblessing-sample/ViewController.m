@@ -173,6 +173,8 @@ void testAssert(void) {
 }
 
 void* pthreadWorker(void *ctx) {
+    uint64_t p = 0;
+    __asm__ __volatile__("mrs    %[p], TPIDRRO_EL0" : [p] "=&r" (p));
     printf("subthread try lock\n");
 //    pthread_mutex_lock(&lock1);
     printf("subthread get lock\n");
@@ -184,7 +186,7 @@ void* pthreadWorker(void *ctx) {
     char thread_name[16] = { 0 };
     pthread_setname_np(ctx);
     pthread_getname_np(pthread_self(), thread_name, 16);
-    printf("pthread %p(%s) has been called\n", pthread_self(), thread_name);
+    printf("pthread %p(%s) has been called, my tsd is at 0x%llx\n", pthread_self(), thread_name, p);
     return NULL;
 }
 
@@ -200,7 +202,7 @@ void testPthread(void) {
     }
     pthread_mutex_lock(&lock1);
     
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < 8; i++) {
         pthread_t thread;
         void *ctx = malloc(100);
         sprintf(ctx, "subthread-%d", i);
@@ -221,6 +223,28 @@ void testPthread(void) {
 //    }
 }
 
+void testDispatchSource(void) {
+    printf("create dispatch source\n");
+    dispatch_source_t s = dispatch_source_create(DISPATCH_SOURCE_TYPE_DATA_ADD, 0, 0, dispatch_get_global_queue(0, 0));
+    dispatch_source_set_event_handler(s, ^{
+        NSUInteger data = dispatch_source_get_data(s);
+        printf("dispatch source data changed to 0x%lx\n", (unsigned long)data);
+    });
+    dispatch_resume(s);
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        dispatch_source_merge_data(s, 0xa9);
+        printf("merge 0xa9\n");
+    });
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        dispatch_source_merge_data(s, 1);
+        printf("merge 0x1\n");
+    });
+    printf("wait for source trigger\n");
+    while (true) {
+        
+    }
+}
+
 @interface ViewController ()
 
 @end
@@ -237,7 +261,9 @@ void testPthread(void) {
     
 //    test_entry();
 //    testDispatchAsyncMain();
-    testXPC();
+//    testXPC();
+//    testDispatchSource();
+    testPthread();
 }
 
 

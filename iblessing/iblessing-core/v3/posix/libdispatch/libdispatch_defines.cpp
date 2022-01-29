@@ -146,3 +146,37 @@ typedef void (*dispatch_function_t)(void *_Nullable);
 
 DISPATCH_DECL(dispatch_queue);
 DISPATCH_DECL_SUBCLASS(dispatch_queue_global, dispatch_queue);
+
+#define DISPATCH_LANE_CLASS_HEADER(x) \
+    struct dispatch_queue_s _as_dq[0]; \
+    DISPATCH_QUEUE_CLASS_HEADER(x, \
+            struct dispatch_object_s *volatile dq_items_tail); \
+    dispatch_unfair_lock_s dq_sidelock; \
+    struct dispatch_object_s *volatile dq_items_head; \
+    uint32_t dq_side_suspend_cnt
+
+#define DISPATCH_SOURCE_CLASS_HEADER(x) \
+    DISPATCH_LANE_CLASS_HEADER(x); \
+    uint16_t \
+        /* set under the drain lock */ \
+        ds_is_installed:1, \
+        ds_latched:1, \
+        dm_connect_handler_called:1, \
+        dm_cancel_handler_called:1, \
+        dm_is_xpc:1, \
+        dm_arm_no_senders:1, \
+        dm_made_sendrights:1, \
+        dm_strict_reply:1, \
+        __ds_flags_pad : 8; \
+    uint16_t __dq_flags_separation[0]; \
+    uint16_t \
+        /* set under the send queue lock */ \
+        dm_needs_mgr:1, \
+        dm_disconnected:1, \
+        __dm_flags_pad : 14
+
+struct _dispatch_mach_s {
+    DISPATCH_SOURCE_CLASS_HEADER(mach);
+    void *dm_send_refs;
+    void *dm_xpc_term_refs;
+} DISPATCH_ATOMIC64_ALIGN;

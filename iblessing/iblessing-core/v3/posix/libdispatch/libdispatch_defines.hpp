@@ -9,7 +9,7 @@
 #ifndef libdispatch_defines_hpp
 #define libdispatch_defines_hpp
 
-#include <stdio.h>
+//#include <stdio.h>
 
 typedef uint32_t dispatch_tid;
 typedef uint32_t dispatch_lock;
@@ -339,5 +339,11 @@ struct dispatch_queue_global_s {
     struct dispatch_object_s *volatile dq_items_head;
     int volatile dgq_pending;
 } __attribute__((__aligned__(64u)));
+
+struct dispatch_mach_s {
+    struct dispatch_queue_s _as_dq[0]; struct dispatch_object_s _as_do[0]; struct _os_object_s _as_os_obj[0]; const struct dispatch_mach_vtable_s *do_vtable; int volatile do_ref_cnt; int volatile do_xref_cnt; struct dispatch_mach_s *volatile do_next; struct dispatch_queue_s *do_targetq; void *do_ctxt; union { dispatch_function_t do_finalizer; void *do_introspection_ctxt; }; struct dispatch_object_s *volatile dq_items_tail; union { uint64_t volatile dq_state; struct { dispatch_lock dq_state_lock; uint32_t dq_state_bits; }; }; unsigned long dq_serialnum; const char *dq_label; union { uint32_t volatile dq_atomic_flags; struct { const uint16_t dq_width; const uint16_t __dq_opaque2; }; }; dispatch_priority_t dq_priority; union { struct dispatch_queue_specific_head_s *dq_specific_head; struct dispatch_source_refs_s *ds_refs; struct dispatch_timer_source_refs_s *ds_timer_refs; struct dispatch_mach_recv_refs_s *dm_recv_refs; struct dispatch_channel_callbacks_s const *dch_callbacks; }; int volatile dq_sref_cnt; dispatch_unfair_lock_s dq_sidelock; struct dispatch_object_s *volatile dq_items_head; uint32_t dq_side_suspend_cnt; uint16_t ds_is_installed:1, ds_latched:1, dm_connect_handler_called:1, dm_cancel_handler_called:1, dm_is_xpc:1, dm_arm_no_senders:1, dm_made_sendrights:1, dm_strict_reply:1, __ds_flags_pad : 8; uint16_t __dq_flags_separation[0]; uint16_t dm_needs_mgr:1, dm_disconnected:1, __dm_flags_pad : 14;
+    void *dm_send_refs;
+    void *dm_xpc_term_refs;
+} __attribute__((aligned(8)));
 
 #endif /* libdispatch_defines_hpp */

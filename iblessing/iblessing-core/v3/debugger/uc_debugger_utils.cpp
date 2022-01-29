@@ -224,6 +224,8 @@ static void debugLoop(uc_engine *uc) {
             }
         } else if (cmd == "bt") {
             uc_debug_print_backtrace(uc);
+        } else if (cmd == "btt") {
+            uc_debug_print_backtrace(uc, true);
         } else if (cmd == "mmap") {
             print_uc_mem_regions(uc);
         } else if (cmd == "frame") {
@@ -346,4 +348,15 @@ void uc_debug_breakhere(uc_engine *uc, string desc) {
         printf("[Stalker][+][Breakpoint] break for %s\n", desc.c_str());
     }
     debugLoop(uc);
+}
+
+string uc_get_thread_state_desc(uc_engine *uc) {
+    string desc = "";
+    uint64_t val;
+    for (int i = 0; i < 29; i++) {
+        uc_arm64_reg reg = (uc_arm64_reg)(UC_ARM64_REG_X0 + i);
+        ensure_uc_reg_read(reg, &val);
+        desc += StringUtils::format(", x%d 0x%llx", i, val);
+    }
+    return desc;
 }

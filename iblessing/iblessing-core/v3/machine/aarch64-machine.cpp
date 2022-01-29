@@ -35,7 +35,7 @@ static csh cs_handle;
 static uc_hook insn_hook;
 #endif
 
-static uc_hook intr_hook, memexp_hook;
+static uc_hook intr_hook, memexp_hook, memaccess_hook;
 
 static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, void *user_data) {
     // the hook is **before execute**, redirect pc cause the execute to be cancelled
@@ -154,6 +154,10 @@ static void uc_hookintr_callback(uc_engine *uc, uint32_t intno, void *user_data)
     free(codes);
 }
 
+static bool mem_access_hook_callback(uc_engine *uc, uc_mem_type type, uint64_t address, int size, int64_t value, void *user_data) {
+    return true;
+}
+
 static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_t address, int size, int64_t value, void *user_data) {
 //    if (type == UC_MEM_READ_UNMAPPED || type == UC_MEM_WRITE_UNMAPPED) {
 //#define UC_PAGE_SIZE 0x1000
@@ -173,6 +177,7 @@ static bool mem_exception_hook_callback(uc_engine *uc, uc_mem_type type, uint64_
     uint64_t pc;
     ensure_uc_reg_read(UC_ARM64_REG_PC, &pc);
     uc_debug_print_backtrace(uc);
+    uc_debug_print_backtrace(uc, true);
     assert(false);
     return false;
 }
@@ -286,7 +291,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
 #endif
     uc_hook_add(uc, &intr_hook, UC_HOOK_INTR, (void *)uc_hookintr_callback, NULL, 1, 0);
     uc_hook_add(uc, &memexp_hook, UC_HOOK_MEM_INVALID, (void *)mem_exception_hook_callback, NULL, 1, 0);
-    
+    uc_hook_add(uc, &memaccess_hook, UC_HOOK_MEM_WRITE, (void *)mem_access_hook_callback, NULL, 1, 0);
     // init context
     //uint64_t unicorn_sp_start = UnicornStackTopAddr;
     // BXL modification: share stack between host and guest
@@ -462,6 +467,13 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(_/Users/soulghost/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/com.tencent.xinWeChat/2.0b4.0.9/a059f2c5177212c13d02987f45ab4e54/Message/MessageTemp/4ebc709cee4f193faf94a726391c292d/Image/137581642838792_.pic.jpg_int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
+//    uc_debug_set_breakpoint(uc, 0x98EFE0D10, "tiny_malloc_should_clear call to os_unfair_lock_lock_with_options");
+//    uc_debug_set_breakpoint(uc, 0x9C893BB18, "call to dispatch_mach_connect");
+//    uc_debug_set_breakpoint(uc, 0x98004F1E4, "dispatch_lane_resume_activate");
+//    uc_debug_set_breakpoint(uc, 0x98004EE60, "call to dispatch_lane_resume_activate");
+//    uc_debug_set_breakpoint(uc, 0x980049B70, "call to dispatch_objc_activate");
+//    uc_debug_set_breakpoint(uc, 0x980049B50, "dispatch work select");
+//    uc_debug_set_breakpoint(uc, 0x980061218, "dispatch_mach_activate_VARIANT_mp after prologue");
 //    uc_debug_set_breakpoint(uc, 0x98005F4E0, "dispatch_mach_send_and_wait_for_reply:130 mach_msg");
 //    uc_debug_set_breakpoint(uc, 0x98005F684, "dispatch_mach_send_and_wait_for_reply:204 (_DWORD)v67 != msgh_local_port && (msgh_local_port + 1 > 1 || v44)");
 //    uc_debug_set_breakpoint(uc, 0x9C8941F24, "xpc_dictionary_apply(xpc_object_t xdict, xpc_dictionary_applier_t applier)");
