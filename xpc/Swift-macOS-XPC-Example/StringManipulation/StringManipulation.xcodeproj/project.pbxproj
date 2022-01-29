@@ -9,8 +9,6 @@
 /* Begin PBXBuildFile section */
 		68AE3AE024E3C30A003E25EF /* com.soulghost.stringservice.plist in Resources */ = {isa = PBXBuildFile; fileRef = 68AE3ADF24E3C30A003E25EF /* com.soulghost.stringservice.plist */; };
 		95151B411EB3CAEC002E019A /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 95151B401EB3CAEC002E019A /* main.m */; };
-		95151B791EB3DE66002E019A /* ServiceDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95151B781EB3DE66002E019A /* ServiceDelegate.swift */; };
-		95151B7B1EB3DF71002E019A /* StringManipulation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95151B7A1EB3DF71002E019A /* StringManipulation.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -143,8 +141,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				95151B791EB3DE66002E019A /* ServiceDelegate.swift in Sources */,
-				95151B7B1EB3DF71002E019A /* StringManipulation.swift in Sources */,
 				95151B411EB3CAEC002E019A /* main.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

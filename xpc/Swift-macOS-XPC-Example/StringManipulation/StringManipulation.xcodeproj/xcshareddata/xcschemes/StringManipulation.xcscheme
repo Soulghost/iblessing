@@ -42,10 +42,6 @@
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES"
       launchAutomaticallySubstyle = "2">
-      <RemoteRunnable
-         runnableDebuggingMode = "0"
-         RemotePath = "/Users/soulghost/Library/Developer/Xcode/DerivedData/ExecDaemon-hkvltppgylaodhgvwdxgzsppuqqo/Build/Products/Debug/ExecDaemonService.xpc/Contents/MacOS/ExecDaemonService">
-      </RemoteRunnable>
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
