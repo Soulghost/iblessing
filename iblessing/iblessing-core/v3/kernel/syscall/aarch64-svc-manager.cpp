@@ -809,7 +809,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 s->isMain = false;
                 s->ctx = NULL;
                 s->ticks = 0;
-                s->maxTikcs = 30;
+                s->maxTikcs = 500;
                 machine.lock()->threadManager->createThread(s);
                 return true;
             }
@@ -999,7 +999,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             s->isMain = false;
                             s->ctx = NULL;
                             s->ticks = 0;
-                            s->maxTikcs = 1000;
+                            s->maxTikcs = 500;
                             s->name = StringUtils::format("kernel_wqthread_%d", wqCounter++);
                             machine.lock()->threadManager->createThread(s);
                         }
@@ -1011,7 +1011,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         shared_ptr<PthreadInternal> s = threadManager->currentThread();
                         s->state = PthreadInternalStateNew;
                         s->ticks = 0;
-                        s->maxTikcs = 100;
+                        s->maxTikcs = 500;
                         s->discardCurrentContext = true;
                         notReturn = true;
                         threadManager->contextSwitch(nullptr, true);

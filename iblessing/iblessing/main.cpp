@@ -37,8 +37,8 @@ int main(int argc, const char *argv[]) {
 //    entry = "_testNSLog";
 //    entry = "_testXPC";
 //    entry = "_testDispatchSource";
-//    entry = "_testPthread";
-    entry = "_testDispatchASync";
+    entry = "_testPthread";
+//    entry = "_testDispatchASync";
 //    entry = "_testDispatchAsyncMain";
 //    entry = "_testAssert";
     

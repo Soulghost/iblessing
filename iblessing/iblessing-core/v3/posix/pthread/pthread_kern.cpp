@@ -164,7 +164,7 @@ void PthreadKern::contextSwitch(shared_ptr<PthreadInternal> nextThread, bool for
     activeThread = pendingThread;
     activeThread->state = PthreadInternalStateRunning;
     activeThread->ticks = 0;
-    activeThread->maxTikcs = activeThread->maxTikcs ?: 30;
+    activeThread->maxTikcs = activeThread->maxTikcs ?: 200;
 //    printf("[Stalker][+][Thread] switch to thread %s\n", activeThread->name.c_str());
 }
 

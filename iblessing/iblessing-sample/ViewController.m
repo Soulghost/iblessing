@@ -263,7 +263,8 @@ void testDispatchSource(void) {
 //    testDispatchAsyncMain();
 //    testXPC();
 //    testDispatchSource();
-    testPthread();
+//    testPthread();
+    testDispatchSource();
 }
 
 

@@ -382,7 +382,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     shared_ptr<PthreadInternal> mainThread = make_shared<PthreadInternal>();
     mainThread->isMain = true;
     mainThread->ticks = 0;
-    mainThread->maxTikcs = 50;
+    mainThread->maxTikcs = 1000;
     mainThread->name = "main";
     threadManager->createThread(mainThread);
     threadManager->setActiveThread(mainThread);
