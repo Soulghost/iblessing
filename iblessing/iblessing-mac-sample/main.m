@@ -34,9 +34,10 @@ void testXPC(void) {
     xpc_dictionary_set_uint64(req, "numbytes", 1);
     xpc_dictionary_set_uint64(req, "numpackets", 1);
     xpc_dictionary_set_int64(req, "startingPacket", 1);
-    xpc_object_t reply = xpc_connection_send_message_with_reply_sync(conn, req);
-    char *reply_msg = xpc_copy_description(reply);
-    printf("reply result %p, length %lu: %s\n", reply_msg, strlen(reply_msg), reply_msg);
+    xpc_connection_send_message(conn, req);
+//    xpc_object_t reply = xpc_connection_send_message_with_reply_sync(conn, req);
+//    char *reply_msg = xpc_copy_description(reply);
+//    printf("reply result %p, length %lu: %s\n", reply_msg, strlen(reply_msg), reply_msg);
 //    __asm__ __volatile__ ("svc #0x0");
 //    char *desc = xpc_copy_description(reply);
 //    printf("[+] reply desc length %lu\n", strlen(desc));

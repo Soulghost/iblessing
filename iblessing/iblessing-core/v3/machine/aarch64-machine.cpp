@@ -15,6 +15,7 @@
 #include "aarch64-utils.hpp"
 #include <iblessing-core/v2/util/StringUtils.h>
 #include <iblessing-core/v2/vendor/capstone/capstone.h>
+#include "libdispatch_defines.hpp"
 
 #define TraceLevelNone       0
 #define TraceLevelASM        1
@@ -127,6 +128,54 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         }
     } else {
         logger->append(StringUtils::format("[Stalker] 0x%08llx %s %s ; %s\n", insn->address, insn->mnemonic, insn->op_str, comments.c_str()));
+    }
+    
+    if (address == 0x98004EDC4) {
+        static bool hasPrintRootQueues = false;
+        if (!hasPrintRootQueues) {
+            hasPrintRootQueues = true;
+            dispatch_queue_global_s *rootQueues = (dispatch_queue_global_s *)0x9D289CFC0;
+            for (int i = 0; i < 12; i++) {
+                printf("[Stalker][*][Dispatch] root queue #%d: %p, name %s\n", i, rootQueues, rootQueues->dq_label);
+                rootQueues += 1;
+            }
+        }
+        
+        uint64_t dq;
+        uint32_t op;
+        ensure_uc_reg_read(UC_ARM64_REG_X0, &dq);
+        ensure_uc_reg_read(UC_ARM64_REG_W1, &op);
+        static const char *op_map[] = {
+            "DISPATCH_RESUME",
+            "DISPATCH_ACTIVATE",
+            "DISPATCH_ACTIVATION_DONE"
+        };
+        
+        dispatch_queue_s *queue = (dispatch_queue_s *)dq;
+        printf("[Stalker][*][Dispatch] dispatch_queue_resume dq 0x%llx(name=%s, targetq %p(%s)), op %s\n", dq, queue->dq_label, queue->do_targetq, queue->do_targetq->dq_label, op_map[op]);
+    }
+    if (address == 0x98005B8B4) {
+        uint64_t type, handler, mask, q;
+        ensure_uc_reg_read(UC_ARM64_REG_X0, &type);
+        ensure_uc_reg_read(UC_ARM64_REG_X1, &handler);
+        ensure_uc_reg_read(UC_ARM64_REG_X2, &mask);
+        ensure_uc_reg_read(UC_ARM64_REG_X3, &q);
+        dispatch_queue_s *dq = (dispatch_queue_s *)q;
+        const char *kind = *(const char **)type;
+        printf("[Stalker][*][Dispatch] dispatch_create_source type 0x%llx(%s), handler 0x%llx, mask 0x%llx, queue 0x%llx(targetq = %p(%s))\n", type, kind, handler, mask, q, dq->do_targetq,  dq->do_targetq->dq_label);
+    }
+    if (address == 0x98005C220) {
+        uint64_t source, handler;
+        ensure_uc_reg_read(UC_ARM64_REG_X0, &source);
+        ensure_uc_reg_read(UC_ARM64_REG_X1, &handler);
+        printf("[Stalker][*][Dispatch] dispatch_source_set_event_handler source 0x%llx, handler 0x%llx\n", source, handler);
+    }
+    if (address == 0x980059354) {
+        uint64_t dq;
+        ensure_uc_reg_read(UC_ARM64_REG_X0, &dq);
+        
+        dispatch_queue_s *queue = (dispatch_queue_s *)dq;
+        printf("[Stalker][*][Dispatch] dispatch_worker_thread2 process on root queue %p(%s)\n", queue, queue->dq_label);
     }
     
     free(codes);
@@ -467,7 +516,8 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(_/Users/soulghost/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/com.tencent.xinWeChat/2.0b4.0.9/a059f2c5177212c13d02987f45ab4e54/Message/MessageTemp/4ebc709cee4f193faf94a726391c292d/Image/137581642838792_.pic.jpg_int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
-//    uc_debug_set_breakpoint(uc, 0x98EFE0D10, "tiny_malloc_should_clear call to os_unfair_lock_lock_with_options");
+//    uc_debug_set_breakpoint(uc, 0x9C891D4F4, "first calculate priority");
+//    uc_debug_set_breakpoint(uc, 0x980059340, "calc priority");
 //    uc_debug_set_breakpoint(uc, 0x9C893BB18, "call to dispatch_mach_connect");
 //    uc_debug_set_breakpoint(uc, 0x98004F1E4, "dispatch_lane_resume_activate");
 //    uc_debug_set_breakpoint(uc, 0x98004EE60, "call to dispatch_lane_resume_activate");

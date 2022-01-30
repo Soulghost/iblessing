@@ -29,6 +29,7 @@ void testNetwork(void) {
 
 void testXPC(void) {
     printf("[+] prepare for connect to com.soulghost.dynamic.entrypoint\n");
+    printf("[Dispatch] global queue addr default:%p, high:%p, low:%p, bg:%p\n", dispatch_get_global_queue(0, 0), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_HIGH, 0), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0));
     static xpc_connection_t conn;
     conn = xpc_connection_create_mach_service("com.soulghost.dynamic.entrypoint", NULL, 0);
     xpc_connection_set_event_handler(conn, ^(xpc_object_t object) {
@@ -41,9 +42,10 @@ void testXPC(void) {
     xpc_dictionary_set_uint64(req, "numbytes", 1);
     xpc_dictionary_set_uint64(req, "numpackets", 1);
     xpc_dictionary_set_int64(req, "startingPacket", 1);
-    xpc_object_t reply = xpc_connection_send_message_with_reply_sync(conn, req);
-    char *reply_msg = xpc_copy_description(reply);
-    printf("reply result %p, length %lu: %s\n", reply_msg, strlen(reply_msg), reply_msg);
+    xpc_connection_send_message(conn, req);
+//    xpc_object_t reply = xpc_connection_send_message_with_reply_sync(conn, req);
+//    char *reply_msg = xpc_copy_description(reply);
+//    printf("reply result %p, length %lu: %s\n", reply_msg, strlen(reply_msg), reply_msg);
 //    __asm__ __volatile__ ("svc #0x0");
 //    char *desc = xpc_copy_description(reply);
 //    printf("[+] reply desc length %lu\n", strlen(desc));
@@ -64,8 +66,14 @@ void testXPC(void) {
 //
 //        return true;
 //    });
+    printf("wait for connection request\n");
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+        printf("async called\n");
+    });
     while (1) {
-        
+        int n = 100000;
+        while (n--);
+        printf("loop here\n");
     }
 }
 
@@ -232,6 +240,8 @@ void testDispatchSource(void) {
     });
     dispatch_resume(s);
     dispatch_async(dispatch_get_global_queue(0, 0), ^{
+//        int n = 10000;
+//        while (n--);
         dispatch_source_merge_data(s, 0xa9);
         printf("merge 0xa9\n");
     });

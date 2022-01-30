@@ -929,12 +929,13 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         break;
                     }
                     case WQOPS_QUEUE_REQTHREADS: {
-                        static int wqCounter = 0;
+                        static bool queueCreated = false;
                         
-                        if (wqCounter > 0) {
+                        if (queueCreated) {
                             retval = 0;
                             break;
                         }
+                        queueCreated = true;
                         
                         uint32_t reqcount = affinity;
                         uint32_t unpacked;
@@ -958,7 +959,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         assert(uth == nullptr);
                         
                         // try dispatch the first workq thread
-                        for (int i = 0; i < 1; i++) {
+                        bool overcommit = false;
+                        for (int i = 0; i < 2; i++) {
                             uint64_t th_stacksize = 1024 * 1024; // 0x100000
                             uint64_t th_stackaddr = machine.lock()->loader->memoryManager->alloc(th_stacksize);
                             // realstack
@@ -969,10 +971,14 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             assert(mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &threadPort) == KERN_SUCCESS);
                             
                             uint32_t upcall_flags = 0;
+                            // default queue
                             upcall_flags |= WQ_FLAG_THREAD_TSD_BASE_SET;
                             upcall_flags |= WQ_FLAG_THREAD_PRIO_SCHED;
                             upcall_flags |= WQ_FLAG_THREAD_PRIO_QOS;
-                            upcall_flags |= 4;
+                            upcall_flags |= 4; // 0x80 << 4 => 0x8 00 (1000B)
+                            if (overcommit) {
+                                upcall_flags |= (1 << 16);
+                            }
 
                             // get tsd
                             ib_pthread_s *pthread = (ib_pthread_s *)th_stackaddr;
@@ -1000,8 +1006,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             s->ctx = NULL;
                             s->ticks = 0;
                             s->maxTikcs = 500;
-                            s->name = StringUtils::format("kernel_wqthread_%d", wqCounter++);
+                            s->name = StringUtils::format("kernel_wqthread_default_qos%s", overcommit ? "_overcommit" : "");
                             machine.lock()->threadManager->createThread(s);
+                            if (!overcommit) {
+                                overcommit = true;
+                            }
                         }
 //                        BufferedLogger::globalLogger()->stopBuffer();
                         break;

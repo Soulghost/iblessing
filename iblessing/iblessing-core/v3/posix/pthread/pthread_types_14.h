@@ -216,7 +216,7 @@ typedef union ib_mutex_seq {
     struct { uint32_t lgenval; uint32_t ugenval; };
     struct { uint32_t mgen; uint32_t ugen; };
     uint64_t seq_LU;
-    uint64_t _Atomic atomic_seq_LU;
+    uint64_t atomic_seq_LU;
 } ib_mutex_seq;
 
 static inline void
