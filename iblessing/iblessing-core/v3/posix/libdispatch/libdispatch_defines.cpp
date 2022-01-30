@@ -9,11 +9,13 @@
 #include <unistd.h>
 #include <stdint.h>
 #include "libdispatch_defines.hpp"
+#include <mach/message.h>
 
 typedef uint32_t dispatch_tid;
 typedef uint32_t dispatch_lock;
 typedef uint32_t dispatch_qos_t;
 typedef uint32_t dispatch_priority_t;
+typedef unsigned long pthread_priority_t;
 
 #define DISPATCH_DECL(name) typedef struct name##_s *name##_t
 #define DISPATCH_DECL_SUBCLASS(name, base) typedef base##_t name##_t
@@ -180,3 +182,20 @@ struct _dispatch_mach_s {
     void *dm_send_refs;
     void *dm_xpc_term_refs;
 } DISPATCH_ATOMIC64_ALIGN;
+
+struct dispatch_mach_msg_s {
+    DISPATCH_OBJECT_HEADER(mach_msg);
+    union {
+        mach_msg_option_t dmsg_options;
+        mach_error_t dmsg_error;
+    };
+    mach_port_t dmsg_reply;
+    pthread_priority_t dmsg_priority;
+    void *dmsg_voucher;
+    int dmsg_destructor;
+    size_t dmsg_size;
+    union {
+        mach_msg_header_t *dmsg_msg;
+        char dmsg_buf[0];
+    };
+};

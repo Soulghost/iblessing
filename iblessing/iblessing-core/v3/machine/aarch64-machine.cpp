@@ -516,6 +516,8 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // void __fastcall _xpc_bundle_resolve(_/Users/soulghost/Library/Containers/com.tencent.xinWeChat/Data/Library/Application Support/com.tencent.xinWeChat/2.0b4.0.9/a059f2c5177212c13d02987f45ab4e54/Message/MessageTemp/4ebc709cee4f193faf94a726391c292d/Image/137581642838792_.pic.jpg_int64 a1)
     // xpc_bundle_t xpc_bundle_create(const char *path, int /* XPC_BUNDLE_FROM_PATH = 0x1? */);
     // xpc_bundle_resolve_sync -> _xpc_bundle_resolve_sync
+    uc_debug_set_breakpoint(uc, 0x9C893C3C8, "send result");
+    uc_debug_set_breakpoint(uc, 0x980060F08, "dispatch_mach_receive_barrier_f_VARIANT_mp prologue");
 //    uc_debug_set_breakpoint(uc, 0x9C891D4F4, "first calculate priority");
 //    uc_debug_set_breakpoint(uc, 0x980059340, "calc priority");
 //    uc_debug_set_breakpoint(uc, 0x9C893BB18, "call to dispatch_mach_connect");

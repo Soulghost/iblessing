@@ -271,6 +271,12 @@ static void debugLoop(uc_engine *uc) {
             char *str = MachoMemoryUtils::uc_read_string(uc, addr, 1000, true);
             printf("0x%llx: %s (%zu)\n", addr, str, strlen(str));
             free(str);
+        } else if (cmd == "rmach_msg") {
+            debugLoopAssert(commandParts.size() == 2);
+            uint64_t addr = strtol(commandParts[1].c_str(), NULL, 16);
+            ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)addr;
+//            char *str = MachoMemoryUtils::uc_read_string(uc, addr, 1000, true);
+            printf("0x%llx: mach_msg_header - id = 0x%x, bits = 0x%x, size = 0x%x local = %d, remote = %d, voucher = %d\n", addr, hdr->msgh_id, hdr->msgh_bits, hdr->msgh_size, hdr->msgh_local_port, hdr->msgh_remote_port, hdr->msgh_voucher_port);
         } else if (cmd == "si") {
             if (commandParts.size() == 2) {
                 int count = atoi(commandParts[1].c_str());

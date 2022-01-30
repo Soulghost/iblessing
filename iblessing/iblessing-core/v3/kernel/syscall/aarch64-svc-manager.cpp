@@ -1055,6 +1055,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 return true;
             }
             case 374: { // kevent
+                uc_debug_print_backtrace(uc, true);
 #if 0
                 int kevent_qos(int kq,
                     const struct kevent_qos_s *changelist, int nchanges,
