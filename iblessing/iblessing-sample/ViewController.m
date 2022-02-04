@@ -11,7 +11,6 @@
 #include "xpc.h"
 #include <sys/sysctl.h>
 #include <pthread/pthread.h>
-#include "libdispatch_defines.hpp"
 
 void test_entry(void) {
     int a = 100;
@@ -267,8 +266,6 @@ void fuckmediaserverd() {
         printf("[*] connect result %p %s\n", object, xpc_copy_description(object));
     });
     xpc_connection_resume(conn);
-    
-    struct dispatch_mach_msg_s *mach_msg = conn;
     
     xpc_object_t req = xpc_dictionary_create(NULL, NULL, 0);
     xpc_dictionary_set_uint64(req, "type", 'read');

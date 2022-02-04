@@ -85,7 +85,7 @@ typedef struct dispatch_queue_specific_head_s {
     TAILQ_HEAD(, dispatch_queue_specific_s) dqsh_entries;
 } *dispatch_queue_specific_head_t;
 
-//typedef void *dispatch_source_type_t;
+typedef void *dispatch_source_type_t;
 typedef uintptr_t dispatch_unote_state_t;
 typedef uint32_t dispatch_unote_ident_t;
 
@@ -345,35 +345,6 @@ struct dispatch_mach_s {
     void *dm_send_refs;
     void *dm_xpc_term_refs;
 } __attribute__((aligned(8)));
-
-struct dispatch_mach_msg_s
-{
-  struct dispatch_object_s _as_do;
-  struct _os_object_s _as_os_obj;
-  const struct dispatch_mach_msg_vtable_s *do_vtable;
-  volatile int do_ref_cnt;
-  volatile int do_xref_cnt;
-  struct dispatch_mach_msg_s *volatile do_next;
-  struct dispatch_queue_s *do_targetq;
-  void *do_ctxt;
-  union
-  {
-    dispatch_function_t do_finalizer;
-    void *do_introspection_ctxt;
-  };
-  union
-  {
-    mach_msg_option_t dmsg_options;
-    mach_error_t dmsg_error;
-  };
-  mach_port_t dmsg_reply;
-  unsigned long dmsg_priority;
-  void *dmsg_voucher;
-  int dmsg_destructor;
-  size_t dmsg_size;
-  mach_msg_header_t *dmsg_msg;
-};
-
 
 struct kevent_qos_s
 {

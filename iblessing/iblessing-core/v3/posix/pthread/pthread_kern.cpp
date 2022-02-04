@@ -238,6 +238,70 @@ void PthreadKern::wakeupWithUll(shared_ptr<ib_ull> ull) {
     }
 }
 
+void PthreadKern::createWorkerThreadsIfNeeded() {
+    shared_ptr<struct workqueue> wq = workq;
+    assert(wq != nullptr);
+    
+    struct uthread *uth = wq->wq_creator;
+    assert(wq->wq_thidlecount == 0);
+    assert(uth == nullptr);
+    
+    // try dispatch the first workq thread
+    bool overcommit = false;
+    for (int i = 0; i < 2; i++) {
+        uint64_t th_stacksize = 1024 * 1024; // 0x100000
+        uint64_t th_stackaddr = machine.lock()->loader->memoryManager->alloc(th_stacksize);
+        // realstack
+        uint64_t stacktop_addr = th_stackaddr + 0x87000;
+        // try to dispatch the thread
+        // update port
+        mach_port_t threadPort = 0;
+        assert(mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &threadPort) == KERN_SUCCESS);
+        
+        uint32_t upcall_flags = 0;
+        // default queue
+        upcall_flags |= WQ_FLAG_THREAD_TSD_BASE_SET;
+        upcall_flags |= WQ_FLAG_THREAD_PRIO_SCHED;
+        upcall_flags |= WQ_FLAG_THREAD_PRIO_QOS;
+        upcall_flags |= 4; // 0x80 << 4 => 0x8 00 (1000B)
+        if (overcommit) {
+            upcall_flags |= (1 << 16);
+        }
+
+        // get tsd
+        ib_pthread_s *pthread = (ib_pthread_s *)th_stackaddr;
+        uint64_t pthreadTSD = th_stackaddr + __offsetof(ib_pthread_s, tsd);
+        *((uint64_t *)pthreadTSD + 3) = threadPort;
+
+        // init state
+        shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+        shared_ptr<PthreadInternal> s = make_shared<PthreadInternal>();
+        s->x[0] = (uint64_t)pthread; // pthread_self
+        s->x[1] = threadPort; // kport
+        s->x[2] = th_stackaddr; // stacklowaddr
+        s->x[3] = 0; // keventlist
+        s->x[4] = upcall_flags; // upcall_flags
+        s->x[5] = 0; // kevent_count
+        s->x[6] = 0;
+        s->x[7] = 0;
+        s->sp = stacktop_addr;
+        s->pc = threadManager->proc_wqthread;
+        s->thread_port = threadPort;
+        s->state = PthreadInternalStateNew;
+        s->self = th_stackaddr;
+        s->tsd = pthreadTSD;
+        s->isMain = false;
+        s->ctx = NULL;
+        s->ticks = 0;
+        s->maxTikcs = 500;
+        s->name = StringUtils::format("kernel_wqthread_default_qos%s", overcommit ? "_overcommit" : "");
+        machine.lock()->threadManager->createThread(s);
+        if (!overcommit) {
+            overcommit = true;
+        }
+    }
+}
+
 void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf) {
     // create workloop thread
     bool overcommit = true;

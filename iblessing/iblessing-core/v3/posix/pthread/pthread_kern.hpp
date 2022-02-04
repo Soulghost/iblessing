@@ -282,6 +282,7 @@ public:
     void wakeupWithUll(std::shared_ptr<ib_ull> ull);
     
     // workloop
+    void createWorkerThreadsIfNeeded();
     void pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf);
 protected:
     std::map<mach_port_t, std::shared_ptr<PthreadInternal>> port2thread;
