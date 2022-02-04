@@ -14,8 +14,24 @@ bootstrap_look_up(mach_port_t  bootstrap_port,
                   char*        service_name,
                   mach_port_t* service_port);
 
+struct kevent_qos_s
+{
+  uint64_t ident;
+  int16_t filter;
+  uint16_t flags;
+  int32_t qos;
+  uint64_t udata;
+  uint32_t fflags;
+  uint32_t xflags;
+  int64_t data;
+  uint64_t ext[4];
+};
+
 void testXPC(void) {
     printf("[+] prepare for connect to suggestd\n");
+    
+    int a;
+    struct kevent_qos_s *q = &a;
     
     mach_port_t service_port = 0;
     // com.apple.private.suggestions.reminders

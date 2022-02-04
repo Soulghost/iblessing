@@ -11,6 +11,7 @@
 
 #include <iblessing-core/v2/common/ibtypes.h>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
+#include <iblessing-core/core/polyfill/mach-universal.hpp>
 #include <map>
 #include <vector>
 //#include <iblessing-core/v3/mach-o/macho-loader.hpp>
@@ -48,6 +49,12 @@
 #define WQ_FLAG_THREAD_TSD_BASE_SET             0x00200000  /* tsd base has already been set */
 #define WQ_FLAG_THREAD_WORKLOOP                 0x00400000  /* workloop thread */
 #define WQ_FLAG_THREAD_OUTSIDEQOS               0x00800000  /* thread qos changes should not be sent to kernel */
+
+/*
+ * Workloop
+ */
+#define DISPATCH_WLH_ANON       ((void*)(~0x3ul))
+#define DISPATCH_WLH_MANAGER    ((void*)(~0x7ul))
 
 
 /*
@@ -273,6 +280,9 @@ public:
     std::shared_ptr<ib_ull> ull_get(ib_ulk_t &key, uint32_t flags);
     void yieldWithUll(std::shared_ptr<ib_ull> ull);
     void wakeupWithUll(std::shared_ptr<ib_ull> ull);
+    
+    // workloop
+    void pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf);
 protected:
     std::map<mach_port_t, std::shared_ptr<PthreadInternal>> port2thread;
     std::vector<std::shared_ptr<PthreadInternal>> threads;

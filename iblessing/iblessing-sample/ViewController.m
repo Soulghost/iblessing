@@ -11,6 +11,7 @@
 #include "xpc.h"
 #include <sys/sysctl.h>
 #include <pthread/pthread.h>
+#include "libdispatch_defines.hpp"
 
 void test_entry(void) {
     int a = 100;
@@ -42,14 +43,17 @@ void testXPC(void) {
     xpc_dictionary_set_uint64(req, "numbytes", 1);
     xpc_dictionary_set_uint64(req, "numpackets", 1);
     xpc_dictionary_set_int64(req, "startingPacket", 1);
+
+#define ASYNC_MSG
+    
+#ifdef ASYNC_MSG
     xpc_connection_send_message(conn, req);
-//    xpc_object_t reply = xpc_connection_send_message_with_reply_sync(conn, req);
-//    char *reply_msg = xpc_copy_description(reply);
-//    printf("reply result %p, length %lu: %s\n", reply_msg, strlen(reply_msg), reply_msg);
-//    __asm__ __volatile__ ("svc #0x0");
-//    char *desc = xpc_copy_description(reply);
-//    printf("[+] reply desc length %lu\n", strlen(desc));
-//    NSLog(@"[+] reply desc %s\n", xpc_copy_description(reply));
+#else
+    xpc_object_t reply = xpc_connection_send_message_with_reply_sync(conn, req);
+    char *reply_msg = xpc_copy_description(reply);
+    printf("reply result %p, length %lu: %s\n", reply_msg, strlen(reply_msg), reply_msg);
+    __asm__ __volatile__ ("svc #0x0");
+#endif
     
 //    xpc_dictionary_apply(reply, ^bool(const char *key, xpc_object_t value) {
 //        if (strcmp(key, "status") == 0) {
@@ -66,10 +70,10 @@ void testXPC(void) {
 //
 //        return true;
 //    });
-    printf("wait for connection request\n");
-    dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        printf("async called\n");
-    });
+//    printf("wait for connection request\n");
+//    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+//        printf("async called\n");
+//    });
     while (1) {
         int n = 100000;
         while (n--);
@@ -255,6 +259,26 @@ void testDispatchSource(void) {
     }
 }
 
+void fuckmediaserverd() {
+    printf("[+] prepare for connect to com.apple.audio.AudioFileServer\n");
+    static xpc_connection_t conn;
+    conn = xpc_connection_create_mach_service("com.apple.audio.AudioFileServer", NULL, XPC_CONNECTION_MACH_SERVICE_PRIVILEGED);
+    xpc_connection_set_event_handler(conn, ^(xpc_object_t object) {
+        printf("[*] connect result %p %s\n", object, xpc_copy_description(object));
+    });
+    xpc_connection_resume(conn);
+    
+    struct dispatch_mach_msg_s *mach_msg = conn;
+    
+    xpc_object_t req = xpc_dictionary_create(NULL, NULL, 0);
+    xpc_dictionary_set_uint64(req, "type", 'read');
+    xpc_dictionary_set_uint64(req, "numbytes", 1);
+    xpc_dictionary_set_uint64(req, "numpackets", 1);
+    xpc_dictionary_set_int64(req, "startingPacket", 1);
+    xpc_connection_send_message(conn, req);
+}
+
+
 @interface ViewController ()
 
 @end
@@ -272,9 +296,10 @@ void testDispatchSource(void) {
 //    test_entry();
 //    testDispatchAsyncMain();
 //    testXPC();
+    fuckmediaserverd();
 //    testDispatchSource();
 //    testPthread();
-    testDispatchSource();
+//    testDispatchSource();
 }
 
 

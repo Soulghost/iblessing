@@ -29,6 +29,14 @@ extern const mach_trap_t mach_trap_table[];
 #define    MACH_TRAP(name, arg_count, u32_arg_words, munge32)    \
     { (arg_count), (name), (u32_arg_words), #name  }
 
+#ifdef __cplusplus
+
+extern "C" {
+mach_port_name_t thread_get_special_reply_port(void);
+};
+
+#else
+
 extern mach_port_name_t mach_reply_port(void);
 
 extern mach_port_name_t thread_get_special_reply_port(void);
@@ -36,6 +44,10 @@ extern mach_port_name_t thread_get_special_reply_port(void);
 extern mach_port_name_t thread_self_trap(void);
 
 extern mach_port_name_t host_self_trap(void);
+
+#endif
+
+
 
 extern mach_msg_return_t mach_msg_trap(
     mach_msg_header_t *msg,

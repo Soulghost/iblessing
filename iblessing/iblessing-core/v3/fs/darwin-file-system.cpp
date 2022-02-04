@@ -88,8 +88,8 @@ int DarwinUdpSocket::sendto(uint64_t bufferAddr, size_t length, int flags, uint6
     assert(flags == 0 && dest_addr == 0 && dest_len == 0);
     char *buf = (char *)calloc(1, length + 1);
     ensure_uc_mem_read(bufferAddr, buf, length);
-    printf("[Stalker][*][Syscall][File][Logger] log to %s: %s", path.c_str(), buf);
-//    if (path == "/var/run/syslog" && string(buf).find("notify_register_check failed with")) {
+//    printf("[Stalker][*][Syscall][File][Logger] log to %s: %s", path.c_str(), buf);
+//    if (path == "/var/run/syslog" && string(buf).find("Message BUG in libdispatch")) {
 //        uc_debug_breakhere(uc);
 //        assert(false);
 //    }

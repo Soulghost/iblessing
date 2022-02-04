@@ -143,8 +143,10 @@ __int64 __fastcall _xpc_connection_enqueue(ib_xpc_connection_t *conn, __int64 op
       0LL,                                      // send_flags
       &send_result,
       &send_error);
-  else 
+  else {
+    // this way, send the msg id 0x10000000
     dispatch_mach_send_with_result(dispatch_mach_channel, dispatch_mach_msg, options, 0LL, &send_result, &send_error);
+  }
   result = send_result;
   if ( (unsigned __int64)(send_result - 3) >= 2 )
   {

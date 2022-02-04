@@ -199,3 +199,35 @@ struct dispatch_mach_msg_s {
         char dmsg_buf[0];
     };
 };
+
+#define DISPATCH_CONTINUATION_HEADER(x) \
+    union { \
+        const void * do_vtable; \
+        uintptr_t dc_flags; \
+    }; \
+    union { \
+        pthread_priority_t dc_priority; \
+        int dc_cache_cnt; \
+        uintptr_t dc_pad; \
+    }; \
+    struct dispatch_##x##_s *volatile do_next; \
+    struct voucher_s *dc_voucher; \
+    dispatch_function_t dc_func; \
+    void *dc_ctxt; \
+    void *dc_data; \
+    void *dc_other
+
+typedef struct dispatch_continuation_s {
+    DISPATCH_CONTINUATION_HEADER(continuation);
+} *dispatch_continuation_t;
+
+typedef struct dispatch_invoke_context_s {
+#if DISPATCH_USE_WORKQUEUE_NARROWING
+    uint64_t dic_next_narrow_check;
+#endif
+    struct dispatch_object_s *dic_barrier_waiter;
+    dispatch_qos_t dic_barrier_waiter_bucket;
+#if DISPATCH_COCOA_COMPAT
+    void *dic_autorelease_pool;
+#endif
+} dispatch_invoke_context_s, *dispatch_invoke_context_t;

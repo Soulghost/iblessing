@@ -62,6 +62,7 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
         mach_trap_idx = -trap_no;
         int ret = 0;
         bool machMsg = false;
+        bool collectionXPCReply = false;
         if(mach_trap_idx >=0 && mach_trap_idx < MACH_TRAP_TABLE_COUNT){
             mach_trap_t trap = mach_trap_table[mach_trap_idx];
             printf(" %s", trap.mach_trap_name);
@@ -69,13 +70,29 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
                 machMsg = true;
                 ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)args[0];
                 printf("(msgh_id = %d(0x%x))\n", hdr->msgh_id, hdr->msgh_id);
-//                if (hdr->msgh_id == 0) {
-//                    printf("[Stalker][!][Syscall][Mach] skip mach_msg with id %d with timeout\n", hdr->msgh_id);
-//                    uc_debug_print_backtrace(uc, true);
-//                    ret = 0;
-//                    syscall_return_value(ret);
-//                    return true;
-//                }
+                // 0x40000000 maybe bootstrap message
+                if (hdr->msgh_id == 0 || hdr->msgh_id == 0x10000000) {
+                    // 0x10000000 -> msg_send
+#if 0
+                    extern mach_msg_return_t        mach_msg(
+                        mach_msg_header_t *msg,
+                        mach_msg_option_t option,
+                        mach_msg_size_t send_size,
+                        mach_msg_size_t rcv_size,
+                        mach_port_name_t rcv_name,
+                        mach_msg_timeout_t timeout,
+                        mach_port_name_t notify);
+#endif
+                    int option = (int)args[1];
+                    int send_size = (int)args[2];
+                    int rcv_size = (int)args[3];
+                    int rcv_name = (int)args[4];
+                    int timeout = (int)args[5];
+                    int notify = (int)args[6];
+                    printf("[Stalker][+][Syscall] detect xpc msg option 0x%x, send_size 0x%x, rcv_size 0x%x, rcv_name 0x%x(%d), timeout %d, notify 0x%x(%d)\n", option, send_size, rcv_size, rcv_name, rcv_name, timeout, notify, notify);
+                    collectionXPCReply = true;
+                    uc_debug_print_backtrace(uc, true);
+                }
             } else {
                 printf("\n");
             }
@@ -124,6 +141,28 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
                     ensure_uc_mem_read(args[1], localargs, 0x10);
                     printf("[Stalker][!][Syscall][Error] trap %d syscall/mach call error %s\n", trap_no, mach_error_string(ret));
                 }
+                printf("[Stalker][+][Syscall] host syscall return value 0x%x(%d)\n", ret, ret);
+            }
+            if (collectionXPCReply) {
+#define DISPATCH_MACH_TRAILER_SIZE sizeof(dispatch_mach_trailer_t)
+#define DISPATCH_MACH_RCV_TRAILER MACH_RCV_TRAILER_AV
+
+#define DISPATCH_MACH_RCV_OPTIONS ( \
+        MACH_RCV_MSG | MACH_RCV_LARGE | MACH_RCV_LARGE_IDENTITY | \
+        MACH_RCV_TRAILER_ELEMENTS(DISPATCH_MACH_RCV_TRAILER) | \
+        MACH_RCV_TRAILER_TYPE(MACH_MSG_TRAILER_FORMAT_0) | \
+        MACH_RCV_VOUCHER)
+                
+//                int options = DISPATCH_MACH_RCV_OPTIONS;
+//                mach_msg_header_t *msgbuf = (mach_msg_header_t *)calloc(1, 0x4000);
+//                mach_port_t reply_port = thread_get_special_reply_port();
+//                mach_msg_return_t kr = mach_msg(msgbuf, options, 0, 0x4000, reply_port, 0, MACH_PORT_NULL);
+//                printf("xpc msg recv result 0x%x (%s)\n", kr, mach_error_string(kr));
+//                printf("");
+//                msgbuf->msgh_local_port = msgbuf->msgh_voucher_port;
+//                mach_msg_return_t kr = mach_msg_receive((mach_msg_header_t *)msgbuf);
+//                printf("recv result %s\n", mach_error_string(kr));
+//                machine.lock()->threadManager->pendingWorkloopForMach(msgbuf);
             }
             assert(uc_reg_write(uc, UC_ARM64_REG_W0, &ret) == UC_ERR_OK);
             return true;

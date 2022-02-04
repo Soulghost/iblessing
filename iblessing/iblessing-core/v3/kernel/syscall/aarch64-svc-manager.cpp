@@ -29,6 +29,7 @@
 #include <sys/sysctl.h>
 #include "pthread_types_14.h"
 #include "StringUtils.h"
+#include "libdispatch_defines.hpp"
 
 using namespace std;
 using namespace iblessing;
@@ -851,11 +852,14 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
 
                 printf("[Stalker][+] handle bsdthread_register: thread_start: 0x%llx, start_wqthread 0x%llx, page_size 0x%x, data 0x%llx, data_size 0x%x, offset 0x%llx\n", thread_start, start_wqthread, page_size, data, data_size, offset);
                 
-#define PTHREAD_FEATURE_FINEPRIO           0x02        /* are fine grained prioirities available */
-#define PTHREAD_FEATURE_BSDTHREADCTL       0x04        /* is the bsdthread_ctl syscall available */
+#define PTHREAD_FEATURE_DISPATCHFUNC    0x01        /* same as WQOPS_QUEUE_NEWSPISUPP, checks for dispatch function support */
+#define PTHREAD_FEATURE_FINEPRIO        0x02        /* are fine grained prioirities available */
+#define PTHREAD_FEATURE_BSDTHREADCTL    0x04        /* is the bsdthread_ctl syscall available */
 #define PTHREAD_FEATURE_SETSELF            0x08        /* is the BSDTHREAD_CTL_SET_SELF command of bsdthread_ctl available */
 #define PTHREAD_FEATURE_QOS_MAINTENANCE    0x10        /* is QOS_CLASS_MAINTENANCE available */
-#define PTHREAD_FEATURE_KEVENT             0x40        /* supports direct kevent delivery */
+#define PTHREAD_FEATURE_RESERVED        0x20        /* burnt, shipped in OSX 10.11 & iOS 9 with partial kevent delivery support */
+#define PTHREAD_FEATURE_KEVENT          0x40        /* supports direct kevent delivery */
+#define PTHREAD_FEATURE_WORKLOOP          0x80        /* supports workloops */
 #define PTHREAD_FEATURE_QOS_DEFAULT        0x40000000    /* the kernel supports QOS_CLASS_DEFAULT */
 
                 int ret =
@@ -864,6 +868,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     PTHREAD_FEATURE_SETSELF |
                     PTHREAD_FEATURE_QOS_MAINTENANCE |
                     PTHREAD_FEATURE_KEVENT |
+                    PTHREAD_FEATURE_WORKLOOP |
                     PTHREAD_FEATURE_QOS_DEFAULT;
                 
 #if 0
@@ -1026,6 +1031,17 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         threadManager->contextSwitch(nullptr, true);
                         break;
                     }
+                    case WQOPS_THREAD_WORKLOOP_RETURN: {
+                        // this thread never return
+                        shared_ptr<PthreadInternal> s = threadManager->currentThread();
+                        s->state = PthreadInternalStateNew;
+                        s->ticks = 0;
+                        s->maxTikcs = 500;
+                        s->discardCurrentContext = true;
+                        notReturn = true;
+                        threadManager->contextSwitch(nullptr, true);
+                        break;
+                    }
                     case WQOPS_SHOULD_NARROW: {
                         retval = 0;
                         break;
@@ -1055,7 +1071,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 return true;
             }
             case 374: { // kevent
-                uc_debug_print_backtrace(uc, true);
+//                uc_debug_print_backtrace(uc, true);
 #if 0
                 int kevent_qos(int kq,
                     const struct kevent_qos_s *changelist, int nchanges,

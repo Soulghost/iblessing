@@ -85,7 +85,7 @@ typedef struct dispatch_queue_specific_head_s {
     TAILQ_HEAD(, dispatch_queue_specific_s) dqsh_entries;
 } *dispatch_queue_specific_head_t;
 
-typedef void *dispatch_source_type_t;
+//typedef void *dispatch_source_type_t;
 typedef uintptr_t dispatch_unote_state_t;
 typedef uint32_t dispatch_unote_ident_t;
 
@@ -345,5 +345,62 @@ struct dispatch_mach_s {
     void *dm_send_refs;
     void *dm_xpc_term_refs;
 } __attribute__((aligned(8)));
+
+struct dispatch_mach_msg_s
+{
+  struct dispatch_object_s _as_do;
+  struct _os_object_s _as_os_obj;
+  const struct dispatch_mach_msg_vtable_s *do_vtable;
+  volatile int do_ref_cnt;
+  volatile int do_xref_cnt;
+  struct dispatch_mach_msg_s *volatile do_next;
+  struct dispatch_queue_s *do_targetq;
+  void *do_ctxt;
+  union
+  {
+    dispatch_function_t do_finalizer;
+    void *do_introspection_ctxt;
+  };
+  union
+  {
+    mach_msg_option_t dmsg_options;
+    mach_error_t dmsg_error;
+  };
+  mach_port_t dmsg_reply;
+  unsigned long dmsg_priority;
+  void *dmsg_voucher;
+  int dmsg_destructor;
+  size_t dmsg_size;
+  mach_msg_header_t *dmsg_msg;
+};
+
+
+struct kevent_qos_s
+{
+  uint64_t ident;
+  int16_t filter;
+  uint16_t flags;
+  int32_t qos;
+  uint64_t udata;
+  uint32_t fflags;
+  uint32_t xflags;
+  int64_t data;
+  uint64_t ext[4];
+};
+
+/*
+ * Filter types
+ */
+#define EVFILT_READ             (-1)
+#define EVFILT_WRITE            (-2)
+#define EVFILT_AIO              (-3)    /* attached to aio requests */
+#define EVFILT_VNODE            (-4)    /* attached to vnodes */
+#define EVFILT_PROC             (-5)    /* attached to struct proc */
+#define EVFILT_SIGNAL           (-6)    /* attached to struct proc */
+#define EVFILT_TIMER            (-7)    /* timers */
+#define EVFILT_MACHPORT         (-8)    /* Mach portsets */
+#define EVFILT_FS               (-9)    /* Filesystem events */
+#define EVFILT_USER             (-10)   /* User events */
+
 
 #endif /* libdispatch_defines_hpp */
