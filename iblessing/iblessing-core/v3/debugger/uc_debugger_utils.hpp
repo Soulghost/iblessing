@@ -12,6 +12,7 @@
 #include <iblessing-core/v2/common/ibtypes.h>
 #include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 #include <iblessing-core/v3/mach-o/macho-loader.hpp>
+#include <iblessing-core/v3/posix/libdispatch/libdispatch_defines.hpp>
 
 extern std::shared_ptr<iblessing::MachOLoader> _defaultLoader;
 
@@ -24,5 +25,6 @@ void uc_debug_set_breakpoint(uc_engine *uc, uint64_t address, std::string desc =
 bool uc_debug_check_breakpoint(uc_engine *uc, uint64_t address);
 void uc_debug_breakhere(uc_engine *uc, std::string desc = "");
 std::string uc_get_thread_state_desc(uc_engine *uc);
+void uc_debug_dump_events(uc_engine *uc, kevent_qos_s *eventlist, int n, std::string desc = "");
 
 #endif /* uc_debugger_utils_hpp */

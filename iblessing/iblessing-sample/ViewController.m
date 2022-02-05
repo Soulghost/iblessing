@@ -18,6 +18,12 @@ void test_entry(void) {
     printf("xxx %d\n", a + b);
 }
 
+void testSleep(void) {
+    printf("before sleep\n");
+    sleep(1);
+    printf("after sleep\n");
+}
+
 void testNSLog(void) {
     NSLog(@"=============================<<<<>");
 }

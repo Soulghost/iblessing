@@ -295,6 +295,7 @@ void PthreadKern::createWorkerThreadsIfNeeded() {
         s->ticks = 0;
         s->maxTikcs = 500;
         s->name = StringUtils::format("kernel_wqthread_default_qos%s", overcommit ? "_overcommit" : "");
+        s->once = false;
         machine.lock()->threadManager->createThread(s);
         if (!overcommit) {
             overcommit = true;
@@ -302,7 +303,20 @@ void PthreadKern::createWorkerThreadsIfNeeded() {
     }
 }
 
+void PthreadKern::initDispatchQueues() {
+    dispatch_queue_global_s *rootQueues = (dispatch_queue_global_s *)0x9D289CFC0;
+    for (int i = 0; i < 12; i++) {
+        printf("[Stalker][*][Dispatch] root queue #%d: %p, name %s\n", i, rootQueues, rootQueues->dq_label);
+        shared_ptr<ib_dispatch_queue_item> item = make_shared<ib_dispatch_queue_item>();
+        item->queue_in_libdispatch = (void *)rootQueues;
+        label2dispatch_queues[rootQueues->dq_label] = item;
+        rootQueues += 1;
+    }
+}
+
 void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf) {
+    createPendingWorkloopEvent();
+    return;
     // create workloop thread
     bool overcommit = true;
     uint64_t th_stacksize = 1024 * 1024; // 0x100000
@@ -329,7 +343,10 @@ void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf) {
     *((uint64_t *)pthreadTSD + 3) = threadPort;
 
     uint64_t keventlist_head_addr = machine.lock()->loader->memoryManager->alloc(0x10000);
-    uint64_t kqueue_id = 0;
+    
+    auto queueItem = label2dispatch_queues.find("com.apple.root.default-qos.overcommit");
+    assert(queueItem != label2dispatch_queues.end());
+    uint64_t kqueue_id = (uint64_t)queueItem->second->queue_in_libdispatch;
     
     uc_engine *uc = machine.lock()->uc;
     ensure_uc_mem_write(keventlist_head_addr, &kqueue_id, sizeof(uint64_t));
@@ -343,7 +360,7 @@ void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf) {
     
     kevent_qos_s *e0 = (kevent_qos_s *)keventlist_addr;
     e0->ident = 1;
-    e0->filter = EVFILT_MACHPORT;
+    e0->filter = 1;
     e0->ext[0] = (uint64_t)reply; // mach_msg_header_t (msgbuf)
     e0->ext[1] = reply->msgh_size; // mach_msg_size
     e0->ext[2] = 0; // msg priority
@@ -371,5 +388,100 @@ void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf) {
     s->ticks = 0;
     s->maxTikcs = 500;
     s->name = StringUtils::format("kernel_workloop_wqthread_default_qos%s", overcommit ? "_overcommit" : "");
+    s->once = false;
     machine.lock()->threadManager->createThread(s);
+}
+
+void PthreadKern::createPendingWorkloopEvent() {
+    bool overcommit = true;
+    uint64_t th_stacksize = 1024 * 1024; // 0x100000
+    uint64_t th_stackaddr = machine.lock()->loader->memoryManager->alloc(th_stacksize);
+    // realstack
+    uint64_t stacktop_addr = th_stackaddr + 0x87000;
+    // try to dispatch the thread
+    // update port
+    mach_port_t threadPort = 0;
+    assert(mach_port_allocate(mach_task_self(), MACH_PORT_RIGHT_RECEIVE, &threadPort) == KERN_SUCCESS);
+    
+    uint32_t upcall_flags = 0;
+    // default queue
+    upcall_flags |= WQ_FLAG_THREAD_TSD_BASE_SET;
+    upcall_flags |= WQ_FLAG_THREAD_WORKLOOP;
+    upcall_flags |= WQ_FLAG_THREAD_PRIO_SCHED;
+    upcall_flags |= WQ_FLAG_THREAD_PRIO_QOS;
+    upcall_flags |= 4; // 0x80 << 4 => 0x8 00 (1000B)
+    upcall_flags |= (1 << 16); // overcommit
+
+    // get tsd
+    ib_pthread_s *pthread = (ib_pthread_s *)th_stackaddr;
+    uint64_t pthreadTSD = th_stackaddr + __offsetof(ib_pthread_s, tsd);
+    *((uint64_t *)pthreadTSD + 3) = threadPort;
+
+    uint64_t keventlist_head_addr = machine.lock()->loader->memoryManager->alloc(0x10000);
+    
+    auto queueItem = label2dispatch_queues.find("com.apple.root.default-qos.overcommit");
+    assert(queueItem != label2dispatch_queues.end());
+    uint64_t queue_addr = (uint64_t)queueItem->second->queue_in_libdispatch;
+    
+    uc_engine *uc = machine.lock()->uc;
+    ensure_uc_mem_write(keventlist_head_addr, &queue_addr, sizeof(uint64_t));
+    uint64_t keventlist_addr = keventlist_head_addr + 8;
+    
+    int kevent_count = 1;
+    kevent_qos_s *e0 = (kevent_qos_s *)keventlist_addr;
+    e0->ident = queue_addr;
+    e0->filter = EVFILT_WORKLOOP;
+    e0->flags = 37;
+    e0->qos = 0x800008ff;
+    e0->udata = queue_addr;
+    e0->xflags = 0;
+    e0->data = 0;
+    e0->ext[0] = 0;
+    e0->ext[1] = 233;
+    
+    // init state
+    shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+    shared_ptr<PthreadInternal> s = make_shared<PthreadInternal>();
+    s->x[0] = (uint64_t)pthread; // pthread_self
+    s->x[1] = threadPort; // kport
+    s->x[2] = th_stackaddr; // stacklowaddr
+    s->x[3] = keventlist_addr; // keventlist
+    s->x[4] = upcall_flags; // upcall_flags
+    s->x[5] = kevent_count; // kevent_count
+    s->x[6] = 0;
+    s->x[7] = 0;
+    s->sp = stacktop_addr;
+    s->pc = threadManager->proc_wqthread;
+    s->thread_port = threadPort;
+    s->state = PthreadInternalStateNew;
+    s->self = th_stackaddr;
+    s->tsd = pthreadTSD;
+    s->isMain = false;
+    s->ctx = NULL;
+    s->ticks = 0;
+    s->maxTikcs = 500;
+    s->name = StringUtils::format("kernel_workloop_event_default_qos%s", overcommit ? "_overcommit" : "");
+    s->once = true;
+    machine.lock()->threadManager->createThread(s);
+}
+
+
+void* pthread_port_worker(void *ctx) {
+    mach_port_t port = *(mach_port_t *)ctx;
+    printf("[XPC] wait for port %d(0x%x)\n", port, port);
+    
+    mach_msg_header_t *msgbuf = (mach_msg_header_t *)calloc(1, 0x4000);
+    msgbuf->msgh_size = 0x4000;
+    msgbuf->msgh_local_port = port;
+    kern_return_t kr = mach_msg_receive(msgbuf);
+    printf("[XPC] msg received for port %d(0x%x), kr 0x%x(%s)\n", port, port, kr, mach_error_string(kr));
+    free(ctx);
+    return NULL;
+}
+
+void PthreadKern::wait4port_recv(ib_mach_port_t port) {
+    pthread_t s;
+    void *ctx = malloc(8);
+    *(ib_mach_port_t *)ctx = port;
+    assert(pthread_create(&s, NULL, &pthread_port_worker, ctx) == 0);
 }

@@ -134,11 +134,7 @@ static void insn_hook_callback(uc_engine *uc, uint64_t address, uint32_t size, v
         static bool hasPrintRootQueues = false;
         if (!hasPrintRootQueues) {
             hasPrintRootQueues = true;
-            dispatch_queue_global_s *rootQueues = (dispatch_queue_global_s *)0x9D289CFC0;
-            for (int i = 0; i < 12; i++) {
-                printf("[Stalker][*][Dispatch] root queue #%d: %p, name %s\n", i, rootQueues, rootQueues->dq_label);
-                rootQueues += 1;
-            }
+            uc2instance[uc]->threadManager->initDispatchQueues();
         }
         
         uint64_t dq;
@@ -433,6 +429,7 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     mainThread->ticks = 0;
     mainThread->maxTikcs = 1000;
     mainThread->name = "main";
+    mainThread->once = false;
     threadManager->createThread(mainThread);
     threadManager->setActiveThread(mainThread);
     threadManager->setInterruptEnable(true);
@@ -520,8 +517,11 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // invokes
     // _dispatch_root_queue_drain_deferred_wlh
     //
-    uc_debug_set_breakpoint(uc, 0x98005DFC8, "dispatch_mach_hooks_install_4libxpc");
-    uc_debug_set_breakpoint(uc, 0x980061338, "dispatch_mach_invoke");
+    uc_debug_set_breakpoint(uc, 0x9800666B0, "dispatch_kq_drain:46 - call to dispatch_kq_poll");
+    uc_debug_set_breakpoint(uc, 0x980065C18, "dispatch_kq_unote_update:253 - _dispatch_kq_update_one()");
+//    uc_debug_set_breakpoint(uc, 0x980065AF8, "dispatch_kq_unote_update");
+//    uc_debug_set_breakpoint(uc, 0x98005DFC8, "dispatch_mach_hooks_install_4libxpc");
+//    uc_debug_set_breakpoint(uc, 0x980061338, "dispatch_mach_invoke");
 //    uc_debug_set_breakpoint(uc, 0x980064284, "dispatch_unote_register_VARIANT_mp");
 //    uc_debug_set_breakpoint(uc, 0x980063028, "dispatch_mach_send_msg send");
 //    uc_debug_set_breakpoint(uc, 0x9800637B0, "dispatch_mach_reply_kevent_register");

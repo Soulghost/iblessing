@@ -11,6 +11,7 @@
 #include "StringUtils.h"
 #include "termcolor.h"
 #include "macho-memory.hpp"
+#include "libdispatch_defines.hpp"
 #include <map>
 
 using namespace std;
@@ -277,6 +278,27 @@ static void debugLoop(uc_engine *uc) {
             ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)addr;
 //            char *str = MachoMemoryUtils::uc_read_string(uc, addr, 1000, true);
             printf("0x%llx: mach_msg_header - id = 0x%x, bits = 0x%x, size = 0x%x local = %d, remote = %d, voucher = %d\n", addr, hdr->msgh_id, hdr->msgh_bits, hdr->msgh_size, hdr->msgh_local_port, hdr->msgh_remote_port, hdr->msgh_voucher_port);
+        } else if (cmd == "rqueue") {
+            debugLoopAssert(commandParts.size() == 2);
+            uint64_t addr = strtol(commandParts[1].c_str(), NULL, 16);
+            dispatch_queue_s *queue = (dispatch_queue_s *)addr;
+//            char *str = MachoMemoryUtils::uc_read_string(uc, addr, 1000, true);
+            printf("0x%llx: dispatch_queue_s - dq 0x%llx(name=%s, targetq %p(%s))\n", addr, addr,  queue->dq_label, queue->do_targetq, queue->do_targetq->dq_label);
+        } else if (cmd == "revent") {
+            struct dispatch_kevent64_s {
+                uint64_t        ident;          /* identifier for this event */
+                int16_t         filter;         /* filter for event */
+                uint16_t        flags;          /* general flags */
+                uint32_t        fflags;         /* filter-specific flags */
+                int64_t         data;           /* filter-specific data */
+                uint64_t        udata;          /* opaque user data identifier */
+                uint64_t        ext[2];         /* filter-specific extensions */
+            };
+            debugLoopAssert(commandParts.size() == 2);
+            uint64_t addr = strtol(commandParts[1].c_str(), NULL, 16);
+            dispatch_kevent64_s *queue = (dispatch_kevent64_s *)addr;
+//            char *str = MachoMemoryUtils::uc_read_string(uc, addr, 1000, true);
+            printf("0x%llx: dispatch_kevent64_s - ident 0x%llx, filter %hd, flags 0x%hx, fflags 0x%x, data 0x%llx, udata 0x%llx, ext[0] 0x%llx, ext[1] 0x%llx\n", addr,  queue->ident, queue->filter, queue->flags, queue->fflags, queue->data, queue->udata, queue->ext[0], queue->ext[1]);
         } else if (cmd == "si") {
             if (commandParts.size() == 2) {
                 int count = atoi(commandParts[1].c_str());
@@ -365,4 +387,35 @@ string uc_get_thread_state_desc(uc_engine *uc) {
         desc += StringUtils::format(", x%d 0x%llx", i, val);
     }
     return desc;
+}
+
+void uc_debug_dump_events(uc_engine *uc, kevent_qos_s *eventlist, int n, string desc) {
+    static map<uint16_t, string> filter2name{
+        {(-1) , "EVFILT_READ"        },
+        {(-2) , "EVFILT_WRITE"     },
+        {(-3) , "EVFILT_AIO"          },
+        {(-4) , "EVFILT_VNODE"        },
+        {(-5) , "EVFILT_PROC"         },
+        {(-6) , "EVFILT_SIGNAL"       },
+        {(-7) , "EVFILT_TIMER"      },
+        {(-8) , "EVFILT_MACHPORT"      },
+        {(-9) , "EVFILT_FS"           },
+        {(-10), "EVFILT_USER"       },
+        {(-11), "EVFILT_UNUSED_11"   },
+        {(-12), "EVFILT_VM"          },
+        {(-13), "EVFILT_SOCK"         },
+        {(-14), "EVFILT_MEMORYSTATUS"},
+        {(-15), "EVFILT_EXCEPT"      },
+        {(-17), "EVFILT_WORKLOOP"   },       
+    };
+    
+    kevent_qos_s *events = (kevent_qos_s *)calloc(n, sizeof(kevent_qos_s));
+    kevent_qos_s *events_head = events;
+    ensure_uc_mem_read((uint64_t)eventlist, (void *)events, n * sizeof(kevent_qos_s));
+    printf("[Stalker][+][Syscall][XPC] dump events for %s\n", desc.c_str());
+    for (int i = 0; i < n; i++) {
+        printf("[Stalker][+][Syscall][XPC] \tevent #%d: filter %hd(%s), ident 0x%llx, udata 0x%llx, flags 0x%hx\n", i, events->filter, filter2name[events->filter].c_str(), events->ident, events->udata, events->flags);
+        events += 1;
+    }
+    free(events_head);
 }

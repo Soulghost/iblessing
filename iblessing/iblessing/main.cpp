@@ -36,6 +36,7 @@ int main(int argc, const char *argv[]) {
 //    entry = "_testNetwork";
 //    entry = "_testNSLog";
     entry = "_testXPC";
+//    entry = "_testSleep";
 //    entry = "_testDispatchSource";
 //    entry = "_testPthread";
 //    entry = "_testDispatchASync";

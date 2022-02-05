@@ -86,10 +86,13 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
                     int option = (int)args[1];
                     int send_size = (int)args[2];
                     int rcv_size = (int)args[3];
+                    int remote_port = hdr->msgh_remote_port;
+                    int local_port = hdr->msgh_local_port;
+                    int voucher_port = hdr->msgh_voucher_port;
                     int rcv_name = (int)args[4];
                     int timeout = (int)args[5];
                     int notify = (int)args[6];
-                    printf("[Stalker][+][Syscall] detect xpc msg option 0x%x, send_size 0x%x, rcv_size 0x%x, rcv_name 0x%x(%d), timeout %d, notify 0x%x(%d)\n", option, send_size, rcv_size, rcv_name, rcv_name, timeout, notify, notify);
+                    printf("[Stalker][+][Syscall][Mach][XPC] detect xpc msg option 0x%x, send_size 0x%x, rcv_size 0x%x, remote_port 0x%x(%d), local_port 0x%x(%d), voucher_port 0x%x(%d), rcv_name 0x%x(%d), timeout %d, notify 0x%x(%d)\n", option, send_size, rcv_size, remote_port, remote_port, local_port, local_port, voucher_port, voucher_port, rcv_name, rcv_name, timeout, notify, notify);
                     collectionXPCReply = true;
                     uc_debug_print_backtrace(uc, true);
                 }
@@ -154,7 +157,9 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
         MACH_RCV_VOUCHER)
                 
 //                int options = DISPATCH_MACH_RCV_OPTIONS;
-//                mach_msg_header_t *msgbuf = (mach_msg_header_t *)calloc(1, 0x4000);
+                ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)args[0];
+                ib_mach_msg_header_t *msgbuf = (ib_mach_msg_header_t *)calloc(1, hdr->msgh_size);
+                memcpy(msgbuf, hdr, hdr->msgh_size);
 //                mach_port_t reply_port = thread_get_special_reply_port();
 //                mach_msg_return_t kr = mach_msg(msgbuf, options, 0, 0x4000, reply_port, 0, MACH_PORT_NULL);
 //                printf("xpc msg recv result 0x%x (%s)\n", kr, mach_error_string(kr));

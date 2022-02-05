@@ -219,6 +219,7 @@ typedef struct PthreadInternal {
     std::string name;
     bool discardCurrentContext;
     PthreadContinuation continuation;
+    bool once;
 } PthreadInternal;
 
 typedef enum {
@@ -258,6 +259,10 @@ typedef struct ib_ull {
 //    queue_chain_t   ull_hash_link;
 } ib_ull_t;
 
+typedef struct ib_dispatch_queue_item {
+    void *queue_in_libdispatch;
+} ib_dispatch_queue_item;
+
 class PthreadKern {
 public:
     uint64_t proc_threadstart;
@@ -282,8 +287,10 @@ public:
     void wakeupWithUll(std::shared_ptr<ib_ull> ull);
     
     // workloop
+    void initDispatchQueues();
     void createWorkerThreadsIfNeeded();
     void pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf);
+    void wait4port_recv(ib_mach_port_t port);
 protected:
     std::map<mach_port_t, std::shared_ptr<PthreadInternal>> port2thread;
     std::vector<std::shared_ptr<PthreadInternal>> threads;
@@ -295,6 +302,11 @@ protected:
     std::vector<std::shared_ptr<PthreadInternal>> waitqThreads;
     
     std::pair<int, std::pair<uint64_t, uint64_t>> ull_hashindex(ib_ulk_t &key);
+    
+    // workqueue
+    std::map<std::string, std::shared_ptr<ib_dispatch_queue_item>> label2dispatch_queues;
+    
+    void createPendingWorkloopEvent();
 };
 
 NS_IB_END

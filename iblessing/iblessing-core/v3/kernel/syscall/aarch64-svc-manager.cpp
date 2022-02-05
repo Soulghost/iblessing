@@ -811,6 +811,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 s->ctx = NULL;
                 s->ticks = 0;
                 s->maxTikcs = 500;
+                s->once = false;
                 machine.lock()->threadManager->createThread(s);
                 return true;
             }
@@ -835,6 +836,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 
                 // context switch
                 machine.lock()->threadManager->terminateThread(port);
+                return true;
+            }
+            case 362: {
+                // 362    AUE_KQUEUE    ALL    { int kqueue(void); }
+                int kq = kqueue();
+                syscall_return_value(kq);
                 return true;
             }
             case 366: { // bsdthread_register
@@ -1012,6 +1019,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             s->ticks = 0;
                             s->maxTikcs = 500;
                             s->name = StringUtils::format("kernel_wqthread_default_qos%s", overcommit ? "_overcommit" : "");
+                            s->once = false;
                             machine.lock()->threadManager->createThread(s);
                             if (!overcommit) {
                                 overcommit = true;
@@ -1028,7 +1036,11 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         s->maxTikcs = 500;
                         s->discardCurrentContext = true;
                         notReturn = true;
-                        threadManager->contextSwitch(nullptr, true);
+                        if (!s->once) {
+                            threadManager->contextSwitch(nullptr, true);
+                        } else {
+                            threadManager->terminateThread(s->thread_port);
+                        }
                         break;
                     }
                     case WQOPS_THREAD_WORKLOOP_RETURN: {
@@ -1071,7 +1083,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 return true;
             }
             case 374: { // kevent
-//                uc_debug_print_backtrace(uc, true);
 #if 0
                 int kevent_qos(int kq,
                     const struct kevent_qos_s *changelist, int nchanges,
@@ -1080,21 +1091,6 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     unsigned int flags);
 #endif
                 // dispatch_kq_init -> dispatch_kq_poll (looping)
-                #pragma pack(push, 1)
-                struct kevent_qos_s
-                {
-                  uint64_t ident;
-                  int16_t filter;
-                  uint16_t flags;
-                  int32_t qos;
-                  uint64_t udata;
-                  uint32_t fflags;
-                  uint32_t xflags;
-                  int64_t data;
-                  uint64_t ext[4];
-                };
-                #pragma pack(pop)
-
                 int kq;
                 struct kevent_qos_s *changelist;
                 int nchanges;
@@ -1111,6 +1107,27 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_X5, &data_out);
                 ensure_uc_reg_read(UC_ARM64_REG_X6, &data_available);
                 ensure_uc_reg_read(UC_ARM64_REG_W7, &flags);
+                
+                if (nchanges > 0) {
+                    uc_debug_dump_events(uc, changelist, nchanges, "kevent_qos with changelist");
+                }
+                if (nevents > 0) {
+                    printf("[Stalker][+][Syscall][XPC] \t--| max event to extract: %d\n", nevents);
+                    if (nchanges > 0) {
+                        kevent_qos_s *changes = changelist;
+                        if (changes->filter == EVFILT_MACHPORT) {
+                            ensure_uc_mem_write((uint64_t)eventlist, changelist, sizeof(kevent_qos_s));
+                            machine.lock()->threadManager->wait4port_recv((ib_mach_port_t)changes->ident);
+                            syscall_return_value(1);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+                
+                int kr = kevent_qos(kq, changelist, nchanges, eventlist, nevents, data_out, data_available, flags);
+                syscall_return_value(kr);
+                return true;
                 
                 if (nchanges == 1 && eventlist == NULL && nevents == 0) {
                     // kqueue init
@@ -1139,6 +1156,58 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     uc_debug_print_backtrace(uc, true);
                     assert(0);
                 }
+                return true;
+            }
+            case 375: { // kevent_id
+#if 0
+                int kevent_id(kqueue_id_t id,
+                    const struct kevent_qos_s *changelist, int nchanges,
+                    struct kevent_qos_s *eventlist, int nevents,
+                    void *data_out, size_t *data_available,
+                    unsigned int flags);
+#endif
+                // dispatch_kq_init -> dispatch_kq_poll (looping)
+                uint64_t kqueue_id;
+                struct kevent_qos_s *changelist;
+                int nchanges;
+                struct kevent_qos_s *eventlist;
+                int nevents;
+                void *data_out;
+                size_t *data_available;
+                unsigned int flags;
+                ensure_uc_reg_read(UC_ARM64_REG_X0, &kqueue_id);
+                ensure_uc_reg_read(UC_ARM64_REG_X1, &changelist);
+                ensure_uc_reg_read(UC_ARM64_REG_W2, &nchanges);
+                ensure_uc_reg_read(UC_ARM64_REG_X3, &eventlist);
+                ensure_uc_reg_read(UC_ARM64_REG_W4, &nevents);
+                ensure_uc_reg_read(UC_ARM64_REG_X5, &data_out);
+                ensure_uc_reg_read(UC_ARM64_REG_X6, &data_available);
+                ensure_uc_reg_read(UC_ARM64_REG_W7, &flags);
+                if (nchanges > 0) {
+                    uc_debug_dump_events(uc, changelist, nchanges, "kevent_id with changelist");
+                }
+                if (nevents > 0) {
+                    printf("[Stalker][+][Syscall][XPC] \t--| max event to extract: %d\n", nevents);
+                    if (nchanges > 0) {
+                        kevent_qos_s *changes = changelist;
+                        if (changes->filter == EVFILT_MACHPORT) {
+                            ensure_uc_mem_write((uint64_t)eventlist, changelist, sizeof(kevent_qos_s));
+                            machine.lock()->threadManager->wait4port_recv((ib_mach_port_t)changes->ident);
+                            syscall_return_value(1);
+                            return true;
+                        }
+                    }
+                }
+                return false;
+                
+                
+                kern_return_t kr = kevent_id((void *)kqueue_id, changelist, nchanges, eventlist, nevents, data_out, data_available, flags);
+                syscall_return_value(kr);
+                machine.lock()->threadManager->createWorkerThreadsIfNeeded();
+                return true;
+                
+                uc_debug_print_backtrace(uc, true);
+                syscall_return_value(0);
                 return true;
             }
             case 381: { // sandbox_ms

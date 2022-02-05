@@ -10,13 +10,14 @@
 #define libdispatch_defines_hpp
 
 //#include <stdio.h>
+#include <mach/mach.h>
 
 typedef uint32_t dispatch_tid;
 typedef uint32_t dispatch_lock;
 typedef uint32_t dispatch_qos_t;
 typedef uint32_t dispatch_priority_t;
 typedef unsigned long dispatch_mach_reason_t;
-typedef uint32_t mach_error_t;
+//typedef uint32_t mach_error_t;
 typedef void *dispatch_mach_msg_t;
 typedef void (*dispatch_function_t)(void *_Nullable);
 #define DISPATCH_ATOMIC64_ALIGN  __attribute__((aligned(8)))
@@ -372,6 +373,45 @@ struct kevent_qos_s
 #define EVFILT_MACHPORT         (-8)    /* Mach portsets */
 #define EVFILT_FS               (-9)    /* Filesystem events */
 #define EVFILT_USER             (-10)   /* User events */
+#define EVFILT_UNUSED_11        (-11)   /* (-11) unused */
+#define EVFILT_VM               (-12)   /* Virtual memory events */
+#define EVFILT_SOCK             (-13)   /* Socket events */
+#define EVFILT_MEMORYSTATUS     (-14)   /* Memorystatus events */
+#define EVFILT_EXCEPT           (-15)   /* Exception events */
+#define EVFILT_WORKLOOP         (-17)   /* Workloop events */
 
+
+typedef struct dispatch_deferred_items_s {
+    dispatch_queue_global_s *ddi_stashed_rq;
+    dispatch_object_s *ddi_stashed_dou;
+    dispatch_qos_t ddi_stashed_qos;
+    void *ddi_wlh;
+    kevent_qos_s *ddi_eventlist;
+    uint16_t ddi_nevents;
+    uint16_t ddi_maxevents;
+    bool     ddi_can_stash;
+    uint16_t ddi_wlh_needs_delete : 1;
+    uint16_t ddi_wlh_needs_update : 1;
+    uint16_t ddi_wlh_servicing : 1;
+} dispatch_deferred_items_s, *dispatch_deferred_items_t;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+/* Setup workloop for mach msg rcv */
+int kevent_id(void *id,
+                     const struct kevent_qos_s *changelist, int nchanges,
+                     struct kevent_qos_s *eventlist, int nevents,
+                     void *data_out, size_t *data_available,
+                     unsigned int flags);
+
+int kevent_qos(int kq,
+                      const struct kevent_qos_s *changelist, int nchanges,
+                      struct kevent_qos_s *eventlist, int nevents,
+                      void *data_out, size_t *data_available,
+                      unsigned int flags);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* libdispatch_defines_hpp */
