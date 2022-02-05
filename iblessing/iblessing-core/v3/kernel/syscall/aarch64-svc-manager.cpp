@@ -1117,7 +1117,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         kevent_qos_s *changes = changelist;
                         if (changes->filter == EVFILT_MACHPORT) {
                             ensure_uc_mem_write((uint64_t)eventlist, changelist, sizeof(kevent_qos_s));
-                            machine.lock()->threadManager->wait4port_recv((ib_mach_port_t)changes->ident);
+                            mach_msg_header_t *msgbuf = (mach_msg_header_t *)calloc(1, 0x4000);
+                            machine.lock()->threadManager->wait4port_recv((ib_mach_port_t)changes->ident, (ib_mach_msg_header_t *)msgbuf, false);
                             syscall_return_value(1);
                             return true;
                         }
@@ -1192,7 +1193,8 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         kevent_qos_s *changes = changelist;
                         if (changes->filter == EVFILT_MACHPORT) {
                             ensure_uc_mem_write((uint64_t)eventlist, changelist, sizeof(kevent_qos_s));
-                            machine.lock()->threadManager->wait4port_recv((ib_mach_port_t)changes->ident);
+                            mach_msg_header_t *msgbuf = (mach_msg_header_t *)calloc(1, 0x4000);
+                            machine.lock()->threadManager->wait4port_recv((ib_mach_port_t)changes->ident, (ib_mach_msg_header_t *)msgbuf, true);
                             syscall_return_value(1);
                             return true;
                         }

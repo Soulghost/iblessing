@@ -466,11 +466,12 @@ void PthreadKern::createPendingWorkloopEvent() {
 }
 
 
-void* pthread_port_worker(void *ctx) {
-    mach_port_t port = *(mach_port_t *)ctx;
+void* pthread_port_worker(void *_ctx) {
+    uint64_t *ctx = (uint64_t *)_ctx;
+    mach_port_t port = (mach_port_t)ctx[0];
     printf("[XPC] wait for port %d(0x%x)\n", port, port);
     
-    mach_msg_header_t *msgbuf = (mach_msg_header_t *)calloc(1, 0x4000);
+    mach_msg_header_t *msgbuf = (mach_msg_header_t *)ctx[1];
     msgbuf->msgh_size = 0x4000;
     msgbuf->msgh_local_port = port;
     kern_return_t kr = mach_msg_receive(msgbuf);
@@ -479,9 +480,10 @@ void* pthread_port_worker(void *ctx) {
     return NULL;
 }
 
-void PthreadKern::wait4port_recv(ib_mach_port_t port) {
+void PthreadKern::wait4port_recv(ib_mach_port_t port, ib_mach_msg_header_t *msgbuf, bool sync) {
     pthread_t s;
-    void *ctx = malloc(8);
-    *(ib_mach_port_t *)ctx = port;
+    uint64_t *ctx = (uint64_t *)malloc(16);
+    ctx[0] = port;
+    ctx[1] = (uint64_t)msgbuf;
     assert(pthread_create(&s, NULL, &pthread_port_worker, ctx) == 0);
 }

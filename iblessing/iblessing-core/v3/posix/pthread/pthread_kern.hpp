@@ -290,7 +290,7 @@ public:
     void initDispatchQueues();
     void createWorkerThreadsIfNeeded();
     void pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf);
-    void wait4port_recv(ib_mach_port_t port);
+    void wait4port_recv(ib_mach_port_t port, ib_mach_msg_header_t *msgbuf, bool sync);
 protected:
     std::map<mach_port_t, std::shared_ptr<PthreadInternal>> port2thread;
     std::vector<std::shared_ptr<PthreadInternal>> threads;
