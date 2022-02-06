@@ -126,17 +126,18 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
                 ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)args[0];
                 mach_msg_header_t hh;
                 ensure_uc_mem_read(args[0], &hh, sizeof(mach_msg_header_t));
-                printf("[Stalker][!][Syscall][Error] mach_msg for id %d(0x%x) error: %s\n", hdr->msgh_id, hdr->msgh_id, mach_error_string(ret));
-                uc_debug_print_backtrace(uc);
-                int options = (int)args[1];
-                if ((options & MACH_RCV_TIMEOUT) &&
-                    (options & MACH_RCV_MSG) &&
-                    (args[3] == 0x6C || args[3] == 0x7C) &&
-                    ret == 0x10004003) {
-                    printf("[Stalker][!][Syscall][Warn] allow timeout for this mach_msg\n");
-                } else {
-                    assert(false);
-                }
+                int option = (int)args[1];
+                int send_size = (int)args[2];
+                int rcv_size = (int)args[3];
+                int remote_port = hdr->msgh_remote_port;
+                int local_port = hdr->msgh_local_port;
+                int voucher_port = hdr->msgh_voucher_port;
+                int rcv_name = (int)args[4];
+                int timeout = (int)args[5];
+                int notify = (int)args[6];
+                printf("[Stalker][!][Syscall][Mach][Error] mach_msg error 0x%x(%s), id %d(0x%x) option 0x%x, send_size 0x%x, rcv_size 0x%x, remote_port 0x%x(%d), local_port 0x%x(%d), voucher_port 0x%x(%d), rcv_name 0x%x(%d), timeout %d, notify 0x%x(%d)\n", ret, mach_error_string(ret), hdr->msgh_id, hdr->msgh_id, option, send_size, rcv_size, remote_port, remote_port, local_port, local_port, voucher_port, voucher_port, rcv_name, rcv_name, timeout, notify, notify);
+                uc_debug_print_backtrace(uc, true);
+                assert(false);
             } else if (ret != 0) {
                 // syscall / mach call
                 if (trap_no == -70) {
