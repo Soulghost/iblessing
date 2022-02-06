@@ -160,6 +160,7 @@ bool Aarch64SVCProxy::handleNormalSyscall(uc_engine *uc, uint32_t intno, uint32_
                 ib_mach_msg_header_t *hdr = (ib_mach_msg_header_t *)args[0];
                 ib_mach_msg_header_t *msgbuf = (ib_mach_msg_header_t *)calloc(1, hdr->msgh_size);
                 memcpy(msgbuf, hdr, hdr->msgh_size);
+                machine.lock()->threadManager->xpc_send_msgbuf_tmp = msgbuf;
 //                mach_port_t reply_port = thread_get_special_reply_port();
 //                mach_msg_return_t kr = mach_msg(msgbuf, options, 0, 0x4000, reply_port, 0, MACH_PORT_NULL);
 //                printf("xpc msg recv result 0x%x (%s)\n", kr, mach_error_string(kr));

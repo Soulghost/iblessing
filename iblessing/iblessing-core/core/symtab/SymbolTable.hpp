@@ -75,6 +75,8 @@ private:
     
     static SymbolTable *_instance;
     SymbolTable();
+    
+    void addDebugSymbol(uint64_t addr, std::string symName);
 };
 
 NS_IB_END

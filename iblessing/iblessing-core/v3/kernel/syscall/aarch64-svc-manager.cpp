@@ -1119,7 +1119,7 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             ensure_uc_mem_write((uint64_t)eventlist, changelist, sizeof(kevent_qos_s));
                             mach_msg_header_t *msgbuf = (mach_msg_header_t *)calloc(1, 0x4000);
                             machine.lock()->threadManager->wait4port_recv((ib_mach_port_t)changes->ident, (ib_mach_msg_header_t *)msgbuf, false);
-                            syscall_return_value(1);
+                            syscall_return_value(0);
                             return true;
                         }
                     }
@@ -1186,6 +1186,9 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                 ensure_uc_reg_read(UC_ARM64_REG_W7, &flags);
                 if (nchanges > 0) {
                     uc_debug_dump_events(uc, changelist, nchanges, "kevent_id with changelist");
+                    if (changelist->filter == EVFILT_WORKLOOP) {
+//                        uc_debug_breakhere(uc);
+                    }
                 }
                 if (nevents > 0) {
                     printf("[Stalker][+][Syscall][XPC] \t--| max event to extract: %d\n", nevents);
@@ -1195,6 +1198,9 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                             ensure_uc_mem_write((uint64_t)eventlist, changelist, sizeof(kevent_qos_s));
                             mach_msg_header_t *msgbuf = (mach_msg_header_t *)calloc(1, 0x4000);
                             machine.lock()->threadManager->wait4port_recv((ib_mach_port_t)changes->ident, (ib_mach_msg_header_t *)msgbuf, true);
+//                            uc_debug_print_backtrace(uc, true);
+//                            uc_debug_breakhere(uc);
+                            machine.lock()->threadManager->unote_tmp = changes->udata;
                             syscall_return_value(1);
                             return true;
                         }

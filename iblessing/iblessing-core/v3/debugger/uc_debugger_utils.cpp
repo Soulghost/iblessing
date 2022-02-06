@@ -406,7 +406,7 @@ void uc_debug_dump_events(uc_engine *uc, kevent_qos_s *eventlist, int n, string 
         {(-13), "EVFILT_SOCK"         },
         {(-14), "EVFILT_MEMORYSTATUS"},
         {(-15), "EVFILT_EXCEPT"      },
-        {(-17), "EVFILT_WORKLOOP"   },       
+        {(-17), "EVFILT_WORKLOOP"   },
     };
     
     kevent_qos_s *events = (kevent_qos_s *)calloc(n, sizeof(kevent_qos_s));

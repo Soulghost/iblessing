@@ -74,6 +74,17 @@ void SymbolTable::buildExportNodes(uint8_t *data, uint32_t export_off, uint32_t 
     }
 }
 
+void SymbolTable::addDebugSymbol(uint64_t addr, string symName) {
+    ib_nlist_64 *li = (ib_nlist_64 *)calloc(1, sizeof(ib_nlist_64));
+    li->n_value = addr;
+    Symbol *symbol = new Symbol();
+    symbol->name = symName;
+    symbol->info = li;
+    symbolMap.insert(li->n_value, symbol);
+    name2symbol[symName].pushBack(symbol);
+    symbol->release();
+}
+
 void SymbolTable::buildSymbolTable(std::string moduleName, uint64_t slide, uint8_t *data, uint64_t nSymbols) {
     symbols.clear();
     name2symbol.clear();
@@ -150,6 +161,35 @@ void SymbolTable::buildSymbolTable(std::string moduleName, uint64_t slide, uint8
         symbolTable.push_back({symName, li});
         symbols.push_back(symbol);
         li += 1;
+    }
+    
+    if (moduleName == "libdispatch.dylib") {
+        static vector<pair<uint64_t, string>> syms{
+            {0x98006125C, "_dispatch_mach_install"},
+            {0x980065AF8, "_dispatch_kq_unote_update"},
+            {0x9800665F8, "_dispatch_kq_drain"},
+            {0x980066A1C, "_dispatch_kq_poll"},
+            {0x98004F1CC, "_dispatch_lane_resume_activate"},
+            {0x98006120C, "_dispatch_mach_activate$VARIANT$mp"},
+            {0x98005F210, "dispatch_mach_send_with_result_VARIANT_mp"},
+            {0x98005EFCC, "_dispatch_mach_send_msg"},
+            {0x98006278C, "_dispatch_mach_send_drain"},
+            {0x980062D00, "_dispatch_mach_msg_send"},
+            {0x98006604C, "_dispatch_event_loop_poke_VARIANT_mp"}
+        };
+        for (pair<uint64_t, string> &sym : syms) {
+            addDebugSymbol(sym.first, sym.second);
+        }
+    }
+    if (moduleName == "libxpc.dylib") {
+        static vector<pair<uint64_t, string>> syms{
+            {0x9C893B9F0, "_xpc_connection_check_in"},
+            {0x9C893DC70, "_xpc_connection_init"},
+            {0x9C893C330, "_xpc_connection_enqueue"}
+        };
+        for (pair<uint64_t, string> &sym : syms) {
+            addDebugSymbol(sym.first, sym.second);
+        }
     }
 }
 

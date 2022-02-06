@@ -15,6 +15,7 @@
 #include <mach/mach_port.h>
 #include "libdispatch_defines.hpp"
 #include "pthread_types_14.h"
+#include <iblessing-core/v2/vendor/unicorn/unicorn.h>
 
 using namespace std;
 using namespace iblessing;
@@ -314,9 +315,7 @@ void PthreadKern::initDispatchQueues() {
     }
 }
 
-void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf) {
-    createPendingWorkloopEvent();
-    return;
+void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf, ib_mach_port_t recv_port, int kr) {
     // create workloop thread
     bool overcommit = true;
     uint64_t th_stacksize = 1024 * 1024; // 0x100000
@@ -342,6 +341,7 @@ void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf) {
     uint64_t pthreadTSD = th_stackaddr + __offsetof(ib_pthread_s, tsd);
     *((uint64_t *)pthreadTSD + 3) = threadPort;
 
+    shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
     uint64_t keventlist_head_addr = machine.lock()->loader->memoryManager->alloc(0x10000);
     
     auto queueItem = label2dispatch_queues.find("com.apple.root.default-qos.overcommit");
@@ -355,19 +355,20 @@ void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf) {
     int kevent_count = 1;
     
     // mach event
-    mach_msg_header_t *reply = (mach_msg_header_t *)machine.lock()->loader->memoryManager->alloc(msgbuf->msgh_size);
-    memcpy(reply, msgbuf, msgbuf->msgh_size);
-    
     kevent_qos_s *e0 = (kevent_qos_s *)keventlist_addr;
-    e0->ident = 1;
-    e0->filter = 1;
-    e0->ext[0] = (uint64_t)reply; // mach_msg_header_t (msgbuf)
-    e0->ext[1] = reply->msgh_size; // mach_msg_size
-    e0->ext[2] = 0; // msg priority
-    e0->fflags = KERN_SUCCESS; // mach_error
+    e0->ident = recv_port;
+    e0->filter = EVFILT_MACHPORT;
+    e0->flags = 0x185;
+    e0->qos = 0x800010ff;
+    e0->udata = threadManager->unote_tmp;
+    e0->fflags = kr; // mach_error
+    e0->data = 0;
+    e0->ext[0] = (uint64_t)msgbuf; // mach_msg_header_t (msgbuf)
+    e0->ext[1] = msgbuf->msgh_size; // mach_msg_size
+    e0->ext[2] = 0x000010ff000010ff; // msg priority
+    e0->ext[3] = 0;
     
     // init state
-    shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
     shared_ptr<PthreadInternal> s = make_shared<PthreadInternal>();
     s->x[0] = (uint64_t)pthread; // pthread_self
     s->x[1] = threadPort; // kport
@@ -387,8 +388,8 @@ void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf) {
     s->ctx = NULL;
     s->ticks = 0;
     s->maxTikcs = 500;
-    s->name = StringUtils::format("kernel_workloop_wqthread_default_qos%s", overcommit ? "_overcommit" : "");
-    s->once = false;
+    s->name = StringUtils::format("kernel_workloop_xpc_mach_callback_default_qos%s", overcommit ? "_overcommit" : "");
+    s->once = true;
     machine.lock()->threadManager->createThread(s);
 }
 
@@ -476,14 +477,24 @@ void* pthread_port_worker(void *_ctx) {
     msgbuf->msgh_local_port = port;
     kern_return_t kr = mach_msg_receive(msgbuf);
     printf("[XPC] msg received for port %d(0x%x), kr 0x%x(%s)\n", port, port, kr, mach_error_string(kr));
+    
+    PthreadKern *threadManager = (PthreadKern *)ctx[2];
+    
+    shared_ptr<Aarch64Machine> machine = threadManager->machine.lock();
+    ib_mach_msg_header_t *replybuf = (ib_mach_msg_header_t *)machine->loader->memoryManager->alloc(msgbuf->msgh_size);
+    uc_engine *uc = machine->uc;
+    ensure_uc_mem_write((uint64_t)replybuf, msgbuf, msgbuf->msgh_size);
+    threadManager->pendingWorkloopForMach((ib_mach_msg_header_t *)replybuf, port, kr);
+    
     free(ctx);
     return NULL;
 }
 
 void PthreadKern::wait4port_recv(ib_mach_port_t port, ib_mach_msg_header_t *msgbuf, bool sync) {
     pthread_t s;
-    uint64_t *ctx = (uint64_t *)malloc(16);
+    uint64_t *ctx = (uint64_t *)malloc(8 * 3);
     ctx[0] = port;
     ctx[1] = (uint64_t)msgbuf;
+    ctx[2] = (uint64_t)this;
     assert(pthread_create(&s, NULL, &pthread_port_worker, ctx) == 0);
 }

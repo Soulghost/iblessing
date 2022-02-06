@@ -271,6 +271,8 @@ public:
     uint64_t p_dispatchqueue_label_offset;
     std::shared_ptr<struct workqueue> workq;
     std::weak_ptr<Aarch64Machine> machine;
+    uint64_t unote_tmp;
+    ib_mach_msg_header_t *xpc_send_msgbuf_tmp;
     
     void createThread(std::shared_ptr<PthreadInternal> s);
     void terminateThread(mach_port_t port);
@@ -289,7 +291,7 @@ public:
     // workloop
     void initDispatchQueues();
     void createWorkerThreadsIfNeeded();
-    void pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf);
+    void pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf, ib_mach_port_t recv_port, int kr);
     void wait4port_recv(ib_mach_port_t port, ib_mach_msg_header_t *msgbuf, bool sync);
 protected:
     std::map<mach_port_t, std::shared_ptr<PthreadInternal>> port2thread;

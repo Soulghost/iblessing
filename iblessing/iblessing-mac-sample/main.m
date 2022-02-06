@@ -219,7 +219,7 @@ void testKevent(void) {
 }
 
 int main(int argc, const char * argv[]) {
-//    testXPC();
-    testKevent();
+    testXPC();
+//    testKevent();
     return 0;
 }
