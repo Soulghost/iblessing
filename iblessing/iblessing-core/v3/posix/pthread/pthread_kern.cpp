@@ -355,12 +355,14 @@ void PthreadKern::pendingWorkloopForMach(ib_mach_msg_header_t *msgbuf, ib_mach_p
     int kevent_count = 1;
     
     // mach event
+    uint64_t unote = threadManager->unote_tmp;
+    
     kevent_qos_s *e0 = (kevent_qos_s *)keventlist_addr;
     e0->ident = recv_port;
     e0->filter = EVFILT_MACHPORT;
-    e0->flags = 0x185;
+    e0->flags = 0x0185;
     e0->qos = 0x800010ff;
-    e0->udata = threadManager->unote_tmp;
+    e0->udata = unote; // _dispatch_unote_create_without_handle in dispatch_source_type(mach_recv (channel))
     e0->fflags = kr; // mach_error
     e0->data = 0;
     e0->ext[0] = (uint64_t)msgbuf; // mach_msg_header_t (msgbuf)

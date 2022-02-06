@@ -1046,12 +1046,16 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                     case WQOPS_THREAD_WORKLOOP_RETURN: {
                         // this thread never return
                         shared_ptr<PthreadInternal> s = threadManager->currentThread();
-                        s->state = PthreadInternalStateNew;
-                        s->ticks = 0;
-                        s->maxTikcs = 500;
-                        s->discardCurrentContext = true;
+                        if (!s->once) {
+                            s->state = PthreadInternalStateNew;
+                            s->ticks = 0;
+                            s->maxTikcs = 500;
+                            s->discardCurrentContext = true;
+                            threadManager->contextSwitch(nullptr, true);
+                        } else {
+                            threadManager->terminateThread(s->thread_port);
+                        }
                         notReturn = true;
-                        threadManager->contextSwitch(nullptr, true);
                         break;
                     }
                     case WQOPS_SHOULD_NARROW: {
@@ -1198,10 +1202,12 @@ bool Aarch64SVCManager::handleSyscall(uc_engine *uc, uint32_t intno, uint32_t sw
                         if (changes->filter == EVFILT_MACHPORT) {
                             ensure_uc_mem_write((uint64_t)eventlist, changelist, sizeof(kevent_qos_s));
                             mach_msg_header_t *msgbuf = (mach_msg_header_t *)calloc(1, 0x4000);
-                            machine.lock()->threadManager->wait4port_recv((ib_mach_port_t)changes->ident, (ib_mach_msg_header_t *)msgbuf, true);
+                            shared_ptr<PthreadKern> threadManager = machine.lock()->threadManager;
+                            threadManager->unote_tmp = eventlist->udata;
+                            threadManager->wait4port_recv((ib_mach_port_t)changes->ident, (ib_mach_msg_header_t *)msgbuf, true);
+                            printf("[Stalker][+][Syscall][XPC] \t--| set unote 0x%llx(type=0x%llx)\n", threadManager->unote_tmp, *(uint64_t *)threadManager->unote_tmp);
 //                            uc_debug_print_backtrace(uc, true);
 //                            uc_debug_breakhere(uc);
-                            machine.lock()->threadManager->unote_tmp = changes->udata;
                             // FIXME: no event
                             syscall_return_value(0);
                             return true;
