@@ -517,8 +517,19 @@ int Aarch64Machine::callModule(shared_ptr<MachOModule> module, string symbolName
     // invokes
     // _dispatch_root_queue_drain_deferred_wlh
     //
-//    uc_debug_set_breakpoint(uc, 0x98005E17C, "dispatch_match_create - set dmrr");
-    uc_debug_set_breakpoint(uc, 0x980068CC4, "_dispatch_kevent_mach_msg_recv - dux_merge_msg");
+//    uc_debug_set_breakpoint(uc, 0x98005E1E4, "_dispatch_mach_create return");
+//    uc_debug_set_breakpoint(uc, 0x98006619C, "_dispatch_event_loop_poke:85 - _dispatch_kevent_workloop_poke - _dispatch_kq_poll");
+//    uc_debug_set_breakpoint(uc, 0x9800524D8, "_dispatch_queue_wakeup -> likely(_dq_state_is_base_wlh(dq_state))");
+//    uc_debug_set_breakpoint(uc, 0x98005255C, "_dispatch_queue_wakeup -> _dispatch_queue_push_queue -> _dispatch_event_loop_poke");
+//    uc_debug_set_breakpoint(uc, 0x98005241C, "_dispatch_queue_wakeup - if ( new_state_1 == old_state ) goto done;");
+//    uc_debug_set_breakpoint(uc, 0x980052438, "_dispatch_queue_wakeup - if ( ((new_state_1 ^ old_state) & enqueue) == 0 )");
+//    uc_debug_set_breakpoint(uc, 0x9800619FC, "_dispatch_mach_wakeup_VARIANT_mp - call to dispatch_queue_wakeup_VARIANT_mp");
+//    uc_debug_set_breakpoint(uc, 0x9800619D0, "_dispatch_mach_wakeup_VARIANT_mp");
+//    uc_debug_set_breakpoint(uc, 0x980052B18, "dispatch_lane_push_VARIANT_mp - call to dispatch_queue_wakeup");
+//    uc_debug_set_breakpoint(uc, 0x98005E488, "_dispatch_mach_merge_msg_VARIANT_mp");
+//    uc_debug_set_breakpoint(uc, 0x980052328, "_dispatch_queue_wakeup(dispatch_queue_class_t dqu, dispatch_qos_t qos, dispatch_wakeup_flags_t flags, dispatch_queue_wakeup_target_t target)");
+//    uc_debug_set_breakpoint(uc, 0x98005E74C, "dispatch_mach_handle_or_push_received_msg - call __dispatch_lane_push$VARIANT$mp");
+//    uc_debug_set_breakpoint(uc, 0x980068CC4, "_dispatch_kevent_mach_msg_recv - dux_merge_msg");
 //    uc_debug_set_breakpoint(uc, 0x9800666B0, "dispatch_kq_drain:46 - call to dispatch_kq_poll");
 //    uc_debug_set_breakpoint(uc, 0x980065C18, "dispatch_kq_unote_update:253 - _dispatch_kq_update_one()");
 //    uc_debug_set_breakpoint(uc, 0x980065AF8, "dispatch_kq_unote_update");
