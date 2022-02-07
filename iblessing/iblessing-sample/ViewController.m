@@ -79,10 +79,10 @@ void testXPC(void) {
 //    dispatch_async(dispatch_get_global_queue(0, 0), ^{
 //        printf("async called\n");
 //    });
-    printf("before hehe call\n");
-    dispatch_async(dispatch_get_global_queue(0, 0), ^{
-        printf("hehe called\n");
-    });
+//    printf("before hehe call\n");
+//    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+//        printf("hehe called\n");
+//    });
     while (1) {
         int n = 100000;
         while (n--);

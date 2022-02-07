@@ -497,7 +497,7 @@ void* pthread_port_worker(void *_ctx) {
 
 void PthreadKern::wait4port_recv(ib_mach_port_t port, ib_mach_msg_header_t *msgbuf, uint64_t unote, uint64_t kqueue_id) {
     pthread_t s;
-    uint64_t *ctx = (uint64_t *)malloc(8 * 3);
+    uint64_t *ctx = (uint64_t *)malloc(8 * 5);
     ctx[0] = port;
     ctx[1] = (uint64_t)msgbuf;
     ctx[2] = (uint64_t)this;
