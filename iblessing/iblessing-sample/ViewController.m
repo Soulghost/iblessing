@@ -147,7 +147,8 @@ void testDispatchAsyncMain(void)  {
     dispatch_async(dispatch_get_main_queue(), ^{
         printf("3. main queue got called\n");
     });
-    printf("2. after async call to main queue\n");
+    printf("2. start main runloop\n");
+    CFRunLoopRun();
 }
 
 void testDispatchAfter() {

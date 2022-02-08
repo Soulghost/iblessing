@@ -218,8 +218,18 @@ void testKevent(void) {
     pthread_join(thread, NULL);
 }
 
+void testDispatchMain(void) {
+    printf("1. before call main queue\n");
+    dispatch_async(dispatch_get_main_queue(), ^{
+        printf("3. after call main queue\n");
+    });
+    printf("2. wait for main queue\n");
+    CFRunLoopRun();
+}
+
 int main(int argc, const char * argv[]) {
-    testXPC();
+//    testXPC();
+    testDispatchMain();
 //    testKevent();
     return 0;
 }

@@ -39,8 +39,8 @@ int main(int argc, const char *argv[]) {
 //    entry = "_testSleep";
 //    entry = "_testDispatchSource";
 //    entry = "_testPthread";
-    entry = "_testDispatchASync";
-//    entry = "_testDispatchAsyncMain";
+//    entry = "_testDispatchASync";
+    entry = "_testDispatchAsyncMain";
 //    entry = "_testAssert";
     
     shared_ptr<MachOLoader> loader = make_shared<MachOLoader>();
