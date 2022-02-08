@@ -35,11 +35,11 @@ int main(int argc, const char *argv[]) {
 //    entry = "_testObjc";
 //    entry = "_testNetwork";
 //    entry = "_testNSLog";
-    entry = "_testXPC";
+//    entry = "_testXPC";
 //    entry = "_testSleep";
 //    entry = "_testDispatchSource";
 //    entry = "_testPthread";
-//    entry = "_testDispatchASync";
+    entry = "_testDispatchASync";
 //    entry = "_testDispatchAsyncMain";
 //    entry = "_testAssert";
     

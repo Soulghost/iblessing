@@ -271,7 +271,7 @@ public:
     uint64_t p_dispatchqueue_label_offset;
     std::shared_ptr<struct workqueue> workq;
     std::weak_ptr<Aarch64Machine> machine;
-    ib_mach_msg_header_t *xpc_send_msgbuf_tmp;
+    bool workqCreated;
     
     void createThread(std::shared_ptr<PthreadInternal> s);
     void terminateThread(mach_port_t port);
